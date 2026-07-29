@@ -1,0 +1,10 @@
+server {
+  listen 80;
+  listen [::]:80;
+  server_name {{SERVER_NAME}};
+  client_max_body_size 10m;
+  location = /arena-proxy-health { access_log off; return 200 "ok\n"; }
+  location /api/ { proxy_pass http://127.0.0.1:{{API_PORT}}; include /etc/nginx/proxy_params; }
+  location / { proxy_pass http://127.0.0.1:{{WEB_PORT}}; include /etc/nginx/proxy_params; }
+}
+# TLS and redirects are deliberately added only after certificate validation.

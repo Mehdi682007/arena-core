@@ -1,0 +1,68 @@
+# Dependencies and caches
+node_modules/
+.turbo/
+*.tsbuildinfo
+
+# Application and test outputs
+.next/
+dist/
+build/
+coverage/
+packages/database/src/generated/
+
+# Environment and secrets (examples remain tracked)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+operator_key
+operator_key.*
+arena-staging-key
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+.cache/
+tmp/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Future generated and local infrastructure data
+generated/
+infra/volumes/
+infra/compose/docker-compose.override.yml
+infra/compose/*.local.yml
+infra/compose/*.env
+infra/**/*.log
+infra/credentials/
+infra/secrets/
+infra/inventory/*.env
+!infra/inventory/*.env.example
+storage/
+uploads/
+evidence/
+
+# Codex-local scratch/output artifacts
+work/
+outputs/
+
+# Generated release and deployment artifacts
+deployment-images.json
+release/deployment-images.json
+*.tgz
+*.tar.gz
+*.zip

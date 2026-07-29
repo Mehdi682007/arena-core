@@ -1,0 +1,49 @@
+{
+  "name": "@arena-core/database",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm db:generate && rimraf dist tsconfig.build.tsbuildinfo && tsc -p tsconfig.build.json",
+    "clean": "rimraf dist src/generated",
+    "db:format": "prisma format --config prisma.config.ts",
+    "db:generate": "prisma generate --config prisma.config.ts",
+    "db:migrate:create": "prisma migrate dev --create-only --config prisma.config.ts",
+    "db:migrate:deploy": "prisma migrate deploy --config prisma.config.ts",
+    "db:migrate:dev": "prisma migrate dev --config prisma.config.ts",
+    "db:migrate:reset": "prisma migrate reset --config prisma.config.ts",
+    "db:migrate:status": "prisma migrate status --config prisma.config.ts",
+    "db:pull": "prisma db pull --config prisma.config.ts",
+    "db:studio": "prisma studio --config prisma.config.ts",
+    "db:validate": "prisma validate --config prisma.config.ts",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "pnpm db:generate && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@arena-core/config": "workspace:*",
+    "@arena-core/eslint-config": "workspace:*",
+    "@arena-core/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "eslint": "catalog:",
+    "prisma": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,121 @@
+import assert from 'node:assert/strict';
+import { readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
+import test from 'node:test';
+import { images, migrations, root } from '../../scripts/release/release-lib.mjs';
+
+const read = (file) => readFile(path.join(root, file), 'utf8');
+
+test('Dockerfile defines pinned multi-stage non-root targets', async () => {
+  const value = await read('docker/Dockerfile');
+  assert.match(value, /FROM node:24\.14\.0-bookworm-slim AS base/);
+  assert.match(value, /pnpm install --frozen-lockfile/);
+  for (const target of ['api', 'worker', 'web']) {
+    assert.match(value, new RegExp(`FROM runtime AS ${target}`));
+  }
+  for (const target of ['migrate', 'seed']) {
+    assert.match(value, new RegExp(`FROM job-runtime AS ${target}`));
+  }
+  assert.ok((value.match(/USER 10001:10001/g) ?? []).length >= 1);
+  assert.doesNotMatch(value, /\b(latest|start:dev|db push)\b/i);
+});
+
+test('image build uses only loopback placeholder database URLs', async () => {
+  const dockerfile = await readFile(path.join(root, 'docker/Dockerfile'), 'utf8');
+  assert.match(
+    dockerfile,
+    /ENV DATABASE_DIRECT_URL=postgresql:\/\/build:build@127\.0\.0\.1:5432\/build/,
+  );
+  assert.doesNotMatch(dockerfile, /ENV DATABASE_DIRECT_URL=\$\{/);
+  assert.match(dockerfile, /turbo run build --env-mode=loose/);
+});
+
+test('production Compose has hardened services and manual seed', async () => {
+  const value = await read('infra/compose/compose.production.yml');
+  for (const service of ['arena-api', 'arena-worker', 'arena-web', 'arena-migrate', 'arena-seed']) {
+    assert.match(value, new RegExp(`\\n {2}${service}:`));
+  }
+  assert.match(value, /profiles: \[seed\]/);
+  assert.match(value, /read_only: true/);
+  assert.match(value, /no-new-privileges:true/);
+  assert.match(value, /cap_drop: \[ALL\]/);
+  assert.doesNotMatch(value, /\b(privileged|network_mode:\s*host|docker\.sock)\b/);
+  assert.doesNotMatch(value, /postgres:[\s\S]*ports:/);
+});
+
+test('release manifest locks all migrations and immutable image tags', async () => {
+  const manifest = JSON.parse(await read('release/manifest.json'));
+  assert.deepEqual(manifest.migrations, await migrations());
+  for (const image of images) {
+    assert.match(manifest.images[image], /:[^:]+-(?:[0-9a-f]{12}|uncommitted)$/i);
+    assert.doesNotMatch(manifest.images[image], /:latest$/);
+  }
+});
+
+test('prebuilt deployment manifest example contains four digest-pinned images', async () => {
+  const manifest = JSON.parse(await read('release/deployment-images.example.json'));
+  assert.equal(manifest.schemaVersion, 1);
+  assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/);
+  assert.deepEqual(Object.keys(manifest.images).sort(), ['api', 'migrate', 'web', 'worker']);
+  for (const image of Object.values(manifest.images)) {
+    assert.notEqual(image.tag, 'latest');
+    assert.match(image.digest, /^sha256:[0-9a-f]{64}$/);
+    assert.equal(image.reference, `${image.name}:${image.tag}@${image.digest}`);
+  }
+});
+
+test('prebuilt workflow builds sequentially, pushes immutable images, and never deploys', async () => {
+  const workflow = await read('.github/workflows/prebuilt-images.yml');
+  const builder = await read('scripts/release/build-prebuilt-images.sh');
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /packages: write/);
+  assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
+  assert.doesNotMatch(workflow, /strategy:\s*\n\s+matrix:|\bssh\b|scp|rsync/);
+  assert.match(builder, /for service in migrate api worker web; do/);
+  assert.match(builder, /docker build[\s\S]*--target "\$service"/);
+  assert.match(builder, /docker push "\$tagged"/);
+  assert.match(builder, /buildx imagetools inspect/);
+  assert.match(builder, /latest is forbidden/);
+});
+
+test('uncommitted release candidates are explicit and never presented as final builds', async () => {
+  const manifest = JSON.parse(await read('release/manifest.json'));
+  if (manifest.buildSha === 'uncommitted') {
+    assert.match(manifest.releaseVersion, /-rc\.\d+$/);
+    for (const image of images) assert.match(manifest.images[image], /-uncommitted$/);
+  }
+});
+
+test('cache-independent API and Worker builds remove stale incremental state', async () => {
+  for (const app of ['api', 'worker']) {
+    const manifest = JSON.parse(await read(`apps/${app}/package.json`));
+    assert.match(manifest.scripts.build, /rimraf dist tsconfig\.build\.tsbuildinfo/);
+    assert.match(manifest.scripts.clean, /rimraf dist tsconfig\.build\.tsbuildinfo/);
+  }
+});
+
+test('environment examples do not contain usable production secrets', async () => {
+  const files = (await readdir(root)).filter((name) => /^\.env.*\.example$/.test(name));
+  for (const file of files) {
+    const value = await read(file);
+    if (file.includes('production') || file.includes('staging')) {
+      assert.doesNotMatch(value, /SESSION_SECRET=(?!REQUIRED|$).+/);
+    }
+  }
+});
+
+test('CI is verification-only and has minimum permissions', async () => {
+  const value = await read('.github/workflows/release-verify.yml');
+  assert.match(value, /permissions:\s*\n {2}contents: read/);
+  assert.match(value, /push: false/);
+  assert.doesNotMatch(value, /pull_request_target|docker login|\bssh\b|kubectl|terraform|ansible/i);
+});
+
+test('backup and restore tools are opt-in and restore is confirmed', async () => {
+  const backup = await read('scripts/database/backup.mjs');
+  const restore = await read('scripts/database/restore.mjs');
+  assert.match(backup, /--execute/);
+  assert.match(backup, /pg_dump/);
+  assert.match(restore, /RESTORE_CONFIRM/);
+  assert.match(restore, /--exit-on-error/);
+});

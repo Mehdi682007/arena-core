@@ -1,0 +1,38 @@
+{
+  "name": "@arena-core/game-catalog",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf dist tsconfig.build.tsbuildinfo && tsc -p tsconfig.build.json",
+    "clean": "rimraf dist",
+    "db:seed": "pnpm db:seed:fc26",
+    "db:seed:fc26": "tsx scripts/seed-fc26.ts",
+    "db:seed:validate": "tsx scripts/validate-fc26-seed.ts",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@arena-core/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@arena-core/eslint-config": "workspace:*",
+    "@arena-core/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "tsx": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@arena-core/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    "./base": "./base.mjs",
+    "./nest": "./nest.mjs",
+    "./next": "./next.mjs",
+    "./node": "./node.mjs"
+  },
+  "peerDependencies": {
+    "@eslint/js": "9.39.2",
+    "eslint": "9.39.2",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-config-next": "16.2.11",
+    "eslint-plugin-import-x": "4.17.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.54.0"
+  }
+}

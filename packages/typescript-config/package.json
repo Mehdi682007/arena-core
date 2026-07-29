@@ -1,0 +1,12 @@
+{
+  "name": "@arena-core/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "exports": {
+    "./base.json": "./base.json",
+    "./nestjs.json": "./nestjs.json",
+    "./nextjs.json": "./nextjs.json",
+    "./node.json": "./node.json"
+  }
+}

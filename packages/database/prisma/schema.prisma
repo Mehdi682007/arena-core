@@ -1,0 +1,1602 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DISABLED
+  DELETED
+
+  @@map("user_status")
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+
+  @@map("session_status")
+}
+
+enum GameStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+
+  @@map("game_status")
+}
+
+enum PlatformFamily {
+  PLAYSTATION
+  XBOX
+  PC
+  NINTENDO
+  MOBILE
+  OTHER
+
+  @@map("platform_family")
+}
+
+enum CatalogStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+
+  @@map("catalog_status")
+}
+
+enum GameModeStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+
+  @@map("game_mode_status")
+}
+
+enum GameRulesetStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+  ARCHIVED
+
+  @@map("game_ruleset_status")
+}
+
+enum GameAccountStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+  DISCONNECTED
+
+  @@map("game_account_status")
+}
+
+enum GameAccountVerificationMethod {
+  UNVERIFIED
+  MANUAL
+
+  @@map("game_account_verification_method")
+}
+
+enum GameAccountReviewAction {
+  VERIFY
+  REJECT
+  SUSPEND
+  RESTORE
+  DISCONNECT
+
+  @@map("game_account_review_action")
+}
+
+enum MatchmakingRequestStatus {
+  PENDING
+  SEARCHING
+  PROPOSED
+  MATCHED
+  CANCELLED
+  EXPIRED
+  FAILED
+
+  @@map("matchmaking_request_status")
+}
+
+enum MatchmakingProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+
+  @@map("matchmaking_proposal_status")
+}
+
+enum MatchmakingSearchScope {
+  CROSSPLAY_GROUP
+  SAME_PLATFORM
+
+  @@map("matchmaking_search_scope")
+}
+
+enum MatchStatus {
+  CREATED
+  AWAITING_READY
+  READY
+  IN_PROGRESS
+  AWAITING_RESULT
+  RESULT_CONFLICT
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  VOIDED
+
+  @@map("match_status")
+}
+
+enum MatchParticipantSide {
+  SIDE_A
+  SIDE_B
+
+  @@map("match_participant_side")
+}
+
+enum MatchParticipantStatus {
+  PENDING
+  READY
+  CANCELLED
+
+  @@map("match_participant_status")
+}
+
+enum MatchAuditAction {
+  CREATED
+  USER_CANCELLED
+  EXPIRED
+  ADMIN_VOIDED
+  MATCH_STARTED
+  RESULT_SUBMITTED
+  RESULT_WITHDRAWN
+  RESULT_CONFIRMED
+  RESULT_CONFLICTED
+  RESULT_ADMIN_RESOLVED
+  RESULT_SUBMISSION_EXPIRED
+  EVIDENCE_SUBMITTED
+  EVIDENCE_WITHDRAWN
+  DISPUTE_OPENED
+  DISPUTE_RESPONDED
+  DISPUTE_CANCELLED
+  DISPUTE_ASSIGNED
+  DISPUTE_REVIEW_STARTED
+  DISPUTE_RESOLVED
+  DISPUTE_RESPONSE_EXPIRED
+
+  @@map("match_audit_action")
+}
+
+enum MatchEvidenceType {
+  SCREENSHOT_DECLARATION
+  VIDEO_DECLARATION
+  MATCH_SUMMARY_DECLARATION
+  TEXT_STATEMENT
+
+  @@map("match_evidence_type")
+}
+
+enum MatchEvidenceStatus {
+  ACTIVE
+  WITHDRAWN
+  LOCKED
+
+  @@map("match_evidence_status")
+}
+
+enum MatchDisputeStatus {
+  OPEN
+  AWAITING_RESPONSE
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+
+  @@map("match_dispute_status")
+}
+
+enum MatchDisputeReasonCode {
+  SCORE_MISMATCH
+  WRONG_WINNER
+  OPPONENT_NO_SHOW
+  OPPONENT_DISCONNECTED
+  INVALID_RESULT_SUBMISSION
+  RULESET_VIOLATION
+  ACCOUNT_IDENTITY_ISSUE
+  OTHER
+
+  @@map("match_dispute_reason_code")
+}
+
+enum DisputeResolutionType {
+  UPHOLD_RESULT
+  CORRECT_RESULT
+  VOID_MATCH
+  REJECT_DISPUTE
+
+  @@map("dispute_resolution_type")
+}
+
+enum MatchResultSubmissionStatus {
+  ACTIVE
+  WITHDRAWN
+  SUPERSEDED
+  CONFIRMED
+  CONFLICTING
+
+  @@map("match_result_submission_status")
+}
+
+enum MatchResultStatus {
+  CONFIRMED
+  CONFLICT
+  ADMIN_RESOLVED
+  VOIDED
+
+  @@map("match_result_status")
+}
+
+enum MatchResultConfirmationMethod {
+  PARTICIPANT_AGREEMENT
+  ADMIN_RESOLUTION
+
+  @@map("match_result_confirmation_method")
+}
+
+enum MatchResultConflictReason {
+  SUBMISSIONS_DIFFER
+  OPPONENT_DID_NOT_SUBMIT
+  INVALID_STATE_RECOVERY
+
+  @@map("match_result_conflict_reason")
+}
+
+enum WalletStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+
+  @@map("wallet_status")
+}
+
+enum LedgerAccountType {
+  USER_AVAILABLE
+  SYSTEM_ISSUANCE
+  SYSTEM_ADJUSTMENT
+  MATCH_ESCROW
+
+  @@map("ledger_account_type")
+}
+
+enum LedgerAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+
+  @@map("ledger_account_status")
+}
+
+enum LedgerTransactionType {
+  ISSUANCE
+  ADMIN_ADJUSTMENT
+  REVERSAL
+  MATCH_ENTRY_RESERVATION
+  MATCH_ENTRY_REFUND
+  MATCH_WINNER_SETTLEMENT
+  MATCH_DRAW_REFUND
+  MATCH_VOID_REFUND
+
+  @@map("ledger_transaction_type")
+}
+
+enum LedgerTransactionStatus {
+  POSTED
+  REVERSED
+
+  @@map("ledger_transaction_status")
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
+
+  @@map("ledger_entry_direction")
+}
+
+enum WalletAuditAction {
+  WALLET_CREATED
+  POINTS_ISSUED
+  BALANCE_ADJUSTED
+  TRANSACTION_REVERSED
+  RECONCILIATION_CHECKED
+  RECONCILIATION_MISMATCH
+
+  @@map("wallet_audit_action")
+}
+
+enum MatchEntryReservationStatus {
+  NOT_REQUIRED
+  RESERVED
+  RELEASED
+  REFUNDED
+  CANCELLED
+  EXPIRED
+  FAILED
+  SETTLED
+
+  @@map("match_entry_reservation_status")
+}
+
+enum MatchEntrySettlementOutcome {
+  WINNER_CREDITED
+  LOSER_CONTRIBUTED
+  DRAW_REFUNDED
+  VOID_REFUNDED
+
+  @@map("match_entry_settlement_outcome")
+}
+
+enum MatchSettlementStatus {
+  PENDING
+  SETTLED
+  REFUNDED
+  VOIDED
+  FAILED
+
+  @@map("match_settlement_status")
+}
+
+enum MatchSettlementType {
+  WINNER_TAKES_ALL
+  DRAW_REFUND
+  VOID_REFUND
+  ADMIN_CORRECTION
+
+  @@map("match_settlement_type")
+}
+
+enum RatingOutcome {
+  WIN
+  LOSS
+  DRAW
+  VOID
+
+  @@map("rating_outcome")
+}
+
+enum MatchRatingApplicationStatus {
+  APPLIED
+  FAILED
+  REVERSED
+
+  @@map("match_rating_application_status")
+}
+
+enum NotificationType {
+  MATCHMAKING_PROPOSAL_CREATED
+  MATCHMAKING_PROPOSAL_ACCEPTED
+  MATCH_READY_REQUIRED
+  MATCH_STARTED
+  MATCH_RESULT_WAITING
+  MATCH_RESULT_CONFIRMED
+  MATCH_RESULT_CONFLICT
+  MATCH_DISPUTE_OPENED
+  MATCH_DISPUTE_RESPONSE_RECEIVED
+  MATCH_DISPUTE_RESOLVED
+  MATCH_SETTLEMENT_COMPLETED
+  RATING_UPDATED
+  SECURITY_SIGN_IN
+
+  @@map("notification_type")
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("notification_priority")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+
+  @@map("notification_channel")
+}
+
+enum NotificationOutboxStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  RETRY_SCHEDULED
+  FAILED
+  DEAD_LETTERED
+  CANCELLED
+
+  @@map("notification_outbox_status")
+}
+
+enum NotificationDeliveryAttemptStatus {
+  SUCCEEDED
+  RETRYABLE_FAILURE
+  PERMANENT_FAILURE
+  SKIPPED
+
+  @@map("notification_delivery_attempt_status")
+}
+
+model User {
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status                  UserStatus               @default(PENDING_VERIFICATION)
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt               DateTime?                @map("deleted_at") @db.Timestamptz(3)
+  lastAuthenticatedAt     DateTime?                @map("last_authenticated_at") @db.Timestamptz(3)
+  securityVersion         Int                      @default(0) @map("security_version")
+  profile                 UserProfile?
+  emails                  UserEmail[]
+  passwordCredential      PasswordCredential?
+  sessions                UserSession[]
+  passwordResetTokens     PasswordResetToken[]
+  roleAssignments         UserRole[]               @relation("UserRoleSubject")
+  rolesAssigned           UserRole[]               @relation("UserRoleActor")
+  gameAccounts            UserGameAccount[]
+  gameAccountReviews      GameAccountReview[]      @relation("GameAccountReviewActor")
+  matchmakingRequests     MatchmakingRequest[]
+  rejectedProposals       MatchmakingProposal[]    @relation("MatchmakingProposalRejector")
+  matchParticipants       MatchParticipant[]
+  matchAuditEvents        MatchAuditEvent[]        @relation("MatchAuditActor")
+  resultSubmissions       MatchResultSubmission[]  @relation("MatchResultSubmitter")
+  resolvedResults         MatchResult[]            @relation("MatchResultResolver")
+  submittedEvidence       MatchEvidence[]          @relation("MatchEvidenceSubmitter")
+  openedDisputes          MatchDispute[]           @relation("MatchDisputeOpener")
+  assignedDisputes        MatchDispute[]           @relation("MatchDisputeReviewer")
+  resolvedDisputes        MatchDispute[]           @relation("MatchDisputeResolver")
+  disputeResponses        MatchDisputeResponse[]   @relation("MatchDisputeResponder")
+  resultRevisions         MatchResultRevision[]    @relation("MatchResultRevisionActor")
+  wallet                  Wallet?
+  ledgerTransactions      LedgerTransaction[]      @relation("LedgerTransactionActor")
+  walletAuditEvents       WalletAuditEvent[]       @relation("WalletAuditActor")
+  matchEntryReservations  MatchEntryReservation[]
+  playerRatings           PlayerRating[]
+  ratingChanges           PlayerRatingChange[]     @relation("RatingChangeUser")
+  opponentRatingChanges   PlayerRatingChange[]     @relation("RatingChangeOpponent")
+  ratingApplications      MatchRatingApplication[] @relation("RatingApplicationActor")
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  adminAuditEvents        AdminAuditEvent[]        @relation("AdminAuditActor")
+
+  @@index([status], map: "users_status_idx")
+  @@index([createdAt], map: "users_created_at_idx")
+  @@index([deletedAt], map: "users_deleted_at_idx")
+  @@map("users")
+}
+
+model UserProfile {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @unique(map: "user_profiles_user_id_key") @map("user_id") @db.Uuid
+  displayName String   @map("display_name") @db.VarChar(80)
+  locale      String   @default("fa") @db.VarChar(5)
+  timezone    String   @default("UTC") @db.VarChar(64)
+  countryCode String?  @map("country_code") @db.Char(2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_profiles_user_id_fkey")
+
+  @@index([countryCode], map: "user_profiles_country_code_idx")
+  @@map("user_profiles")
+}
+
+model UserEmail {
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String                   @map("user_id") @db.Uuid
+  email              String                   @db.VarChar(320)
+  normalizedEmail    String                   @unique(map: "user_emails_normalized_email_key") @map("normalized_email") @db.VarChar(320)
+  isPrimary          Boolean                  @default(false) @map("is_primary")
+  verifiedAt         DateTime?                @map("verified_at") @db.Timestamptz(3)
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_emails_user_id_fkey")
+  verificationTokens EmailVerificationToken[]
+
+  @@index([userId], map: "user_emails_user_id_idx")
+  @@index([userId, isPrimary], map: "user_emails_user_id_is_primary_idx")
+  @@index([verifiedAt], map: "user_emails_verified_at_idx")
+  @@map("user_emails")
+}
+
+model PasswordCredential {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String    @unique(map: "password_credentials_user_id_key") @map("user_id") @db.Uuid
+  passwordHash       String    @map("password_hash") @db.VarChar(512)
+  passwordAlgorithm  String    @map("password_algorithm") @db.VarChar(32)
+  passwordUpdatedAt  DateTime  @default(now()) @map("password_updated_at") @db.Timestamptz(3)
+  failedAttemptCount Int       @default(0) @map("failed_attempt_count")
+  lockedUntil        DateTime? @map("locked_until") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "password_credentials_user_id_fkey")
+
+  @@index([lockedUntil], map: "password_credentials_locked_until_idx")
+  @@map("password_credentials")
+}
+
+model UserSession {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String        @map("user_id") @db.Uuid
+  tokenHash        String        @unique(map: "user_sessions_token_hash_key") @map("token_hash") @db.VarChar(128)
+  securityVersion  Int           @map("security_version")
+  status           SessionStatus @default(ACTIVE)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt       DateTime?     @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt        DateTime      @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime?     @map("revoked_at") @db.Timestamptz(3)
+  revocationReason String?       @map("revocation_reason") @db.VarChar(128)
+  ipHash           String?       @map("ip_hash") @db.VarChar(128)
+  userAgent        String?       @map("user_agent") @db.VarChar(512)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_sessions_user_id_fkey")
+
+  @@index([userId], map: "user_sessions_user_id_idx")
+  @@index([status], map: "user_sessions_status_idx")
+  @@index([expiresAt], map: "user_sessions_expires_at_idx")
+  @@index([userId, status], map: "user_sessions_user_id_status_idx")
+  @@map("user_sessions")
+}
+
+model EmailVerificationToken {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userEmailId  String    @map("user_email_id") @db.Uuid
+  tokenHash    String    @unique(map: "email_verification_tokens_token_hash_key") @map("token_hash") @db.VarChar(128)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt   DateTime? @map("consumed_at") @db.Timestamptz(3)
+  attemptCount Int       @default(0) @map("attempt_count")
+  userEmail    UserEmail @relation(fields: [userEmailId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "email_verification_tokens_user_email_id_fkey")
+
+  @@index([userEmailId], map: "email_verification_tokens_user_email_id_idx")
+  @@index([expiresAt], map: "email_verification_tokens_expires_at_idx")
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  tokenHash       String    @unique(map: "password_reset_tokens_token_hash_key") @map("token_hash") @db.VarChar(128)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz(3)
+  requestedIpHash String?   @map("requested_ip_hash") @db.VarChar(128)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "password_reset_tokens_user_id_fkey")
+
+  @@index([userId], map: "password_reset_tokens_user_id_idx")
+  @@index([expiresAt], map: "password_reset_tokens_expires_at_idx")
+  @@map("password_reset_tokens")
+}
+
+model Role {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String           @unique(map: "roles_key_key") @db.VarChar(64)
+  name        String           @db.VarChar(100)
+  description String?          @db.VarChar(500)
+  isSystem    Boolean          @default(false) @map("is_system")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String           @unique(map: "permissions_key_key") @db.VarChar(100)
+  description String?          @db.VarChar(500)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId           String    @map("user_id") @db.Uuid
+  roleId           String    @map("role_id") @db.Uuid
+  assignedAt       DateTime  @default(now()) @map("assigned_at") @db.Timestamptz(3)
+  assignedByUserId String?   @map("assigned_by_user_id") @db.Uuid
+  expiresAt        DateTime? @map("expires_at") @db.Timestamptz(3)
+  user             User      @relation("UserRoleSubject", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_roles_user_id_fkey")
+  role             Role      @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "user_roles_role_id_fkey")
+  assignedBy       User?     @relation("UserRoleActor", fields: [assignedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "user_roles_assigned_by_user_id_fkey")
+
+  @@id([userId, roleId], map: "user_roles_pkey")
+  @@index([userId], map: "user_roles_user_id_idx")
+  @@index([roleId], map: "user_roles_role_id_idx")
+  @@index([expiresAt], map: "user_roles_expires_at_idx")
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "role_permissions_role_id_fkey")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "role_permissions_permission_id_fkey")
+
+  @@id([roleId, permissionId], map: "role_permissions_pkey")
+  @@index([permissionId], map: "role_permissions_permission_id_idx")
+  @@map("role_permissions")
+}
+
+model Game {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key                  String                @unique(map: "games_key_key") @db.VarChar(64)
+  slug                 String                @unique(map: "games_slug_key") @db.VarChar(80)
+  name                 String                @db.VarChar(120)
+  shortName            String?               @map("short_name") @db.VarChar(60)
+  description          String?               @db.VarChar(2000)
+  status               GameStatus            @default(DRAFT)
+  isVisible            Boolean               @default(false) @map("is_visible")
+  sortOrder            Int                   @default(0) @map("sort_order")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt           DateTime?             @map("archived_at") @db.Timestamptz(3)
+  platforms            GamePlatform[]
+  crossplayGroups      CrossplayGroup[]
+  modes                GameMode[]
+  rulesets             GameRuleset[]
+  userAccounts         UserGameAccount[]
+  matchmakingRequests  MatchmakingRequest[]
+  matchmakingProposals MatchmakingProposal[]
+  matches              Match[]
+  playerRatings        PlayerRating[]
+
+  @@index([status, sortOrder], map: "games_status_sort_order_idx")
+  @@map("games")
+}
+
+model Platform {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key        String         @unique(map: "platforms_key_key") @db.VarChar(64)
+  slug       String         @unique(map: "platforms_slug_key") @db.VarChar(80)
+  name       String         @db.VarChar(100)
+  family     PlatformFamily
+  status     CatalogStatus  @default(ACTIVE)
+  sortOrder  Int            @default(0) @map("sort_order")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt DateTime?      @map("archived_at") @db.Timestamptz(3)
+  games      GamePlatform[]
+
+  @@index([status, sortOrder], map: "platforms_status_sort_order_idx")
+  @@map("platforms")
+}
+
+model GamePlatform {
+  id                        String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId                    String                   @map("game_id") @db.Uuid
+  platformId                String                   @map("platform_id") @db.Uuid
+  status                    CatalogStatus            @default(ACTIVE)
+  isDefault                 Boolean                  @default(false) @map("is_default")
+  externalLabel             String?                  @map("external_label") @db.VarChar(120)
+  sortOrder                 Int                      @default(0) @map("sort_order")
+  createdAt                 DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt                DateTime?                @map("archived_at") @db.Timestamptz(3)
+  game                      Game                     @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "game_platforms_game_id_fkey")
+  platform                  Platform                 @relation(fields: [platformId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "game_platforms_platform_id_fkey")
+  crossplayGroupMemberships CrossplayGroupPlatform[]
+  userAccounts              UserGameAccount[]
+  matchmakingRequests       MatchmakingRequest[]
+  matchParticipants         MatchParticipant[]
+
+  @@unique([gameId, platformId], map: "game_platforms_game_id_platform_id_key")
+  @@unique([id, gameId], map: "game_platforms_id_game_id_key")
+  @@index([gameId, status, sortOrder], map: "game_platforms_game_status_sort_idx")
+  @@map("game_platforms")
+}
+
+model UserGameAccount {
+  id                   String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String                        @map("user_id") @db.Uuid
+  gameId               String                        @map("game_id") @db.Uuid
+  gamePlatformId       String                        @map("game_platform_id") @db.Uuid
+  handle               String                        @db.VarChar(256)
+  normalizedHandle     String                        @map("normalized_handle") @db.VarChar(256)
+  displayHandle        String                        @map("display_handle") @db.VarChar(256)
+  status               GameAccountStatus             @default(PENDING)
+  verificationMethod   GameAccountVerificationMethod @default(UNVERIFIED) @map("verification_method")
+  verificationMetadata Json?                         @map("verification_metadata")
+  isPrimary            Boolean                       @default(false) @map("is_primary")
+  verifiedAt           DateTime?                     @map("verified_at") @db.Timestamptz(3)
+  rejectedAt           DateTime?                     @map("rejected_at") @db.Timestamptz(3)
+  suspendedAt          DateTime?                     @map("suspended_at") @db.Timestamptz(3)
+  disconnectedAt       DateTime?                     @map("disconnected_at") @db.Timestamptz(3)
+  lastVerifiedAt       DateTime?                     @map("last_verified_at") @db.Timestamptz(3)
+  createdAt            DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                 User                          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "user_game_accounts_user_id_fkey")
+  game                 Game                          @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "user_game_accounts_game_id_fkey")
+  gamePlatform         GamePlatform                  @relation(fields: [gamePlatformId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "user_game_accounts_game_platform_game_fkey")
+  reviews              GameAccountReview[]
+  matchmakingRequests  MatchmakingRequest[]
+  matchParticipants    MatchParticipant[]
+
+  @@unique([id, userId, gameId, gamePlatformId], map: "user_game_accounts_identity_key")
+  @@index([userId, gameId], map: "user_game_accounts_user_game_idx")
+  @@index([userId, gamePlatformId], map: "user_game_accounts_user_game_platform_idx")
+  @@index([gamePlatformId, normalizedHandle], map: "user_game_accounts_platform_handle_idx")
+  @@index([status, createdAt], map: "user_game_accounts_status_created_at_idx")
+  @@index([isPrimary], map: "user_game_accounts_is_primary_idx")
+  @@map("user_game_accounts")
+}
+
+model GameAccountReview {
+  id            String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameAccountId String                  @map("game_account_id") @db.Uuid
+  actorUserId   String?                 @map("actor_user_id") @db.Uuid
+  action        GameAccountReviewAction
+  reasonCode    String?                 @map("reason_code") @db.VarChar(64)
+  note          String?                 @db.VarChar(500)
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  gameAccount   UserGameAccount         @relation(fields: [gameAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "game_account_reviews_account_id_fkey")
+  actor         User?                   @relation("GameAccountReviewActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "game_account_reviews_actor_id_fkey")
+
+  @@index([gameAccountId, createdAt], map: "game_account_reviews_account_created_idx")
+  @@index([actorUserId], map: "game_account_reviews_actor_idx")
+  @@index([action], map: "game_account_reviews_action_idx")
+  @@index([createdAt], map: "game_account_reviews_created_at_idx")
+  @@map("game_account_reviews")
+}
+
+model CrossplayGroup {
+  id                   String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId               String                   @map("game_id") @db.Uuid
+  key                  String                   @db.VarChar(64)
+  name                 String                   @db.VarChar(100)
+  description          String?                  @db.VarChar(1000)
+  status               CatalogStatus            @default(ACTIVE)
+  sortOrder            Int                      @default(0) @map("sort_order")
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt           DateTime?                @map("archived_at") @db.Timestamptz(3)
+  game                 Game                     @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "crossplay_groups_game_id_fkey")
+  platforms            CrossplayGroupPlatform[]
+  matchmakingRequests  MatchmakingRequest[]
+  matchmakingProposals MatchmakingProposal[]
+  matches              Match[]
+  playerRatings        PlayerRating[]
+
+  @@unique([gameId, key], map: "crossplay_groups_game_id_key_key")
+  @@unique([id, gameId], map: "crossplay_groups_id_game_id_key")
+  @@index([gameId, status, sortOrder], map: "crossplay_groups_game_status_sort_idx")
+  @@map("crossplay_groups")
+}
+
+model CrossplayGroupPlatform {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId           String         @map("game_id") @db.Uuid
+  crossplayGroupId String         @map("crossplay_group_id") @db.Uuid
+  gamePlatformId   String         @map("game_platform_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  crossplayGroup   CrossplayGroup @relation(fields: [crossplayGroupId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: Cascade, map: "crossplay_group_platforms_group_game_fkey")
+  gamePlatform     GamePlatform   @relation(fields: [gamePlatformId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: Cascade, map: "crossplay_group_platforms_platform_game_fkey")
+
+  @@unique([crossplayGroupId, gamePlatformId], map: "crossplay_group_platforms_group_platform_key")
+  @@unique([gameId, gamePlatformId], map: "crossplay_group_platforms_game_platform_key")
+  @@map("crossplay_group_platforms")
+}
+
+model GameMode {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId               String                @map("game_id") @db.Uuid
+  key                  String                @db.VarChar(64)
+  slug                 String                @db.VarChar(80)
+  name                 String                @db.VarChar(100)
+  description          String?               @db.VarChar(1000)
+  status               GameModeStatus        @default(DRAFT)
+  teamSizeMin          Int                   @map("team_size_min")
+  teamSizeMax          Int                   @map("team_size_max")
+  participantCountMin  Int                   @map("participant_count_min")
+  participantCountMax  Int                   @map("participant_count_max")
+  sortOrder            Int                   @default(0) @map("sort_order")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt           DateTime?             @map("archived_at") @db.Timestamptz(3)
+  game                 Game                  @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "game_modes_game_id_fkey")
+  rulesets             GameRuleset[]
+  matchmakingRequests  MatchmakingRequest[]
+  matchmakingProposals MatchmakingProposal[]
+  matches              Match[]
+  playerRatings        PlayerRating[]
+
+  @@unique([gameId, key], map: "game_modes_game_id_key_key")
+  @@unique([gameId, slug], map: "game_modes_game_id_slug_key")
+  @@unique([id, gameId], map: "game_modes_id_game_id_key")
+  @@index([gameId, status, sortOrder], map: "game_modes_game_status_sort_idx")
+  @@map("game_modes")
+}
+
+model GameRuleset {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId               String                @map("game_id") @db.Uuid
+  gameModeId           String                @map("game_mode_id") @db.Uuid
+  key                  String                @db.VarChar(64)
+  version              Int
+  name                 String                @db.VarChar(120)
+  description          String?               @db.VarChar(2000)
+  status               GameRulesetStatus     @default(DRAFT)
+  isDefault            Boolean               @default(false) @map("is_default")
+  configuration        Json
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  publishedAt          DateTime?             @map("published_at") @db.Timestamptz(3)
+  archivedAt           DateTime?             @map("archived_at") @db.Timestamptz(3)
+  game                 Game                  @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "game_rulesets_game_id_fkey")
+  gameMode             GameMode              @relation(fields: [gameModeId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "game_rulesets_mode_game_fkey")
+  matchmakingRequests  MatchmakingRequest[]
+  matchmakingProposals MatchmakingProposal[]
+  matches              Match[]
+
+  @@unique([gameId, key, version], map: "game_rulesets_game_key_version_key")
+  @@unique([id, gameId, gameModeId], map: "game_rulesets_id_game_mode_key")
+  @@index([gameId, gameModeId, status], map: "game_rulesets_game_mode_status_idx")
+  @@map("game_rulesets")
+}
+
+model MatchmakingRequest {
+  id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                   @map("user_id") @db.Uuid
+  userGameAccountId String                   @map("user_game_account_id") @db.Uuid
+  gameId            String                   @map("game_id") @db.Uuid
+  gameModeId        String                   @map("game_mode_id") @db.Uuid
+  gameRulesetId     String                   @map("game_ruleset_id") @db.Uuid
+  gamePlatformId    String                   @map("game_platform_id") @db.Uuid
+  crossplayGroupId  String                   @map("crossplay_group_id") @db.Uuid
+  status            MatchmakingRequestStatus @default(PENDING)
+  searchScope       MatchmakingSearchScope   @default(CROSSPLAY_GROUP) @map("search_scope")
+  criteria          Json
+  priority          Int                      @default(0)
+  searchStartedAt   DateTime?                @map("search_started_at") @db.Timestamptz(3)
+  expiresAt         DateTime                 @map("expires_at") @db.Timestamptz(3)
+  cancelledAt       DateTime?                @map("cancelled_at") @db.Timestamptz(3)
+  matchedAt         DateTime?                @map("matched_at") @db.Timestamptz(3)
+  lastEvaluatedAt   DateTime?                @map("last_evaluated_at") @db.Timestamptz(3)
+  version           Int                      @default(1)
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_user_id_fkey")
+  userGameAccount   UserGameAccount          @relation(fields: [userGameAccountId, userId, gameId, gamePlatformId], references: [id, userId, gameId, gamePlatformId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_account_identity_fkey")
+  game              Game                     @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_game_id_fkey")
+  gameMode          GameMode                 @relation(fields: [gameModeId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_mode_game_fkey")
+  gameRuleset       GameRuleset              @relation(fields: [gameRulesetId, gameId, gameModeId], references: [id, gameId, gameModeId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_ruleset_game_mode_fkey")
+  gamePlatform      GamePlatform             @relation(fields: [gamePlatformId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_platform_game_fkey")
+  crossplayGroup    CrossplayGroup           @relation(fields: [crossplayGroupId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_requests_crossplay_game_fkey")
+  proposalAsA       MatchmakingProposal[]    @relation("MatchmakingProposalRequestA")
+  proposalAsB       MatchmakingProposal[]    @relation("MatchmakingProposalRequestB")
+
+  @@index([userId, createdAt], map: "matchmaking_requests_user_created_idx")
+  @@index([userGameAccountId], map: "matchmaking_requests_account_idx")
+  @@index([gamePlatformId], map: "matchmaking_requests_platform_idx")
+  @@index([expiresAt], map: "matchmaking_requests_expires_idx")
+  @@index([status, gameId, gameModeId, gameRulesetId, crossplayGroupId, priority, createdAt], map: "matchmaking_requests_candidate_idx")
+  @@map("matchmaking_requests")
+}
+
+model MatchmakingProposal {
+  id               String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status           MatchmakingProposalStatus @default(PENDING)
+  requestAId       String                    @map("request_a_id") @db.Uuid
+  requestBId       String                    @map("request_b_id") @db.Uuid
+  gameId           String                    @map("game_id") @db.Uuid
+  gameModeId       String                    @map("game_mode_id") @db.Uuid
+  gameRulesetId    String                    @map("game_ruleset_id") @db.Uuid
+  crossplayGroupId String                    @map("crossplay_group_id") @db.Uuid
+  expiresAt        DateTime                  @map("expires_at") @db.Timestamptz(3)
+  acceptedAAt      DateTime?                 @map("accepted_a_at") @db.Timestamptz(3)
+  acceptedBAt      DateTime?                 @map("accepted_b_at") @db.Timestamptz(3)
+  rejectedAt       DateTime?                 @map("rejected_at") @db.Timestamptz(3)
+  rejectedByUserId String?                   @map("rejected_by_user_id") @db.Uuid
+  completedAt      DateTime?                 @map("completed_at") @db.Timestamptz(3)
+  version          Int                       @default(1)
+  createdAt        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  requestA         MatchmakingRequest        @relation("MatchmakingProposalRequestA", fields: [requestAId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_proposals_request_a_id_fkey")
+  requestB         MatchmakingRequest        @relation("MatchmakingProposalRequestB", fields: [requestBId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_proposals_request_b_id_fkey")
+  game             Game                      @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_proposals_game_id_fkey")
+  gameMode         GameMode                  @relation(fields: [gameModeId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_proposals_mode_game_fkey")
+  gameRuleset      GameRuleset               @relation(fields: [gameRulesetId, gameId, gameModeId], references: [id, gameId, gameModeId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_proposals_ruleset_game_mode_fkey")
+  crossplayGroup   CrossplayGroup            @relation(fields: [crossplayGroupId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matchmaking_proposals_crossplay_game_fkey")
+  rejectedByUser   User?                     @relation("MatchmakingProposalRejector", fields: [rejectedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "matchmaking_proposals_rejector_fkey")
+  match            Match?
+
+  @@index([requestAId], map: "matchmaking_proposals_request_a_idx")
+  @@index([requestBId], map: "matchmaking_proposals_request_b_idx")
+  @@index([status, expiresAt], map: "matchmaking_proposals_status_expires_idx")
+  @@index([gameId, gameModeId, gameRulesetId], map: "matchmaking_proposals_catalog_idx")
+  @@index([rejectedByUserId], map: "matchmaking_proposals_rejector_idx")
+  @@map("matchmaking_proposals")
+}
+
+model Match {
+  id                         String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchmakingProposalId      String                  @unique(map: "matches_proposal_id_key") @map("matchmaking_proposal_id") @db.Uuid
+  gameId                     String                  @map("game_id") @db.Uuid
+  gameModeId                 String                  @map("game_mode_id") @db.Uuid
+  gameRulesetId              String                  @map("game_ruleset_id") @db.Uuid
+  crossplayGroupId           String                  @map("crossplay_group_id") @db.Uuid
+  status                     MatchStatus             @default(CREATED)
+  gameSnapshot               Json                    @map("game_snapshot")
+  modeSnapshot               Json                    @map("mode_snapshot")
+  rulesetSnapshot            Json                    @map("ruleset_snapshot")
+  crossplaySnapshot          Json                    @map("crossplay_snapshot")
+  readyDeadlineAt            DateTime                @map("ready_deadline_at") @db.Timestamptz(3)
+  scheduledAt                DateTime?               @map("scheduled_at") @db.Timestamptz(3)
+  cancelledAt                DateTime?               @map("cancelled_at") @db.Timestamptz(3)
+  voidedAt                   DateTime?               @map("voided_at") @db.Timestamptz(3)
+  startedAt                  DateTime?               @map("started_at") @db.Timestamptz(3)
+  resultSubmissionDeadlineAt DateTime?               @map("result_submission_deadline_at") @db.Timestamptz(3)
+  resultConflictDeadlineAt   DateTime?               @map("result_conflict_deadline_at") @db.Timestamptz(3)
+  completedAt                DateTime?               @map("completed_at") @db.Timestamptz(3)
+  settlementEligibleAt       DateTime?               @map("settlement_eligible_at") @db.Timestamptz(3)
+  version                    Int                     @default(1)
+  createdAt                  DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  proposal                   MatchmakingProposal     @relation(fields: [matchmakingProposalId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matches_proposal_id_fkey")
+  game                       Game                    @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "matches_game_id_fkey")
+  gameMode                   GameMode                @relation(fields: [gameModeId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matches_mode_game_fkey")
+  gameRuleset                GameRuleset             @relation(fields: [gameRulesetId, gameId, gameModeId], references: [id, gameId, gameModeId], onDelete: Restrict, onUpdate: Cascade, map: "matches_ruleset_game_mode_fkey")
+  crossplayGroup             CrossplayGroup          @relation(fields: [crossplayGroupId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "matches_crossplay_game_fkey")
+  participants               MatchParticipant[]
+  auditEvents                MatchAuditEvent[]
+  resultSubmissions          MatchResultSubmission[]
+  result                     MatchResult?
+  evidence                   MatchEvidence[]
+  disputes                   MatchDispute[]
+  entryReservations          MatchEntryReservation[]
+  settlement                 MatchSettlement?
+  ratingApplication          MatchRatingApplication?
+  ratingChanges              PlayerRatingChange[]
+
+  @@index([status, readyDeadlineAt], map: "matches_status_ready_deadline_idx")
+  @@index([status, resultSubmissionDeadlineAt], map: "matches_status_result_deadline_idx")
+  @@index([status, resultConflictDeadlineAt], map: "matches_status_conflict_deadline_idx")
+  @@index([startedAt], map: "matches_started_at_idx")
+  @@index([completedAt], map: "matches_completed_at_idx")
+  @@index([status, settlementEligibleAt], map: "matches_status_settlement_eligible_idx")
+  @@index([gameId, gameModeId, createdAt], map: "matches_catalog_created_idx")
+  @@index([createdAt], map: "matches_created_at_idx")
+  @@map("matches")
+}
+
+model MatchParticipant {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId             String                  @map("match_id") @db.Uuid
+  userId              String                  @map("user_id") @db.Uuid
+  userGameAccountId   String                  @map("user_game_account_id") @db.Uuid
+  gameId              String                  @map("game_id") @db.Uuid
+  gamePlatformId      String                  @map("game_platform_id") @db.Uuid
+  side                MatchParticipantSide
+  status              MatchParticipantStatus  @default(PENDING)
+  participantSnapshot Json                    @map("participant_snapshot")
+  readyAt             DateTime?               @map("ready_at") @db.Timestamptz(3)
+  cancelledAt         DateTime?               @map("cancelled_at") @db.Timestamptz(3)
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match               Match                   @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_participants_match_id_fkey")
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_participants_user_id_fkey")
+  userGameAccount     UserGameAccount         @relation(fields: [userGameAccountId, userId, gameId, gamePlatformId], references: [id, userId, gameId, gamePlatformId], onDelete: Restrict, onUpdate: Cascade, map: "match_participants_account_identity_fkey")
+  gamePlatform        GamePlatform            @relation(fields: [gamePlatformId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "match_participants_platform_game_fkey")
+  resultSubmissions   MatchResultSubmission[]
+  resultsWon          MatchResult[]           @relation("MatchResultWinner")
+  resultsLost         MatchResult[]           @relation("MatchResultLoser")
+  evidence            MatchEvidence[]
+  openedDisputes      MatchDispute[]
+  disputeResponses    MatchDisputeResponse[]
+  entryReservations   MatchEntryReservation[]
+  settlementsWon      MatchSettlement[]       @relation("MatchSettlementWinner")
+
+  @@unique([id, matchId], map: "match_participants_id_match_id_key")
+  @@unique([id, userId], map: "match_participants_id_user_id_key")
+  @@unique([id, userId, matchId], map: "match_participants_owner_match_key")
+  @@unique([matchId, side], map: "match_participants_match_side_key")
+  @@unique([matchId, userId], map: "match_participants_match_user_key")
+  @@index([userId, createdAt], map: "match_participants_user_created_idx")
+  @@index([userGameAccountId], map: "match_participants_account_idx")
+  @@map("match_participants")
+}
+
+model MatchAuditEvent {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId     String           @map("match_id") @db.Uuid
+  actorUserId String?          @map("actor_user_id") @db.Uuid
+  action      MatchAuditAction
+  reasonCode  String?          @map("reason_code") @db.VarChar(64)
+  note        String?          @db.VarChar(500)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  match       Match            @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_audit_events_match_id_fkey")
+  actor       User?            @relation("MatchAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "match_audit_events_actor_id_fkey")
+
+  @@index([matchId, createdAt], map: "match_audit_events_match_created_idx")
+  @@index([actorUserId], map: "match_audit_events_actor_idx")
+  @@index([action, createdAt], map: "match_audit_events_action_created_idx")
+  @@map("match_audit_events")
+}
+
+model MatchResultSubmission {
+  id                String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId           String                      @map("match_id") @db.Uuid
+  participantId     String                      @map("participant_id") @db.Uuid
+  submittedByUserId String                      @map("submitted_by_user_id") @db.Uuid
+  status            MatchResultSubmissionStatus @default(ACTIVE)
+  resultPayload     Json                        @map("result_payload")
+  submittedAt       DateTime                    @map("submitted_at") @db.Timestamptz(3)
+  withdrawnAt       DateTime?                   @map("withdrawn_at") @db.Timestamptz(3)
+  supersededAt      DateTime?                   @map("superseded_at") @db.Timestamptz(3)
+  version           Int                         @default(1)
+  createdAt         DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match             Match                       @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_result_submissions_match_id_fkey")
+  participant       MatchParticipant            @relation(fields: [participantId, submittedByUserId, matchId], references: [id, userId, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_result_submissions_owner_fkey")
+  submittedBy       User                        @relation("MatchResultSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_result_submissions_submitter_fkey")
+
+  @@index([matchId, status], map: "match_result_submissions_match_status_idx")
+  @@index([participantId, status], map: "match_result_submissions_participant_status_idx")
+  @@index([submittedByUserId, submittedAt], map: "match_result_submissions_user_submitted_idx")
+  @@map("match_result_submissions")
+}
+
+model MatchResult {
+  id                   String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId              String                         @unique(map: "match_results_match_id_key") @map("match_id") @db.Uuid
+  status               MatchResultStatus
+  resultPayload        Json?                          @map("result_payload")
+  winnerParticipantId  String?                        @map("winner_participant_id") @db.Uuid
+  loserParticipantId   String?                        @map("loser_participant_id") @db.Uuid
+  isDraw               Boolean                        @default(false) @map("is_draw")
+  confirmationMethod   MatchResultConfirmationMethod? @map("confirmation_method")
+  conflictReason       MatchResultConflictReason?     @map("conflict_reason")
+  confirmedAt          DateTime?                      @map("confirmed_at") @db.Timestamptz(3)
+  resolvedByUserId     String?                        @map("resolved_by_user_id") @db.Uuid
+  resolutionReasonCode String?                        @map("resolution_reason_code") @db.VarChar(64)
+  resolutionNote       String?                        @map("resolution_note") @db.VarChar(500)
+  version              Int                            @default(1)
+  createdAt            DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match                Match                          @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_results_match_id_fkey")
+  winnerParticipant    MatchParticipant?              @relation("MatchResultWinner", fields: [winnerParticipantId, matchId], references: [id, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_results_winner_match_fkey")
+  loserParticipant     MatchParticipant?              @relation("MatchResultLoser", fields: [loserParticipantId, matchId], references: [id, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_results_loser_match_fkey")
+  resolvedBy           User?                          @relation("MatchResultResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "match_results_resolver_fkey")
+  revisions            MatchResultRevision[]
+  settlements          MatchSettlement[]
+  ratingApplication    MatchRatingApplication?
+
+  @@index([status, createdAt], map: "match_results_status_created_idx")
+  @@index([winnerParticipantId], map: "match_results_winner_idx")
+  @@index([confirmedAt], map: "match_results_confirmed_at_idx")
+  @@index([resolvedByUserId], map: "match_results_resolver_idx")
+  @@map("match_results")
+}
+
+model MatchEvidence {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId           String              @map("match_id") @db.Uuid
+  participantId     String              @map("participant_id") @db.Uuid
+  submittedByUserId String              @map("submitted_by_user_id") @db.Uuid
+  type              MatchEvidenceType
+  status            MatchEvidenceStatus @default(ACTIVE)
+  payload           Json
+  capturedAt        DateTime?           @map("captured_at") @db.Timestamptz(3)
+  submittedAt       DateTime            @map("submitted_at") @db.Timestamptz(3)
+  withdrawnAt       DateTime?           @map("withdrawn_at") @db.Timestamptz(3)
+  version           Int                 @default(1)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match             Match               @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_evidence_match_id_fkey")
+  participant       MatchParticipant    @relation(fields: [participantId, submittedByUserId, matchId], references: [id, userId, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_evidence_owner_fkey")
+  submittedBy       User                @relation("MatchEvidenceSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_evidence_submitter_fkey")
+
+  @@index([matchId, participantId, status], map: "match_evidence_match_participant_status_idx")
+  @@index([submittedByUserId, submittedAt], map: "match_evidence_user_submitted_idx")
+  @@index([status, submittedAt], map: "match_evidence_status_submitted_idx")
+  @@map("match_evidence")
+}
+
+model MatchDispute {
+  id                     String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId                String                 @map("match_id") @db.Uuid
+  openedByParticipantId  String                 @map("opened_by_participant_id") @db.Uuid
+  openedByUserId         String                 @map("opened_by_user_id") @db.Uuid
+  status                 MatchDisputeStatus     @default(OPEN)
+  reasonCode             MatchDisputeReasonCode @map("reason_code")
+  claimPayload           Json                   @map("claim_payload")
+  resultSnapshot         Json                   @map("result_snapshot")
+  responseDeadlineAt     DateTime               @map("response_deadline_at") @db.Timestamptz(3)
+  reviewDeadlineAt       DateTime               @map("review_deadline_at") @db.Timestamptz(3)
+  assignedReviewerUserId String?                @map("assigned_reviewer_user_id") @db.Uuid
+  assignedAt             DateTime?              @map("assigned_at") @db.Timestamptz(3)
+  resolvedAt             DateTime?              @map("resolved_at") @db.Timestamptz(3)
+  resolutionType         DisputeResolutionType? @map("resolution_type")
+  resolutionReasonCode   String?                @map("resolution_reason_code") @db.VarChar(64)
+  resolutionNote         String?                @map("resolution_note") @db.VarChar(500)
+  resolvedByUserId       String?                @map("resolved_by_user_id") @db.Uuid
+  version                Int                    @default(1)
+  createdAt              DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match                  Match                  @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_disputes_match_id_fkey")
+  openedByParticipant    MatchParticipant       @relation(fields: [openedByParticipantId, openedByUserId, matchId], references: [id, userId, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_disputes_opener_fkey")
+  openedBy               User                   @relation("MatchDisputeOpener", fields: [openedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_disputes_opened_by_fkey")
+  assignedReviewer       User?                  @relation("MatchDisputeReviewer", fields: [assignedReviewerUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "match_disputes_reviewer_fkey")
+  resolvedBy             User?                  @relation("MatchDisputeResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "match_disputes_resolver_fkey")
+  response               MatchDisputeResponse?
+  revisions              MatchResultRevision[]
+  settlements            MatchSettlement[]
+
+  @@index([matchId, createdAt], map: "match_disputes_match_created_idx")
+  @@index([openedByUserId, createdAt], map: "match_disputes_opener_created_idx")
+  @@index([status, responseDeadlineAt], map: "match_disputes_status_response_deadline_idx")
+  @@index([status, assignedReviewerUserId], map: "match_disputes_status_reviewer_idx")
+  @@index([reasonCode, createdAt], map: "match_disputes_reason_created_idx")
+  @@index([reviewDeadlineAt], map: "match_disputes_review_deadline_idx")
+  @@map("match_disputes")
+}
+
+model MatchDisputeResponse {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  disputeId         String           @unique(map: "match_dispute_responses_dispute_id_key") @map("dispute_id") @db.Uuid
+  participantId     String           @map("participant_id") @db.Uuid
+  submittedByUserId String           @map("submitted_by_user_id") @db.Uuid
+  statement         String           @db.VarChar(2000)
+  evidenceIds       Json             @map("evidence_ids")
+  submittedAt       DateTime         @map("submitted_at") @db.Timestamptz(3)
+  version           Int              @default(1)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  dispute           MatchDispute     @relation(fields: [disputeId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_dispute_responses_dispute_id_fkey")
+  participant       MatchParticipant @relation(fields: [participantId, submittedByUserId], references: [id, userId], onDelete: Restrict, onUpdate: Cascade, map: "match_dispute_responses_owner_fkey")
+  submittedBy       User             @relation("MatchDisputeResponder", fields: [submittedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_dispute_responses_submitter_fkey")
+
+  @@index([participantId, submittedAt], map: "match_dispute_responses_participant_idx")
+  @@index([submittedByUserId], map: "match_dispute_responses_user_idx")
+  @@map("match_dispute_responses")
+}
+
+model MatchResultRevision {
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchResultId    String                @map("match_result_id") @db.Uuid
+  disputeId        String                @unique(map: "match_result_revisions_dispute_id_key") @map("dispute_id") @db.Uuid
+  previousPayload  Json?                 @map("previous_payload")
+  newPayload       Json?                 @map("new_payload")
+  previousStatus   MatchResultStatus     @map("previous_status")
+  resolutionType   DisputeResolutionType @map("resolution_type")
+  resolvedByUserId String                @map("resolved_by_user_id") @db.Uuid
+  reasonCode       String                @map("reason_code") @db.VarChar(64)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  matchResult      MatchResult           @relation(fields: [matchResultId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_result_revisions_result_id_fkey")
+  dispute          MatchDispute          @relation(fields: [disputeId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_result_revisions_dispute_id_fkey")
+  resolvedBy       User                  @relation("MatchResultRevisionActor", fields: [resolvedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_result_revisions_actor_fkey")
+
+  @@index([matchResultId, createdAt], map: "match_result_revisions_result_created_idx")
+  @@index([disputeId], map: "match_result_revisions_dispute_idx")
+  @@index([resolvedByUserId], map: "match_result_revisions_actor_idx")
+  @@map("match_result_revisions")
+}
+
+model Wallet {
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                  @unique(map: "wallets_user_id_key") @map("user_id") @db.Uuid
+  status            WalletStatus            @default(ACTIVE)
+  version           Int                     @default(1)
+  closedAt          DateTime?               @map("closed_at") @db.Timestamptz(3)
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "wallets_user_id_fkey")
+  accounts          LedgerAccount[]
+  auditEvents       WalletAuditEvent[]
+  entryReservations MatchEntryReservation[]
+
+  @@index([status, createdAt], map: "wallets_status_created_idx")
+  @@map("wallets")
+}
+
+model LedgerAccount {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId                String?                 @map("wallet_id") @db.Uuid
+  assetCode               String                  @map("asset_code") @db.VarChar(32)
+  type                    LedgerAccountType
+  status                  LedgerAccountStatus     @default(ACTIVE)
+  systemKey               String?                 @map("system_key") @db.VarChar(64)
+  currentBalance          BigInt                  @default(0) @map("current_balance")
+  version                 Int                     @default(1)
+  closedAt                DateTime?               @map("closed_at") @db.Timestamptz(3)
+  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  wallet                  Wallet?                 @relation(fields: [walletId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "ledger_accounts_wallet_id_fkey")
+  entries                 LedgerEntry[]
+  userEntryReservations   MatchEntryReservation[] @relation("MatchEntryUserAccount")
+  escrowEntryReservations MatchEntryReservation[] @relation("MatchEntryEscrowAccount")
+
+  @@unique([walletId, assetCode, type], map: "ledger_accounts_wallet_asset_type_key")
+  @@unique([systemKey, assetCode], map: "ledger_accounts_system_asset_key")
+  @@index([walletId, status], map: "ledger_accounts_wallet_status_idx")
+  @@index([type, assetCode], map: "ledger_accounts_type_asset_idx")
+  @@map("ledger_accounts")
+}
+
+model LedgerTransaction {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type                  LedgerTransactionType
+  status                LedgerTransactionStatus @default(POSTED)
+  assetCode             String                  @map("asset_code") @db.VarChar(32)
+  idempotencyKey        String                  @unique(map: "ledger_transactions_idempotency_key") @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint    String                  @map("request_fingerprint") @db.Char(64)
+  referenceType         String                  @map("reference_type") @db.VarChar(32)
+  referenceId           String?                 @map("reference_id") @db.VarChar(128)
+  description           String?                 @db.VarChar(200)
+  internalNote          String?                 @map("internal_note") @db.VarChar(500)
+  createdByUserId       String                  @map("created_by_user_id") @db.Uuid
+  reversesTransactionId String?                 @unique(map: "ledger_transactions_reverses_key") @map("reverses_transaction_id") @db.Uuid
+  postedAt              DateTime                @map("posted_at") @db.Timestamptz(3)
+  reversedAt            DateTime?               @map("reversed_at") @db.Timestamptz(3)
+  createdAt             DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy             User                    @relation("LedgerTransactionActor", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "ledger_transactions_actor_fkey")
+  reverses              LedgerTransaction?      @relation("LedgerReversal", fields: [reversesTransactionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reversedBy            LedgerTransaction?      @relation("LedgerReversal")
+  entries               LedgerEntry[]
+  entryReservations     MatchEntryReservation[] @relation("MatchEntryReservationTransaction")
+  entryRefunds          MatchEntryReservation[] @relation("MatchEntryRefundTransaction")
+  matchSettlements      MatchSettlement[]
+
+  @@index([type, postedAt], map: "ledger_transactions_type_posted_idx")
+  @@index([createdByUserId, postedAt], map: "ledger_transactions_actor_posted_idx")
+  @@index([referenceType, referenceId], map: "ledger_transactions_reference_idx")
+  @@map("ledger_transactions")
+}
+
+model LedgerEntry {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transactionId String               @map("transaction_id") @db.Uuid
+  accountId     String               @map("account_id") @db.Uuid
+  direction     LedgerEntryDirection
+  amount        BigInt
+  balanceAfter  BigInt               @map("balance_after")
+  sequence      Int
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  transaction   LedgerTransaction    @relation(fields: [transactionId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "ledger_entries_transaction_id_fkey")
+  account       LedgerAccount        @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "ledger_entries_account_id_fkey")
+
+  @@unique([transactionId, sequence], map: "ledger_entries_transaction_sequence_key")
+  @@unique([transactionId, accountId], map: "ledger_entries_transaction_account_key")
+  @@index([accountId, createdAt], map: "ledger_entries_account_created_idx")
+  @@map("ledger_entries")
+}
+
+model WalletAuditEvent {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId      String?           @map("wallet_id") @db.Uuid
+  actorUserId   String            @map("actor_user_id") @db.Uuid
+  action        WalletAuditAction
+  reasonCode    String            @map("reason_code") @db.VarChar(64)
+  transactionId String?           @map("transaction_id") @db.Uuid
+  note          String?           @db.VarChar(500)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  wallet        Wallet?           @relation(fields: [walletId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "wallet_audit_events_wallet_id_fkey")
+  actor         User              @relation("WalletAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "wallet_audit_events_actor_id_fkey")
+
+  @@index([walletId, createdAt], map: "wallet_audit_events_wallet_created_idx")
+  @@index([actorUserId, createdAt], map: "wallet_audit_events_actor_created_idx")
+  @@index([transactionId], map: "wallet_audit_events_transaction_idx")
+  @@map("wallet_audit_events")
+}
+
+model MatchEntryReservation {
+  id                        String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId                   String                       @map("match_id") @db.Uuid
+  participantId             String                       @map("participant_id") @db.Uuid
+  userId                    String                       @map("user_id") @db.Uuid
+  walletId                  String?                      @map("wallet_id") @db.Uuid
+  ledgerAccountId           String?                      @map("ledger_account_id") @db.Uuid
+  escrowAccountId           String?                      @map("escrow_account_id") @db.Uuid
+  assetCode                 String                       @map("asset_code") @db.VarChar(32)
+  amount                    BigInt
+  status                    MatchEntryReservationStatus
+  requirementSnapshot       Json                         @map("requirement_snapshot")
+  reservationSnapshot       Json                         @map("reservation_snapshot")
+  ledgerTransactionId       String?                      @map("ledger_transaction_id") @db.Uuid
+  refundLedgerTransactionId String?                      @map("refund_ledger_transaction_id") @db.Uuid
+  settlementId              String?                      @map("settlement_id") @db.Uuid
+  settlementOutcome         MatchEntrySettlementOutcome? @map("settlement_outcome")
+  idempotencyKey            String                       @unique(map: "match_entry_reservations_idempotency_key") @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint        String                       @map("request_fingerprint") @db.Char(64)
+  reservedAt                DateTime?                    @map("reserved_at") @db.Timestamptz(3)
+  releasedAt                DateTime?                    @map("released_at") @db.Timestamptz(3)
+  refundedAt                DateTime?                    @map("refunded_at") @db.Timestamptz(3)
+  cancelledAt               DateTime?                    @map("cancelled_at") @db.Timestamptz(3)
+  expiresAt                 DateTime                     @map("expires_at") @db.Timestamptz(3)
+  version                   Int                          @default(1)
+  createdAt                 DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match                     Match                        @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_entry_reservations_match_id_fkey")
+  participant               MatchParticipant             @relation(fields: [participantId, matchId], references: [id, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_entry_reservations_participant_match_fkey")
+  user                      User                         @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_entry_reservations_user_id_fkey")
+  wallet                    Wallet?                      @relation(fields: [walletId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_entry_reservations_wallet_id_fkey")
+  ledgerAccount             LedgerAccount?               @relation("MatchEntryUserAccount", fields: [ledgerAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  escrowAccount             LedgerAccount?               @relation("MatchEntryEscrowAccount", fields: [escrowAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  ledgerTransaction         LedgerTransaction?           @relation("MatchEntryReservationTransaction", fields: [ledgerTransactionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refundLedgerTransaction   LedgerTransaction?           @relation("MatchEntryRefundTransaction", fields: [refundLedgerTransactionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  settlement                MatchSettlement?             @relation(fields: [settlementId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([matchId, participantId], map: "match_entry_reservations_match_participant_key")
+  @@index([userId, createdAt], map: "match_entry_reservations_user_created_idx")
+  @@index([matchId, status], map: "match_entry_reservations_match_status_idx")
+  @@index([status, expiresAt], map: "match_entry_reservations_status_expires_idx")
+  @@index([escrowAccountId], map: "match_entry_reservations_escrow_account_idx")
+  @@index([settlementId], map: "match_entry_reservations_settlement_idx")
+  @@map("match_entry_reservations")
+}
+
+model MatchSettlement {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId                 String                  @unique(map: "match_settlements_match_id_key") @map("match_id") @db.Uuid
+  assetCode               String                  @map("asset_code") @db.VarChar(32)
+  status                  MatchSettlementStatus
+  type                    MatchSettlementType
+  totalEscrowAmount       BigInt                  @map("total_escrow_amount")
+  distributedAmount       BigInt                  @map("distributed_amount")
+  refundedAmount          BigInt                  @map("refunded_amount")
+  retainedAmount          BigInt                  @default(0) @map("retained_amount")
+  winnerParticipantId     String?                 @map("winner_participant_id") @db.Uuid
+  resultId                String?                 @map("result_id") @db.Uuid
+  disputeId               String?                 @map("dispute_id") @db.Uuid
+  idempotencyKey          String                  @unique(map: "match_settlements_idempotency_key") @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint      String                  @map("request_fingerprint") @db.Char(64)
+  settlementTransactionId String?                 @unique(map: "match_settlements_transaction_id_key") @map("settlement_transaction_id") @db.Uuid
+  settledAt               DateTime?               @map("settled_at") @db.Timestamptz(3)
+  failedAt                DateTime?               @map("failed_at") @db.Timestamptz(3)
+  failureCode             String?                 @map("failure_code") @db.VarChar(64)
+  version                 Int                     @default(1)
+  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match                   Match                   @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_settlements_match_id_fkey")
+  winnerParticipant       MatchParticipant?       @relation("MatchSettlementWinner", fields: [winnerParticipantId, matchId], references: [id, matchId], onDelete: Restrict, onUpdate: Cascade, map: "match_settlements_winner_match_fkey")
+  result                  MatchResult?            @relation(fields: [resultId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_settlements_result_id_fkey")
+  dispute                 MatchDispute?           @relation(fields: [disputeId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_settlements_dispute_id_fkey")
+  settlementTransaction   LedgerTransaction?      @relation(fields: [settlementTransactionId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_settlements_transaction_id_fkey")
+  reservations            MatchEntryReservation[]
+
+  @@index([resultId], map: "match_settlements_result_idx")
+  @@index([disputeId], map: "match_settlements_dispute_idx")
+  @@index([status, createdAt], map: "match_settlements_status_created_idx")
+  @@index([type], map: "match_settlements_type_idx")
+  @@index([winnerParticipantId], map: "match_settlements_winner_idx")
+  @@index([settledAt], map: "match_settlements_settled_idx")
+  @@map("match_settlements")
+}
+
+model PlayerRating {
+  id                       String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String               @map("user_id") @db.Uuid
+  gameId                   String               @map("game_id") @db.Uuid
+  gameModeId               String               @map("game_mode_id") @db.Uuid
+  crossplayGroupId         String               @map("crossplay_group_id") @db.Uuid
+  policyKey                String               @map("policy_key") @db.VarChar(32)
+  policyVersion            Int                  @map("policy_version")
+  rating                   Int
+  matchesPlayed            Int                  @default(0) @map("matches_played")
+  wins                     Int                  @default(0)
+  losses                   Int                  @default(0)
+  draws                    Int                  @default(0)
+  provisionalMatchesPlayed Int                  @default(0) @map("provisional_matches_played")
+  highestRating            Int                  @map("highest_rating")
+  lowestRating             Int                  @map("lowest_rating")
+  lastMatchId              String?              @map("last_match_id") @db.Uuid
+  version                  Int                  @default(1)
+  createdAt                DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                     User                 @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_ratings_user_id_fkey")
+  game                     Game                 @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_ratings_game_id_fkey")
+  gameMode                 GameMode             @relation(fields: [gameModeId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "player_ratings_mode_game_fkey")
+  crossplayGroup           CrossplayGroup       @relation(fields: [crossplayGroupId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "player_ratings_crossplay_game_fkey")
+  changes                  PlayerRatingChange[]
+
+  @@unique([userId, gameId, gameModeId, crossplayGroupId, policyKey, policyVersion], map: "player_ratings_scope_key")
+  @@index([userId], map: "player_ratings_user_idx")
+  @@index([gameId, gameModeId, crossplayGroupId, policyKey, policyVersion, rating(sort: Desc), matchesPlayed(sort: Desc), wins(sort: Desc), updatedAt, id], map: "player_ratings_leaderboard_idx")
+  @@index([updatedAt], map: "player_ratings_updated_idx")
+  @@map("player_ratings")
+}
+
+model MatchRatingApplication {
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchId            String                       @unique(map: "match_rating_applications_match_id_key") @map("match_id") @db.Uuid
+  matchResultId      String                       @unique(map: "match_rating_applications_result_id_key") @map("match_result_id") @db.Uuid
+  status             MatchRatingApplicationStatus
+  policyKey          String                       @map("policy_key") @db.VarChar(32)
+  policyVersion      Int                          @map("policy_version")
+  idempotencyKey     String                       @unique(map: "match_rating_applications_idempotency_key") @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint String                       @map("request_fingerprint") @db.Char(64)
+  actorUserId        String?                      @map("actor_user_id") @db.Uuid
+  appliedAt          DateTime?                    @map("applied_at") @db.Timestamptz(3)
+  failedAt           DateTime?                    @map("failed_at") @db.Timestamptz(3)
+  failureCode        String?                      @map("failure_code") @db.VarChar(64)
+  version            Int                          @default(1)
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  match              Match                        @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_rating_applications_match_id_fkey")
+  matchResult        MatchResult                  @relation(fields: [matchResultId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "match_rating_applications_result_id_fkey")
+  actor              User?                        @relation("RatingApplicationActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "match_rating_applications_actor_id_fkey")
+  changes            PlayerRatingChange[]
+
+  @@index([status, createdAt], map: "match_rating_applications_status_created_idx")
+  @@index([failedAt], map: "match_rating_applications_failed_idx")
+  @@index([appliedAt], map: "match_rating_applications_applied_idx")
+  @@map("match_rating_applications")
+}
+
+model PlayerRatingChange {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerRatingId       String                 @map("player_rating_id") @db.Uuid
+  ratingApplicationId  String                 @map("rating_application_id") @db.Uuid
+  matchId              String                 @map("match_id") @db.Uuid
+  matchResultId        String                 @map("match_result_id") @db.Uuid
+  userId               String                 @map("user_id") @db.Uuid
+  opponentUserId       String                 @map("opponent_user_id") @db.Uuid
+  outcome              RatingOutcome
+  ratingBefore         Int                    @map("rating_before")
+  ratingAfter          Int                    @map("rating_after")
+  ratingDelta          Int                    @map("rating_delta")
+  opponentRatingBefore Int                    @map("opponent_rating_before")
+  policyKey            String                 @map("policy_key") @db.VarChar(32)
+  policyVersion        Int                    @map("policy_version")
+  calculationSnapshot  Json                   @map("calculation_snapshot")
+  appliedAt            DateTime               @map("applied_at") @db.Timestamptz(3)
+  reversedAt           DateTime?              @map("reversed_at") @db.Timestamptz(3)
+  version              Int                    @default(1)
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  playerRating         PlayerRating           @relation(fields: [playerRatingId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_rating_changes_rating_id_fkey")
+  ratingApplication    MatchRatingApplication @relation(fields: [ratingApplicationId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_rating_changes_application_id_fkey")
+  match                Match                  @relation(fields: [matchId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_rating_changes_match_id_fkey")
+  user                 User                   @relation("RatingChangeUser", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_rating_changes_user_id_fkey")
+  opponent             User                   @relation("RatingChangeOpponent", fields: [opponentUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "player_rating_changes_opponent_id_fkey")
+
+  @@unique([matchId, userId], map: "player_rating_changes_match_user_key")
+  @@index([playerRatingId, appliedAt], map: "player_rating_changes_rating_applied_idx")
+  @@index([userId, appliedAt], map: "player_rating_changes_user_applied_idx")
+  @@index([ratingApplicationId], map: "player_rating_changes_application_idx")
+  @@map("player_rating_changes")
+}
+
+model Notification {
+  id               String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientUserId  String                      @map("recipient_user_id") @db.Uuid
+  type             NotificationType
+  schemaVersion    Int                         @map("schema_version")
+  priority         NotificationPriority        @default(NORMAL)
+  locale           String                      @db.VarChar(5)
+  subject          String                      @db.VarChar(200)
+  body             String                      @db.VarChar(2000)
+  payload          Json
+  sourceType       String                      @map("source_type") @db.VarChar(40)
+  sourceId         String                      @map("source_id") @db.VarChar(128)
+  deduplicationKey String                      @unique(map: "notifications_deduplication_key") @map("deduplication_key") @db.VarChar(64)
+  payloadHash      String                      @map("payload_hash") @db.Char(64)
+  createdAt        DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  readAt           DateTime?                   @map("read_at") @db.Timestamptz(3)
+  archivedAt       DateTime?                   @map("archived_at") @db.Timestamptz(3)
+  expiresAt        DateTime?                   @map("expires_at") @db.Timestamptz(3)
+  version          Int                         @default(1)
+  updatedAt        DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  recipient        User                        @relation(fields: [recipientUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "notifications_recipient_id_fkey")
+  outboxMessages   NotificationOutboxMessage[]
+
+  @@index([recipientUserId, createdAt(sort: Desc), id], map: "notifications_recipient_created_idx")
+  @@index([recipientUserId, readAt], map: "notifications_recipient_read_idx")
+  @@index([recipientUserId, archivedAt], map: "notifications_recipient_archived_idx")
+  @@index([type, createdAt], map: "notifications_type_created_idx")
+  @@index([sourceType, sourceId], map: "notifications_source_idx")
+  @@index([expiresAt], map: "notifications_expires_idx")
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  type         NotificationType
+  inAppEnabled Boolean          @default(true) @map("in_app_enabled")
+  emailEnabled Boolean          @default(false) @map("email_enabled")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version      Int              @default(1)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "notification_preferences_user_id_fkey")
+
+  @@unique([userId, type], map: "notification_preferences_user_type_key")
+  @@index([type], map: "notification_preferences_type_idx")
+  @@map("notification_preferences")
+}
+
+model NotificationOutboxMessage {
+  id               String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notificationId   String                        @map("notification_id") @db.Uuid
+  channel          NotificationChannel
+  status           NotificationOutboxStatus      @default(PENDING)
+  deduplicationKey String                        @unique(map: "notification_outbox_deduplication_key") @map("deduplication_key") @db.VarChar(96)
+  availableAt      DateTime                      @map("available_at") @db.Timestamptz(3)
+  attemptCount     Int                           @default(0) @map("attempt_count")
+  lastAttemptAt    DateTime?                     @map("last_attempt_at") @db.Timestamptz(3)
+  deliveredAt      DateTime?                     @map("delivered_at") @db.Timestamptz(3)
+  failedAt         DateTime?                     @map("failed_at") @db.Timestamptz(3)
+  deadLetteredAt   DateTime?                     @map("dead_lettered_at") @db.Timestamptz(3)
+  lastErrorCode    String?                       @map("last_error_code") @db.VarChar(64)
+  payloadSnapshot  Json                          @map("payload_snapshot")
+  claimToken       String?                       @map("claim_token") @db.Uuid
+  claimExpiresAt   DateTime?                     @map("claim_expires_at") @db.Timestamptz(3)
+  version          Int                           @default(1)
+  createdAt        DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  notification     Notification                  @relation(fields: [notificationId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "notification_outbox_notification_id_fkey")
+  deliveryAttempts NotificationDeliveryAttempt[]
+
+  @@unique([notificationId, channel], map: "notification_outbox_notification_channel_key")
+  @@index([status, availableAt, id], map: "notification_outbox_status_available_idx")
+  @@index([channel, status], map: "notification_outbox_channel_status_idx")
+  @@index([deliveredAt], map: "notification_outbox_delivered_idx")
+  @@index([deadLetteredAt], map: "notification_outbox_dead_lettered_idx")
+  @@index([createdAt], map: "notification_outbox_created_idx")
+  @@index([claimExpiresAt], map: "notification_outbox_claim_expires_idx")
+  @@map("notification_outbox_messages")
+}
+
+model NotificationDeliveryAttempt {
+  id                String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  outboxMessageId   String                            @map("outbox_message_id") @db.Uuid
+  attemptNumber     Int                               @map("attempt_number")
+  status            NotificationDeliveryAttemptStatus
+  provider          String                            @db.VarChar(64)
+  providerMessageId String?                           @map("provider_message_id") @db.VarChar(255)
+  errorCode         String?                           @map("error_code") @db.VarChar(64)
+  errorCategory     String?                           @map("error_category") @db.VarChar(32)
+  startedAt         DateTime                          @map("started_at") @db.Timestamptz(3)
+  completedAt       DateTime                          @map("completed_at") @db.Timestamptz(3)
+  createdAt         DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
+  outboxMessage     NotificationOutboxMessage         @relation(fields: [outboxMessageId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "notification_delivery_attempts_outbox_id_fkey")
+
+  @@unique([outboxMessageId, attemptNumber], map: "notification_delivery_attempts_outbox_number_key")
+  @@index([status, createdAt], map: "notification_delivery_attempts_status_created_idx")
+  @@map("notification_delivery_attempts")
+}
+
+model AdminAuditEvent {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  actorType   String   @map("actor_type") @db.VarChar(16)
+  action      String   @db.VarChar(64)
+  targetType  String   @map("target_type") @db.VarChar(64)
+  targetId    String?  @map("target_id") @db.VarChar(128)
+  source      String   @db.VarChar(64)
+  metadata    Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor       User?    @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "admin_audit_events_actor_id_fkey")
+
+  @@index([createdAt(sort: Desc), id(sort: Desc)], map: "admin_audit_events_order_idx")
+  @@index([actorUserId, createdAt(sort: Desc)], map: "admin_audit_events_actor_created_idx")
+  @@index([targetType, targetId, createdAt(sort: Desc)], map: "admin_audit_events_target_created_idx")
+  @@index([action, createdAt(sort: Desc)], map: "admin_audit_events_action_created_idx")
+  @@map("admin_audit_events")
+}

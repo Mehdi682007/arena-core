@@ -1,0 +1,132 @@
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
+
+export function Button({ className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button className={`button ${className}`} {...props} />;
+}
+export function IconButton({
+  label,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  return <button className="button secondary" aria-label={label} title={label} {...props} />;
+}
+export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className="input" {...props} />;
+}
+export function PasswordInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <Input type="password" autoComplete="current-password" {...props} />;
+}
+export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea className="input" {...props} />;
+}
+export function Select({ children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select className="input" {...props}>
+      {children}
+    </select>
+  );
+}
+export function Checkbox(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <input type="checkbox" {...props} />;
+}
+export function Label({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
+  return <label htmlFor={htmlFor}>{children}</label>;
+}
+export function Field({
+  label,
+  name,
+  error,
+  children,
+}: {
+  label: string;
+  name: string;
+  error?: string | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <div className="field">
+      <Label htmlFor={name}>{label}</Label>
+      {children}
+      {error ? <FormError id={`${name}-error`}>{error}</FormError> : null}
+    </div>
+  );
+}
+export function FormError({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <p id={id} role="alert" className="muted">
+      {children}
+    </p>
+  );
+}
+export function Card({ children }: { children: ReactNode }) {
+  return <section className="card">{children}</section>;
+}
+export function Badge({ children }: { children: ReactNode }) {
+  return <span className="badge">{children}</span>;
+}
+export function Alert({ children, error = false }: { children: ReactNode; error?: boolean }) {
+  return (
+    <div role={error ? 'alert' : 'status'} className={`alert ${error ? 'error' : ''}`}>
+      {children}
+    </div>
+  );
+}
+export function Spinner() {
+  return <span className="spinner" role="status" aria-label="در حال بارگذاری" />;
+}
+export function Skeleton() {
+  return <span className="skeleton" aria-hidden="true" />;
+}
+export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <Card>
+      <h2>{title}</h2>
+      {children}
+    </Card>
+  );
+}
+export function ErrorState({ requestId }: { requestId?: string | undefined }) {
+  return (
+    <Alert error>
+      دریافت اطلاعات ممکن نشد.
+      {requestId ? <small className="ltr"> شناسه پیگیری: {requestId}</small> : null}
+    </Alert>
+  );
+}
+export function Avatar({ name }: { name: string }) {
+  return (
+    <span className="badge" aria-label={`نمایه ${name}`}>
+      {name.trim().slice(0, 1) || 'A'}
+    </span>
+  );
+}
+export function Separator() {
+  return <hr className="separator" />;
+}
+export function Tabs({ items }: { items: readonly { href: string; label: string }[] }) {
+  return (
+    <nav aria-label="زبانه‌ها" className="cluster">
+      {items.map((item) => (
+        <a key={item.href} href={item.href}>
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+export function Tooltip({ label, children }: { label: string; children: ReactNode }) {
+  return <span title={label}>{children}</span>;
+}
+export function Dropdown({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <details>
+      <summary>{label}</summary>
+      <div className="card">{children}</div>
+    </details>
+  );
+}

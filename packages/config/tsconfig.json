@@ -1,0 +1,7 @@
+{
+  "extends": "@arena-core/typescript-config/nestjs.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}

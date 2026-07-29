@@ -1,0 +1,49 @@
+{
+  "name": "@arena-core/api",
+  "version": "0.1.0-rc.1",
+  "private": true,
+  "scripts": {
+    "build": "rimraf dist tsconfig.build.tsbuildinfo && tsc -p tsconfig.build.json",
+    "clean": "rimraf dist tsconfig.build.tsbuildinfo",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint .",
+    "start": "tsx src/main.ts",
+    "start:dev": "tsx watch src/main.ts",
+    "start:prod": "node dist/main.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@arena-core/admin-operations": "workspace:*",
+    "@arena-core/config": "workspace:*",
+    "@arena-core/contracts": "workspace:*",
+    "@arena-core/database": "workspace:*",
+    "@arena-core/email": "workspace:*",
+    "@arena-core/game-catalog": "workspace:*",
+    "@arena-core/identity": "workspace:*",
+    "@arena-core/match-finance": "workspace:*",
+    "@arena-core/matchmaking": "workspace:*",
+    "@arena-core/matches": "workspace:*",
+    "@arena-core/notifications": "workspace:*",
+    "@arena-core/player-identity": "workspace:*",
+    "@arena-core/rating": "workspace:*",
+    "@arena-core/wallet": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "cookie": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@arena-core/eslint-config": "workspace:*",
+    "@arena-core/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
