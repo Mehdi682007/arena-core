@@ -70,6 +70,23 @@ test('inventory contracts distinguish users and permit domainless staging', asyn
   assert.doesNotMatch(`${staging}\n${production}`, /(PASSWORD|SECRET|TOKEN)=\S+/);
 });
 
+test('runtime environment generator emits the complete canonical API contract', async () => {
+  const runtime = await readFile(path.join(scripts, 'prepare-runtime-env.sh'), 'utf8');
+  for (const entry of [
+    'LOG_LEVEL=info',
+    'HOST=0.0.0.0',
+    'API_PORT=3001',
+    'API_PREFIX=/api/v1',
+    'CORS_ENABLED=false',
+  ]) {
+    assert.match(runtime, new RegExp(`${entry.replaceAll('.', '\\.')}\\\\n`), entry);
+  }
+  assert.match(
+    runtime,
+    /AUTH_ALLOWED_ORIGINS=%s:\/\/%s\\nIDENTITY_PUBLIC_BASE_URL=%s:\/\/%s\\n' "\$scheme" "\$base" "\$scheme" "\$base"/,
+  );
+});
+
 test('deployment mode is explicit and unknown values are rejected', async () => {
   const validation = await readFile(path.join(scripts, 'lib/validation.sh'), 'utf8');
   assert.match(validation, /\$\{DEPLOY_MODE:\?DEPLOY_MODE required\}/);

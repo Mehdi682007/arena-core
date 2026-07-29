@@ -13,6 +13,8 @@ base="${APP_DOMAIN:-$SERVER_HOST}"; scheme=http; [[ "$ENABLE_TLS" == true ]] && 
 {
   printf 'APP_ENV=%s\nNODE_ENV=production\n' "$ENVIRONMENT"
   printf 'APP_BASE_URL=%s://%s\nWEB_BASE_URL=%s://%s\nAPI_BASE_URL=%s://%s/api\n' "$scheme" "$base" "$scheme" "$base" "$scheme" "$base"
+  printf 'LOG_LEVEL=info\nHOST=0.0.0.0\nAPI_PORT=3001\nAPI_PREFIX=/api/v1\nCORS_ENABLED=false\n'
+  printf 'AUTH_ALLOWED_ORIGINS=%s://%s\nIDENTITY_PUBLIC_BASE_URL=%s://%s\n' "$scheme" "$base" "$scheme" "$base"
   printf 'DATABASE_ENABLED=true\n'
   if [[ "$POSTGRES_MODE" == container ]]; then
     printf 'DATABASE_URL=postgresql://%s:' "$POSTGRES_USER"
