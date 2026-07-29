@@ -24,6 +24,9 @@ for service in migrate api worker web; do
     --build-arg "BUILD_SHA=$SOURCE_COMMIT" \
     --build-arg "RELEASE_VERSION=$RELEASE_ID" \
     --tag "$tagged" .
+  if [[ "$service" == migrate ]]; then
+    bash scripts/release/validate-migration-image.sh "$tagged"
+  fi
   docker push "$tagged"
   digest="$(docker buildx imagetools inspect "$tagged" --format '{{json .Manifest.Digest}}' | tr -d '"')"
   [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "invalid digest for $service" >&2; exit 3; }

@@ -2,7 +2,7 @@
 FROM node:24.14.0-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+RUN npm install --global pnpm@11.9.0 && test "$(pnpm --version)" = "11.9.0"
 WORKDIR /workspace
 
 FROM base AS dependencies
@@ -78,7 +78,7 @@ FROM job-runtime AS migrate
 COPY --from=deploy-database --chown=10001:10001 /output/database/ ./
 COPY --from=builder --chown=10001:10001 /workspace/packages/database/prisma ./prisma
 COPY --from=builder --chown=10001:10001 /workspace/packages/database/prisma.config.ts ./prisma.config.ts
-ENTRYPOINT ["pnpm", "db:migrate:deploy"]
+ENTRYPOINT ["/usr/local/bin/pnpm", "db:migrate:deploy"]
 
 FROM job-runtime AS seed
 COPY --from=deploy-seed --chown=10001:10001 /output/seed/ ./

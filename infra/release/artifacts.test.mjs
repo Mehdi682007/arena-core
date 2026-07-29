@@ -67,6 +67,7 @@ test('prebuilt deployment manifest example contains four digest-pinned images', 
 test('prebuilt workflow builds sequentially, pushes immutable images, and never deploys', async () => {
   const workflow = await read('.github/workflows/prebuilt-images.yml');
   const builder = await read('scripts/release/build-prebuilt-images.sh');
+  const migrationValidator = await read('scripts/release/validate-migration-image.sh');
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /packages: write/);
   assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
@@ -76,6 +77,29 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(builder, /docker push "\$tagged"/);
   assert.match(builder, /buildx imagetools inspect/);
   assert.match(builder, /latest is forbidden/);
+  assert.match(builder, /validate-migration-image\.sh "\$tagged"/);
+  assert.match(migrationValidator, /docker run --rm --network none/);
+  assert.match(migrationValidator, /\/usr\/local\/bin\/pnpm/);
+  assert.match(migrationValidator, /readlink -f \/usr\/local\/bin\/pnpm/);
+  assert.match(migrationValidator, /pnpm\/bin\/pnpm\.cjs/);
+  assert.match(migrationValidator, /expected_pnpm_version=11\.9\.0/);
+  assert.match(migrationValidator, /registry\\\.npmjs\\\.org/);
+  assert.match(migrationValidator, /Prisma schema loaded/);
+});
+
+test('migration runtime contains pinned pnpm and bypasses Corepack resolution', async () => {
+  const dockerfile = await read('docker/Dockerfile');
+  const rootManifest = JSON.parse(await read('package.json'));
+  assert.equal(rootManifest.packageManager, 'pnpm@11.9.0');
+  assert.match(dockerfile, /npm install --global pnpm@11\.9\.0/);
+  assert.match(dockerfile, /test "\$\(pnpm --version\)" = "11\.9\.0"/);
+  assert.match(dockerfile, /ENTRYPOINT \["\/usr\/local\/bin\/pnpm", "db:migrate:deploy"\]/);
+  assert.doesNotMatch(dockerfile, /corepack (?:enable|prepare)/);
+});
+
+test('shell release artifacts are normalized to LF', async () => {
+  const attributes = await read('.gitattributes');
+  assert.match(attributes, /^\*\.sh text eol=lf$/m);
 });
 
 test('uncommitted release candidates are explicit and never presented as final builds', async () => {
