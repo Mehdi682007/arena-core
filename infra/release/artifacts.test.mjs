@@ -81,7 +81,8 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(migrationValidator, /docker run --rm --network none/);
   assert.match(migrationValidator, /\/usr\/local\/bin\/pnpm/);
   assert.match(migrationValidator, /readlink -f \/usr\/local\/bin\/pnpm/);
-  assert.match(migrationValidator, /pnpm\/bin\/pnpm\.cjs/);
+  assert.match(migrationValidator, /pnpm\/package\.json/);
+  assert.match(migrationValidator, /pnpm_executable.*corepack/s);
   assert.match(migrationValidator, /expected_pnpm_version=11\.9\.0/);
   assert.match(migrationValidator, /registry\\\.npmjs\\\.org/);
   assert.match(migrationValidator, /Prisma schema loaded/);

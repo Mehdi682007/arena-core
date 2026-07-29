@@ -20,11 +20,24 @@ entrypoint="$(docker image inspect "$image" --format '{{json .Config.Entrypoint}
 pnpm_executable="$(
   docker run --rm --network none \
     --entrypoint /bin/sh \
-    "$image" -c 'readlink -f /usr/local/bin/pnpm'
+    "$image" -c '
+      test -x /usr/local/bin/pnpm
+      readlink -f /usr/local/bin/pnpm
+    '
 )"
-[[ "$pnpm_executable" == /usr/local/lib/node_modules/pnpm/bin/pnpm.cjs ]] || {
-  echo "migration image pnpm does not resolve to the packaged pnpm executable" >&2
+[[ -n "$pnpm_executable" && "$pnpm_executable" != *corepack* ]] || {
+  echo "migration image pnpm is missing or resolves through Corepack" >&2
   exit 4
+}
+
+packaged_pnpm_version="$(
+  docker run --rm --network none \
+    --entrypoint /usr/local/bin/node \
+    "$image" -p "require('/usr/local/lib/node_modules/pnpm/package.json').version"
+)"
+[[ "$packaged_pnpm_version" == "$expected_pnpm_version" ]] || {
+  echo "migration image does not contain packaged pnpm $expected_pnpm_version" >&2
+  exit 5
 }
 
 actual_pnpm_version="$(
@@ -34,7 +47,7 @@ actual_pnpm_version="$(
 )"
 [[ "$actual_pnpm_version" == "$expected_pnpm_version" ]] || {
   echo "migration image pnpm mismatch: expected $expected_pnpm_version" >&2
-  exit 5
+  exit 6
 }
 
 if docker run --rm --network none \
@@ -42,7 +55,7 @@ if docker run --rm --network none \
   --env DATABASE_DIRECT_URL=postgresql://offline:offline@127.0.0.1:1/offline \
   "$image" >"$log" 2>&1; then
   echo "offline migration probe unexpectedly succeeded" >&2
-  exit 6
+  exit 7
 else
   probe_rc=$?
 fi
@@ -51,13 +64,13 @@ if grep -Eqi \
   'corepack|registry\.npmjs\.org|fetchLatestStableVersion|package registry' \
   "$log"; then
   echo "offline migration probe attempted package resolution or network lookup" >&2
-  exit 7
+  exit 8
 fi
 
 grep -Eqi 'P1001|Can.t reach database server|Prisma schema loaded' "$log" || {
   echo "offline migration command did not reach Prisma startup" >&2
   sed -n '1,80p' "$log" >&2
-  exit 8
+  exit 9
 }
 
 printf 'migration image offline validation passed: pnpm=%s probe_exit=%s\n' \
