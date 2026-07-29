@@ -10,6 +10,9 @@ ARENA_REGISTRY="${ARENA_REGISTRY,,}"
 [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "SOURCE_COMMIT must be a full Git SHA" >&2; exit 2; }
 [[ "$ARENA_IMAGE_TAG" == "$SOURCE_COMMIT" || "$ARENA_IMAGE_TAG" == "$RELEASE_ID" ]] ||
   { echo "ARENA_IMAGE_TAG must equal SOURCE_COMMIT or RELEASE_ID" >&2; exit 2; }
+git ls-files -z '*.sh' | xargs -0 -n1 bash -n
+command -v shellcheck >/dev/null || { echo "ShellCheck is required" >&2; exit 2; }
+git ls-files -z '*.sh' | xargs -0 shellcheck
 
 output="${IMAGE_MANIFEST_OUTPUT:-deployment-images.json}"
 records="$(mktemp)"
@@ -27,6 +30,13 @@ for service in migrate api worker web; do
   if [[ "$service" == migrate ]]; then
     bash scripts/release/validate-migration-image.sh "$tagged"
   fi
+  image_revision="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$tagged")"
+  image_version="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$tagged")"
+  [[ "$image_revision" == "$SOURCE_COMMIT" ]] ||
+    { echo "source commit label mismatch for $service" >&2; exit 3; }
+  [[ "$image_version" == "$RELEASE_ID" ]] ||
+    { echo "release ID label mismatch for $service" >&2; exit 3; }
+  printf 'validated immutable labels for %s\n' "$service"
   docker push "$tagged"
   digest="$(docker buildx imagetools inspect "$tagged" --format '{{json .Manifest.Digest}}' | tr -d '"')"
   [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "invalid digest for $service" >&2; exit 3; }

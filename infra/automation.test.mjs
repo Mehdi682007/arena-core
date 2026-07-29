@@ -78,6 +78,7 @@ test('runtime environment generator emits the complete canonical API contract', 
     'API_PORT=3001',
     'API_PREFIX=/api/v1',
     'CORS_ENABLED=false',
+    'WORKER_SHUTDOWN_TIMEOUT_MS=10000',
   ]) {
     assert.match(runtime, new RegExp(`${entry.replaceAll('.', '\\.')}\\\\n`), entry);
   }
@@ -85,6 +86,65 @@ test('runtime environment generator emits the complete canonical API contract', 
     runtime,
     /AUTH_ALLOWED_ORIGINS=%s:\/\/%s\\nIDENTITY_PUBLIC_BASE_URL=%s:\/\/%s\\n' "\$scheme" "\$base" "\$scheme" "\$base"/,
   );
+});
+
+test('proxy health is a non-sensitive exact contract shared by nginx and verification', async () => {
+  const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
+  for (const template of ['domain.conf.template', 'staging-ip.conf.template']) {
+    const nginx = await readFile(path.join(infra, 'nginx', template), 'utf8');
+    assert.match(nginx, /listen 127\.0\.0\.1:8088;/);
+    assert.match(
+      nginx,
+      /location = \/arena-proxy-health \{ default_type text\/plain; return 200 "ok\\n"; \}/,
+    );
+    assert.doesNotMatch(nginx, /arena-proxy-health[\s\S]{0,120}(stub_status|auth|env|version)/i);
+  }
+  assert.match(verify, /http:\/\/127\.0\.0\.1:8088\/arena-proxy-health/);
+  assert.match(verify, /\[\[ "\$proxy_body" != ok \]\]/);
+  assert.match(verify, /--resolve "\$proxy_host:443:127\.0\.0\.1"/);
+});
+
+test('activation verification has bounded API, Web, and Worker readiness', async () => {
+  const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
+  assert.match(
+    verify,
+    /VERIFY_READINESS_TIMEOUT_SECONDS="\$\{VERIFY_READINESS_TIMEOUT_SECONDS:-120\}"/,
+  );
+  assert.match(
+    verify,
+    /VERIFY_READINESS_INTERVAL_SECONDS="\$\{VERIFY_READINESS_INTERVAL_SECONDS:-2\}"/,
+  );
+  assert.match(verify, /while \(\( SECONDS - started < VERIFY_READINESS_TIMEOUT_SECONDS \)\)/);
+  assert.match(
+    verify,
+    /wait_for_http arena-api http:\/\/127\.0\.0\.1:3001\/api\/v1\/health\/ready/,
+  );
+  assert.match(verify, /wait_for_http arena-web http:\/\/127\.0\.0\.1:3000\/api\/health/);
+  assert.match(verify, /wait_for_worker \|\| status=FAIL/);
+  assert.match(verify, /state.*exited.*dead.*restarts/s);
+  assert.match(verify, /compose logs --no-color --tail 80/);
+  assert.match(verify, /tail -c "\$VERIFY_DIAGNOSTIC_MAX_BYTES"/);
+  assert.match(verify, /\[REDACTED\]/);
+});
+
+test('failed readiness preserves activation invariants and successful readiness emits no evidence', async () => {
+  const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
+  const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
+  const verifyCall = deploy.indexOf('if ! "$SCRIPT_DIR/verify.sh" "$inventory"; then');
+  const currentWrite = deploy.lastIndexOf(
+    'ln -sfn "$ARENA_RELEASE_DIR" "$SERVER_APP_ROOT/current"',
+  );
+  const metadataWrite = deploy.lastIndexOf('record_deployment "$RELEASE_VERSION" active');
+  assert.ok(verifyCall >= 0 && verifyCall < currentWrite && currentWrite < metadataWrite);
+  assert.match(
+    deploy,
+    /compose stop arena-api arena-worker arena-web[\s\S]*no previous release was available/,
+  );
+  assert.match(deploy, /rollback-after-failed-deploy/);
+  assert.ok(
+    verify.indexOf('service_diagnostics "$service"') > verify.indexOf('did not become ready'),
+  );
+  assert.doesNotMatch(verify, /VERIFY_REPORT.*failure|failure-evidence/);
 });
 
 test('deployment mode is explicit and unknown values are rejected', async () => {

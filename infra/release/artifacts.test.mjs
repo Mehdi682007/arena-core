@@ -78,6 +78,12 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(builder, /buildx imagetools inspect/);
   assert.match(builder, /latest is forbidden/);
   assert.match(builder, /validate-migration-image\.sh "\$tagged"/);
+  assert.match(builder, /org\.opencontainers\.image\.revision/);
+  assert.match(builder, /org\.opencontainers\.image\.version/);
+  assert.match(builder, /source commit label mismatch/);
+  assert.match(builder, /release ID label mismatch/);
+  assert.match(builder, /xargs -0 -n1 bash -n/);
+  assert.match(builder, /xargs -0 shellcheck/);
   assert.match(migrationValidator, /docker run --rm --network none/);
   assert.match(migrationValidator, /\/usr\/local\/bin\/pnpm/);
   assert.match(migrationValidator, /readlink -f \/usr\/local\/bin\/pnpm/);

@@ -333,6 +333,29 @@ describe('central configuration', () => {
     expect(createWorkerConfig({ WORKER_SHUTDOWN_TIMEOUT_MS: '2500' }, options).worker).toEqual({
       shutdownTimeoutMs: 2500,
     });
+    expect(createWorkerConfig({ WORKER_SHUTDOWN_TIMEOUT_MS: '10000' }, options).worker).toEqual({
+      shutdownTimeoutMs: 10_000,
+    });
+  });
+
+  it('requires an explicit worker shutdown timeout in strict environments', () => {
+    for (const environment of ['staging', 'production']) {
+      const source = {
+        ...strictBase,
+        NODE_ENV: environment,
+        WORKER_SHUTDOWN_TIMEOUT_MS: '10000',
+        DATABASE_ENABLED: 'false',
+      };
+      expect(createWorkerConfig(source, options).worker.shutdownTimeoutMs).toBe(10_000);
+      expect(() =>
+        createWorkerConfig(
+          Object.fromEntries(
+            Object.entries(source).filter(([key]) => key !== 'WORKER_SHUTDOWN_TIMEOUT_MS'),
+          ),
+          options,
+        ),
+      ).toThrow(/WORKER_SHUTDOWN_TIMEOUT_MS/);
+    }
   });
 
   it('provides bounded server-only matchmaking policy', () => {
