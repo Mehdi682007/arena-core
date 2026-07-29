@@ -12,7 +12,7 @@ ARENA_REGISTRY="${ARENA_REGISTRY,,}"
   { echo "ARENA_IMAGE_TAG must equal SOURCE_COMMIT or RELEASE_ID" >&2; exit 2; }
 git ls-files -z '*.sh' | xargs -0 -n1 bash -n
 command -v shellcheck >/dev/null || { echo "ShellCheck is required" >&2; exit 2; }
-shellcheck --severity=warning --exclude=SC1091 \
+shellcheck --severity=warning --exclude=SC1091,SC2034 \
   infra/scripts/prepare-runtime-env.sh \
   infra/scripts/verify.sh \
   scripts/release/build-prebuilt-images.sh

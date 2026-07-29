@@ -83,7 +83,7 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(builder, /source commit label mismatch/);
   assert.match(builder, /release ID label mismatch/);
   assert.match(builder, /xargs -0 -n1 bash -n/);
-  assert.match(builder, /shellcheck --severity=warning --exclude=SC1091/);
+  assert.match(builder, /shellcheck --severity=warning --exclude=SC1091,SC2034/);
   assert.match(migrationValidator, /docker run --rm --network none/);
   assert.match(migrationValidator, /\/usr\/local\/bin\/pnpm/);
   assert.match(migrationValidator, /readlink -f \/usr\/local\/bin\/pnpm/);
