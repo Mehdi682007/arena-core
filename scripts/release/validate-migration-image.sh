@@ -12,7 +12,7 @@ log="$(mktemp)"
 trap 'rm -f "$log"' EXIT
 
 entrypoint="$(docker image inspect "$image" --format '{{json .Config.Entrypoint}}')"
-[[ "$entrypoint" == '["/usr/local/bin/pnpm","db:migrate:deploy"]' ]] || {
+[[ "$entrypoint" == '["/app/node_modules/.bin/prisma","migrate","deploy","--config","prisma.config.ts"]' ]] || {
   echo "migration image has an unexpected entrypoint: $entrypoint" >&2
   exit 3
 }

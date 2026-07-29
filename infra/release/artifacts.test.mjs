@@ -94,7 +94,10 @@ test('migration runtime contains pinned pnpm and bypasses Corepack resolution', 
   assert.equal(rootManifest.packageManager, 'pnpm@11.9.0');
   assert.match(dockerfile, /npm install --global pnpm@11\.9\.0/);
   assert.match(dockerfile, /test "\$\(pnpm --version\)" = "11\.9\.0"/);
-  assert.match(dockerfile, /ENTRYPOINT \["\/usr\/local\/bin\/pnpm", "db:migrate:deploy"\]/);
+  assert.match(
+    dockerfile,
+    /ENTRYPOINT \["\/app\/node_modules\/\.bin\/prisma", "migrate", "deploy", "--config", "prisma\.config\.ts"\]/,
+  );
   assert.doesNotMatch(dockerfile, /corepack (?:enable|prepare)/);
 });
 

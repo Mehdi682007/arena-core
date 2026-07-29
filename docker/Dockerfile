@@ -78,7 +78,7 @@ FROM job-runtime AS migrate
 COPY --from=deploy-database --chown=10001:10001 /output/database/ ./
 COPY --from=builder --chown=10001:10001 /workspace/packages/database/prisma ./prisma
 COPY --from=builder --chown=10001:10001 /workspace/packages/database/prisma.config.ts ./prisma.config.ts
-ENTRYPOINT ["/usr/local/bin/pnpm", "db:migrate:deploy"]
+ENTRYPOINT ["/app/node_modules/.bin/prisma", "migrate", "deploy", "--config", "prisma.config.ts"]
 
 FROM job-runtime AS seed
 COPY --from=deploy-seed --chown=10001:10001 /output/seed/ ./
