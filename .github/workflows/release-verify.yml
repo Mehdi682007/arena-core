@@ -20,6 +20,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
+        env:
+          DATABASE_DIRECT_URL: postgresql://build:build@127.0.0.1:5432/build
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
