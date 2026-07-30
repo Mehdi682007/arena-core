@@ -24,7 +24,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push four targets sequentially
+      - name: Build and push five targets sequentially
         env:
           ARENA_REGISTRY: ghcr.io/${{ github.repository_owner }}
           ARENA_IMAGE_TAG: ${{ inputs.image_tag }}

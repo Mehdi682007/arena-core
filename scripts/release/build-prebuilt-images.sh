@@ -21,7 +21,7 @@ output="${IMAGE_MANIFEST_OUTPUT:-deployment-images.json}"
 records="$(mktemp)"
 trap 'rm -f "$records"' EXIT
 
-for service in migrate api worker web; do
+for service in migrate api worker web seed; do
   image="$ARENA_REGISTRY/arena-$service"
   tagged="$image:$ARENA_IMAGE_TAG"
   docker build \

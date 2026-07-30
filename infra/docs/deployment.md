@@ -48,7 +48,7 @@ python3 infra/scripts/validate-image-manifest.py \
   release/deployment-images.json "$RELEASE_ID"
 ```
 
-The committed `release/deployment-images.example.json` documents the schema. Each of the four
+The committed `release/deployment-images.example.json` documents the schema. Each of the five
 entries contains `name`, immutable `tag`, `digest`, and an exact `name:tag@digest` reference.
 
 ## Prebuilt deployment
@@ -81,10 +81,11 @@ sudo infra/scripts/deploy.sh /secure/path/arena-staging.env
 ```
 
 Prebuilt deployment validates the manifest and registry token before acquiring the lifecycle lock.
-It then optionally logs in using a temporary `DOCKER_CONFIG`, pulls and inspects all four exact
-references, runs the prebuilt migration image, starts API/Worker/Web, performs existing health
-verification, and only then updates `current`. A pull failure is fatal and never falls back to a
-local build. The temporary Docker credential directory is removed on exit, so credentials are not
+It then optionally logs in using a temporary `DOCKER_CONFIG`, pulls and inspects the four runtime
+and migration references, runs the prebuilt migration image, starts API/Worker/Web, performs
+existing health verification, and only then updates `current`. The fifth digest-pinned reference
+is the separately invoked Seed image. A pull failure is fatal and never falls back to a local
+build. The temporary Docker credential directory is removed on exit, so credentials are not
 persisted in root's normal Docker configuration.
 
 Deployment metadata records the deploy mode, deployment-manifest SHA-256, and exact image

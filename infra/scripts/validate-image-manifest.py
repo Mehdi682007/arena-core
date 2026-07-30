@@ -4,7 +4,7 @@ import re
 import sys
 from pathlib import Path
 
-SERVICES = ("migrate", "api", "worker", "web")
+SERVICES = ("migrate", "api", "worker", "web", "seed")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
 REFERENCE = re.compile(
@@ -40,7 +40,7 @@ if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", str(manifest.get("b
 
 images = manifest.get("images")
 if not isinstance(images, dict) or set(images) != set(SERVICES):
-    fail("images must contain exactly migrate, api, worker, and web")
+    fail("images must contain exactly migrate, api, worker, web, and seed")
 
 for service in SERVICES:
     image = images[service]

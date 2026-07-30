@@ -52,11 +52,17 @@ test('release manifest locks all migrations and immutable image tags', async () 
   }
 });
 
-test('prebuilt deployment manifest example contains four digest-pinned images', async () => {
+test('prebuilt deployment manifest example contains five digest-pinned images', async () => {
   const manifest = JSON.parse(await read('release/deployment-images.example.json'));
   assert.equal(manifest.schemaVersion, 1);
   assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/);
-  assert.deepEqual(Object.keys(manifest.images).sort(), ['api', 'migrate', 'web', 'worker']);
+  assert.deepEqual(Object.keys(manifest.images).sort(), [
+    'api',
+    'migrate',
+    'seed',
+    'web',
+    'worker',
+  ]);
   for (const image of Object.values(manifest.images)) {
     assert.notEqual(image.tag, 'latest');
     assert.match(image.digest, /^sha256:[0-9a-f]{64}$/);
@@ -72,7 +78,10 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(workflow, /packages: write/);
   assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
   assert.doesNotMatch(workflow, /strategy:\s*\n\s+matrix:|\bssh\b|scp|rsync/);
-  assert.match(builder, /for service in migrate api worker web; do/);
+  assert.match(builder, /for service in migrate api worker web seed; do/);
+  assert.match(workflow, /Build and push five targets sequentially/);
+  assert.match(builder, /--target "\$service"/);
+  assert.match(builder, /arena-\$service/);
   assert.match(builder, /docker build[\s\S]*--target "\$service"/);
   assert.match(builder, /docker push "\$tagged"/);
   assert.match(builder, /buildx imagetools inspect/);
