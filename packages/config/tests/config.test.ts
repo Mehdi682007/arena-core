@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import {
   ConfigurationError,
   SecretValue,
@@ -13,6 +15,44 @@ const options = {
   engineRange: '>=24.14.0 <25',
   pinnedNodeVersion: '24.18.0',
 } as const;
+
+const runtimeGenerator = readFileSync(
+  path.resolve(process.cwd(), '../../infra/scripts/prepare-runtime-env.sh'),
+  'utf8',
+);
+
+function generatedStrictRuntime() {
+  const generated: Record<string, string> = {};
+  for (const match of runtimeGenerator.matchAll(/printf '([^']*)'/g)) {
+    const literal = match[1];
+    if (literal === undefined) continue;
+    for (const line of literal.replaceAll('\\n', '\n').split('\n')) {
+      if (/^[A-Z][A-Z0-9_]*=[^%]*$/.test(line)) {
+        const separator = line.indexOf('=');
+        generated[line.slice(0, separator)] = line.slice(separator + 1);
+      }
+    }
+  }
+  return {
+    ...generated,
+    APP_ENV: 'staging',
+    APP_BASE_URL: 'https://staging.example.test',
+    WEB_BASE_URL: 'https://staging.example.test',
+    API_BASE_URL: 'https://staging.example.test/api',
+    AUTH_ALLOWED_ORIGINS: 'https://staging.example.test',
+    IDENTITY_PUBLIC_BASE_URL: 'https://staging.example.test',
+    DATABASE_URL: 'postgresql://arena:secret@postgres:5432/arena',
+    DATABASE_DIRECT_URL: 'postgresql://arena:secret@postgres:5432/arena',
+    SESSION_SECRET: 'session-secret-value-at-least-32-characters',
+    CSRF_SECRET: 'csrf-secret-value-at-least-32-characters',
+    AUTH_TOKEN_HASH_KEY: 'token-hash-key-value-at-least-32-characters',
+    AUTH_IP_HASH_KEY: 'ip-hash-key-value-different-and-at-least-32-characters',
+    ALLOWED_ORIGINS: 'https://staging.example.test',
+    COOKIE_SECURE: 'true',
+    BUILD_SHA: '0123456789abcdef0123456789abcdef01234567',
+    RELEASE_VERSION: '0.1.0-staging.contract',
+  };
+}
 
 describe('central configuration', () => {
   it('provides safe development web defaults and a pin warning', () => {
@@ -309,6 +349,41 @@ describe('central configuration', () => {
     expect(() => createWebConfig({ NEXT_PUBLIC_APP_NAME: 'x'.repeat(81) }, options)).toThrow(
       /NEXT_PUBLIC_APP_NAME/,
     );
+  });
+
+  it('requires and accepts the canonical Web runtime in strict environments', () => {
+    for (const environment of ['staging', 'production']) {
+      const canonical = {
+        ...strictBase,
+        NODE_ENV: environment,
+        WEB_PORT: '3000',
+        NEXT_PUBLIC_APP_NAME: 'Arena Core',
+        NEXT_PUBLIC_DEFAULT_LOCALE: 'fa',
+        API_BASE_URL: 'https://example.test/api',
+      };
+      expect(createWebConfig(canonical, options)).toMatchObject({
+        web: { port: 3000 },
+        public: { appName: 'Arena Core', defaultLocale: 'fa' },
+      });
+      for (const variable of ['WEB_PORT', 'NEXT_PUBLIC_APP_NAME', 'NEXT_PUBLIC_DEFAULT_LOCALE']) {
+        expect(() =>
+          createWebConfig(
+            Object.fromEntries(Object.entries(canonical).filter(([key]) => key !== variable)),
+            options,
+          ),
+        ).toThrow(new RegExp(variable));
+      }
+    }
+  });
+
+  it('loads one complete generated strict runtime through every production loader', () => {
+    const generated = generatedStrictRuntime();
+    expect(createApiConfig(generated, options).runtime.environment).toBe('production');
+    expect(createWorkerConfig(generated, options).worker.shutdownTimeoutMs).toBe(10_000);
+    expect(createWebConfig(generated, options)).toMatchObject({
+      web: { port: 3000 },
+      public: { appName: 'Arena Core', defaultLocale: 'fa' },
+    });
   });
 
   it('validates the server-only Web API URL without exposing credentials', () => {

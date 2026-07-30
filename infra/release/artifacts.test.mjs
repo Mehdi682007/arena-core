@@ -143,6 +143,8 @@ test('CI is verification-only and has minimum permissions', async () => {
   assert.match(value, /permissions:\s*\n {2}contents: read/);
   assert.match(value, /push: false/);
   assert.doesNotMatch(value, /pull_request_target|docker login|\bssh\b|kubectl|terraform|ansible/i);
+  assert.ok(value.indexOf('corepack enable') < value.indexOf('actions/setup-node@v4'));
+  assert.ok(value.indexOf('corepack prepare pnpm@11.9.0') < value.indexOf('cache: pnpm'));
 });
 
 test('backup and restore tools are opt-in and restore is confirmed', async () => {

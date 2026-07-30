@@ -10,12 +10,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Enable pinned pnpm before cache discovery
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.9.0 --activate
       - uses: actions/setup-node@v4
         with:
           node-version: 24.14.0
           cache: pnpm
-      - run: corepack enable
-      - run: corepack prepare pnpm@11.9.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint

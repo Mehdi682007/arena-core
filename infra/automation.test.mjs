@@ -79,6 +79,9 @@ test('runtime environment generator emits the complete canonical API contract', 
     'API_PREFIX=/api/v1',
     'CORS_ENABLED=false',
     'WORKER_SHUTDOWN_TIMEOUT_MS=10000',
+    'WEB_PORT=3000',
+    'NEXT_PUBLIC_APP_NAME=Arena Core',
+    'NEXT_PUBLIC_DEFAULT_LOCALE=fa',
   ]) {
     assert.match(runtime, new RegExp(`${entry.replaceAll('.', '\\.')}\\\\n`), entry);
   }
@@ -86,6 +89,25 @@ test('runtime environment generator emits the complete canonical API contract', 
     runtime,
     /AUTH_ALLOWED_ORIGINS=%s:\/\/%s\\nIDENTITY_PUBLIC_BASE_URL=%s:\/\/%s\\n' "\$scheme" "\$base" "\$scheme" "\$base"/,
   );
+});
+
+test('Web runtime port and canonical variables remain consistent through deployment', async () => {
+  const runtime = await readFile(path.join(scripts, 'prepare-runtime-env.sh'), 'utf8');
+  const config = await readFile(path.join(infra, '../packages/config/src/index.ts'), 'utf8');
+  const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  const nginx = await readFile(path.join(scripts, 'install-reverse-proxy.sh'), 'utf8');
+  const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
+  const dockerfile = await readFile(path.join(infra, '../docker/Dockerfile'), 'utf8');
+  assert.match(
+    runtime,
+    /WEB_PORT=3000\\nNEXT_PUBLIC_APP_NAME=Arena Core\\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\\n/,
+  );
+  assert.match(config, /requiredValue\(source, 'WEB_PORT', '3000'/);
+  assert.match(compose, /arena-web:[\s\S]*ports: \['127\.0\.0\.1:3000:3000'\]/);
+  assert.match(compose, /env_file:[\s\S]*ARENA_ENV_FILE/);
+  assert.match(nginx, /s\/\{\{WEB_PORT\}\}\/3000\/g/);
+  assert.match(verify, /wait_for_http arena-web http:\/\/127\.0\.0\.1:3000\/api\/health/);
+  assert.match(dockerfile, /ENV PORT=3000[\s\S]*EXPOSE 3000/);
 });
 
 test('proxy health is a non-sensitive exact contract shared by nginx and verification', async () => {
