@@ -17,7 +17,8 @@ shellcheck --severity=warning --exclude=SC1091,SC2034 \
   infra/scripts/seed.sh \
   infra/scripts/verify.sh \
   scripts/release/build-prebuilt-images.sh \
-  scripts/release/validate-seed-image.sh
+  scripts/release/validate-seed-image.sh \
+  scripts/release/validate-seed-compose-runtime.sh
 
 output="${IMAGE_MANIFEST_OUTPUT:-deployment-images.json}"
 records="$(mktemp)"

@@ -6,6 +6,7 @@ while (($#)); do case "$1" in --dry-run) DRY_RUN=true ;; *) die "unknown argumen
 export_runtime_paths
 [[ -f "$ARENA_RELEASE_DIR/release/manifest.json" ]] || die "release manifest missing"
 configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
+validate_seed_compose_contract
 [[ "$DEPLOY_MODE" == prebuilt ]] && validate_registry_credentials
 compose config --quiet
 if [[ "$DRY_RUN" == true ]]; then

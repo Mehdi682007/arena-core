@@ -66,5 +66,7 @@ jobs:
         run: |
           docker build --file docker/Dockerfile --target migrate --tag arena-migrate:seed-ci .
           docker build --file docker/Dockerfile --target seed --tag arena-seed:seed-ci .
+      - name: Validate tracked Compose Seed container contract
+        run: bash scripts/release/validate-seed-compose-runtime.sh arena-seed:seed-ci
       - name: Validate offline and disposable-database Seed runtime
         run: bash scripts/release/validate-seed-image.sh arena-seed:seed-ci arena-migrate:seed-ci

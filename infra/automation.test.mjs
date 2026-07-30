@@ -202,6 +202,26 @@ test('Compose exposes only loopback Web/API and keeps database private', async (
   assert.match(compose, /POSTGRES_PASSWORD_FILE/);
 });
 
+test('real deployment path enforces the exact Seed Compose runtime contract', async () => {
+  const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  const composeLibrary = await readFile(path.join(scripts, 'lib/compose.sh'), 'utf8');
+  const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
+  const seed = await readFile(path.join(scripts, 'seed.sh'), 'utf8');
+  const service = compose.match(/  arena-seed:[\s\S]*?(?=\nnetworks:)/)?.[0] ?? '';
+  assert.match(service, /image: \$\{ARENA_SEED_IMAGE/);
+  assert.match(service, /tmpfs: \['\/tmp:rw,noexec,nosuid,size=64m'\]/);
+  assert.doesNotMatch(service, /privileged:|docker\.sock|\/app:/);
+  assert.match(compose, /read_only: true/);
+  assert.match(compose, /user: '10001:10001'/);
+  assert.match(composeLibrary, /validate_seed_compose_contract\(\)/);
+  assert.match(composeLibrary, /validate-seed-compose\.py/);
+  assert.ok(
+    deploy.indexOf('validate_seed_compose_contract') <
+      deploy.indexOf('if [[ "$DRY_RUN" == true ]]'),
+  );
+  assert.ok(seed.indexOf('validate_seed_compose_contract') < seed.indexOf('acquire_lock'));
+});
+
 test('lifecycle operations are locked and destructive operations confirmed', async () => {
   for (const name of ['deploy.sh', 'migrate.sh', 'backup.sh', 'restore.sh', 'rollback.sh']) {
     assert.match(await readFile(path.join(scripts, name), 'utf8'), /acquire_lock/, name);
