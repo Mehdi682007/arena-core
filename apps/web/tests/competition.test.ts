@@ -41,4 +41,15 @@ describe('competition presentation and security', () => {
     expect(match).toContain('/history?limit=50');
     expect(match).toContain('ratingDelta');
   });
+  it('uses the public FC 26 slugs for leaderboard requests and filters', () => {
+    const leaderboard = readFileSync(
+      path.join(root, 'src/app/(public)/leaderboards/page.tsx'),
+      'utf8',
+    );
+    expect(leaderboard).toContain('/leaderboards/fc-26/${mode}');
+    expect(leaderboard).toContain("query.mode === 'two-v-two'");
+    expect(leaderboard).toContain('<option value="one-v-one">');
+    expect(leaderboard).toContain('<option value="two-v-two">');
+    expect(leaderboard).not.toMatch(/ea_sports_fc_26|one_v_one|two_v_two/);
+  });
 });
