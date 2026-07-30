@@ -57,3 +57,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate loopback ingress publication and isolation
         run: sudo bash infra/scripts/validate-ingress-runtime.sh
+  seed-runtime:
+    runs-on: ubuntu-24.04
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build migration and Seed images
+        run: |
+          docker build --file docker/Dockerfile --target migrate --tag arena-migrate:seed-ci .
+          docker build --file docker/Dockerfile --target seed --tag arena-seed:seed-ci .
+      - name: Validate offline and disposable-database Seed runtime
+        run: bash scripts/release/validate-seed-image.sh arena-seed:seed-ci arena-migrate:seed-ci
