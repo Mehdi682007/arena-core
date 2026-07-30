@@ -1,10 +1,30 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { images, migrations, root } from '../../scripts/release/release-lib.mjs';
 
 const read = (file) => readFile(path.join(root, file), 'utf8');
+
+async function validateImageManifest(mutator = () => undefined) {
+  const manifest = JSON.parse(await read('release/deployment-images.example.json'));
+  mutator(manifest);
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'arena-image-manifest-'));
+  const manifestPath = path.join(directory, 'deployment-images.json');
+  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`);
+  try {
+    return spawnSync(
+      process.platform === 'win32' ? 'python' : 'python3',
+      ['infra/scripts/validate-image-manifest.py', manifestPath, manifest.releaseId],
+      { cwd: root, encoding: 'utf8' },
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
 
 test('Dockerfile defines pinned multi-stage non-root targets', async () => {
   const value = await read('docker/Dockerfile');
@@ -68,6 +88,45 @@ test('prebuilt deployment manifest example contains five digest-pinned images', 
     assert.match(image.digest, /^sha256:[0-9a-f]{64}$/);
     assert.equal(image.reference, `${image.name}:${image.tag}@${image.digest}`);
   }
+});
+
+test('deployment image validator enforces immutable Seed identity', async () => {
+  assert.equal((await validateImageManifest()).status, 0);
+
+  assert.notEqual(
+    (
+      await validateImageManifest((manifest) => {
+        delete manifest.images.seed;
+      })
+    ).status,
+    0,
+  );
+  assert.notEqual(
+    (
+      await validateImageManifest((manifest) => {
+        manifest.images.seed.digest = `sha256:${'6'.repeat(64)}`;
+      })
+    ).status,
+    0,
+  );
+  assert.notEqual(
+    (
+      await validateImageManifest((manifest) => {
+        manifest.images.seed.name = 'ghcr.io/example/arena-not-seed';
+        manifest.images.seed.reference = `${manifest.images.seed.name}:${manifest.images.seed.tag}@${manifest.images.seed.digest}`;
+      })
+    ).status,
+    0,
+  );
+  assert.notEqual(
+    (
+      await validateImageManifest((manifest) => {
+        manifest.images.seed.tag = 'latest';
+        manifest.images.seed.reference = `${manifest.images.seed.name}:latest@${manifest.images.seed.digest}`;
+      })
+    ).status,
+    0,
+  );
 });
 
 test('prebuilt workflow builds sequentially, pushes immutable images, and never deploys', async () => {

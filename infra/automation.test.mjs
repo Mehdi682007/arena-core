@@ -309,10 +309,15 @@ test('prebuilt deployment validates before mutation and never falls back to loca
   assert.equal((local.match(/^\s+build:/gm) ?? []).length, 5);
   assert.match(
     images,
-    /for reference in \\\s+"\$ARENA_MIGRATE_IMAGE" "\$ARENA_API_IMAGE" "\$ARENA_WORKER_IMAGE" "\$ARENA_WEB_IMAGE"/,
+    /for reference in \\\s+"\$ARENA_MIGRATE_IMAGE" "\$ARENA_API_IMAGE" "\$ARENA_WORKER_IMAGE" "\$ARENA_WEB_IMAGE" \\\s+"\$ARENA_SEED_IMAGE"/,
   );
   assert.match(images, /docker pull "\$reference" \|\| die/);
-  assert.match(images, /docker image inspect "\$reference"/);
+  assert.match(images, /expected_repo_digest="\$name@\$digest"/);
+  assert.match(images, /pulled image RepoDigest mismatch/);
+  assert.match(images, /org\.opencontainers\.image\.revision/);
+  assert.match(images, /org\.opencontainers\.image\.version/);
+  assert.match(images, /pulled image revision label mismatch/);
+  assert.match(images, /pulled image version label mismatch/);
   assert.doesNotMatch(images, /pnpm|turbo|compose build/);
 });
 
@@ -335,6 +340,7 @@ test('prebuilt migration and release metadata retain exact image references', as
     'ARENA_API_IMAGE',
     'ARENA_WORKER_IMAGE',
     'ARENA_WEB_IMAGE',
+    'ARENA_SEED_IMAGE',
   ]) {
     assert.match(deploy, new RegExp(`\\$${variable}`));
   }

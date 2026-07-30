@@ -29,10 +29,11 @@ activate_release() {
 record_deployment() {
   local release="$1" state="$2" previous="$3"
   umask 077
-  printf '{"release":"%s","state":"%s","previousRelease":"%s","timestamp":"%s","deployMode":"%s","imageManifestSha256":"%s","images":{"migrate":"%s","api":"%s","worker":"%s","web":"%s"}}\n' \
+  printf '{"release":"%s","state":"%s","previousRelease":"%s","timestamp":"%s","deployMode":"%s","imageManifestSha256":"%s","images":{"migrate":"%s","api":"%s","worker":"%s","web":"%s","seed":"%s"}}\n' \
     "$release" "$state" "$previous" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$DEPLOY_MODE" \
     "$(if [[ "$DEPLOY_MODE" == prebuilt ]]; then sha256sum "$ARENA_IMAGE_MANIFEST" | cut -d' ' -f1; else printf 'build-local'; fi)" \
     "$ARENA_MIGRATE_IMAGE" "$ARENA_API_IMAGE" "$ARENA_WORKER_IMAGE" "$ARENA_WEB_IMAGE" \
+    "$ARENA_SEED_IMAGE" \
     >"$SERVER_APP_ROOT/shared/deployment.json"
 }
 if [[ "$DEPLOY_MODE" == build-local ]]; then

@@ -8,7 +8,7 @@ configure_release_images() {
   export IMAGE_TAG="$release_version"
   export RELEASE_VERSION="$release_version"
   if [[ "$DEPLOY_MODE" == prebuilt ]]; then
-    unset ARENA_MIGRATE_IMAGE ARENA_API_IMAGE ARENA_WORKER_IMAGE ARENA_WEB_IMAGE
+    unset ARENA_MIGRATE_IMAGE ARENA_API_IMAGE ARENA_WORKER_IMAGE ARENA_WEB_IMAGE ARENA_SEED_IMAGE
     load_prebuilt_images "$ARENA_IMAGE_MANIFEST"
   else
     export ARENA_MIGRATE_IMAGE="arena-migrate:$release_version"
@@ -29,6 +29,7 @@ load_prebuilt_images() {
       api) export ARENA_API_IMAGE="$reference" ;;
       worker) export ARENA_WORKER_IMAGE="$reference" ;;
       web) export ARENA_WEB_IMAGE="$reference" ;;
+      seed) export ARENA_SEED_IMAGE="$reference" ;;
       *) die "unexpected image service: $service" ;;
     esac
   done < <(python3 "$SCRIPT_DIR/validate-image-manifest.py" "$manifest" "$RELEASE_VERSION")
@@ -36,6 +37,7 @@ load_prebuilt_images() {
   : "${ARENA_API_IMAGE:?api image missing}"
   : "${ARENA_WORKER_IMAGE:?worker image missing}"
   : "${ARENA_WEB_IMAGE:?web image missing}"
+  : "${ARENA_SEED_IMAGE:?seed image missing}"
 }
 
 validate_registry_credentials() {
@@ -52,10 +54,35 @@ registry_host() {
 }
 
 pull_and_verify_prebuilt_images() {
-  local reference
+  local reference tagged name digest expected_repo_digest repo_digests revision version
   for reference in \
-    "$ARENA_MIGRATE_IMAGE" "$ARENA_API_IMAGE" "$ARENA_WORKER_IMAGE" "$ARENA_WEB_IMAGE"; do
+    "$ARENA_MIGRATE_IMAGE" "$ARENA_API_IMAGE" "$ARENA_WORKER_IMAGE" "$ARENA_WEB_IMAGE" \
+    "$ARENA_SEED_IMAGE"; do
+    [[ "$reference" == *@sha256:* && "$reference" != *":latest@"* ]] ||
+      die "prebuilt image reference is not immutable"
     docker pull "$reference" || die "failed to pull prebuilt image"
-    docker image inspect "$reference" >/dev/null || die "pulled image verification failed"
+    tagged="${reference%@*}"
+    name="${tagged%:*}"
+    digest="${reference##*@}"
+    expected_repo_digest="$name@$digest"
+    repo_digests="$(docker image inspect --format '{{json .RepoDigests}}' "$reference")" ||
+      die "pulled image inspection failed"
+    if ! python3 - "$repo_digests" "$expected_repo_digest" <<'PY'
+import json
+import sys
+if sys.argv[2] not in json.loads(sys.argv[1]):
+    raise SystemExit(1)
+PY
+    then
+      die "pulled image RepoDigest mismatch"
+    fi
+    revision="$(docker image inspect \
+      --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$reference")" ||
+      die "pulled image revision label inspection failed"
+    version="$(docker image inspect \
+      --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$reference")" ||
+      die "pulled image version label inspection failed"
+    [[ "$revision" == "$BUILD_SHA" ]] || die "pulled image revision label mismatch"
+    [[ "$version" == "$RELEASE_VERSION" ]] || die "pulled image version label mismatch"
   done
 }

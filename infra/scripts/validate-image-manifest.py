@@ -42,6 +42,7 @@ images = manifest.get("images")
 if not isinstance(images, dict) or set(images) != set(SERVICES):
     fail("images must contain exactly migrate, api, worker, web, and seed")
 
+repository_prefix = None
 for service in SERVICES:
     image = images[service]
     if not isinstance(image, dict):
@@ -51,6 +52,8 @@ for service in SERVICES:
         fail(f"{service} must contain exactly name, tag, digest, and reference")
     if str(image["tag"]).lower() == "latest":
         fail(f"{service} uses forbidden latest tag")
+    if image["tag"] not in (manifest["sourceCommit"], manifest["releaseId"]):
+        fail(f"{service} tag is mutable or does not identify this release")
     if not DIGEST.fullmatch(str(image["digest"])):
         fail(f"{service} digest is invalid")
     match = REFERENCE.fullmatch(str(image["reference"]))
@@ -60,4 +63,14 @@ for service in SERVICES:
         fail(f"{service} reference does not match name/tag")
     if match.group("digest") != image["digest"]:
         fail(f"{service} reference must retain its digest")
+    suffix = f"/arena-{service}"
+    if not str(image["name"]).endswith(suffix):
+        fail(f"{service} repository is invalid")
+    service_prefix = str(image["name"])[: -len(suffix)]
+    if not service_prefix:
+        fail(f"{service} repository namespace is missing")
+    if repository_prefix is None:
+        repository_prefix = service_prefix
+    elif service_prefix != repository_prefix:
+        fail(f"{service} repository namespace does not match")
     print(f"{service}\t{image['reference']}")
