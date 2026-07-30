@@ -36,6 +36,7 @@ services:
     <<: *app
     image: ${ARENA_API_IMAGE:?ARENA_API_IMAGE required}
     ports: ['127.0.0.1:3001:3001']
+    networks: [ingress, app, data]
     healthcheck:
       {
         test: [CMD, node, /healthchecks/http.mjs, http://127.0.0.1:3001/api/v1/health],
@@ -50,13 +51,17 @@ services:
     <<: *app
     image: ${ARENA_WEB_IMAGE:?ARENA_WEB_IMAGE required}
     ports: ['127.0.0.1:3000:3000']
-    networks: [app]
+    networks: [ingress, app]
   arena-seed:
     <<: *app
     profiles: [seed]
     image: ${ARENA_SEED_IMAGE:-arena-seed:disabled}
     restart: 'no'
 networks:
+  ingress:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: '127.0.0.1'
   app: { internal: true }
   data: { internal: true }
 volumes:

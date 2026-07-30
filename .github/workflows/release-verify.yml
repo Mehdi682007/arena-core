@@ -50,3 +50,10 @@ jobs:
           build-args: |
             BUILD_SHA=${{ github.sha }}
             RELEASE_VERSION=0.0.0-ci
+  ingress-runtime:
+    runs-on: ubuntu-24.04
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate loopback ingress publication and isolation
+        run: sudo bash infra/scripts/validate-ingress-runtime.sh

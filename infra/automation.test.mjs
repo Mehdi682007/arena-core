@@ -178,6 +178,21 @@ test('deployment mode is explicit and unknown values are rejected', async () => 
 
 test('Compose exposes only loopback Web/API and keeps database private', async () => {
   const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  assert.match(compose, /ingress:\r?\n\s+driver: bridge/);
+  assert.match(compose, /com\.docker\.network\.bridge\.host_binding_ipv4: '127\.0\.0\.1'/);
+  assert.match(compose, /arena-api:[\s\S]*?networks: \[ingress, app, data\]/);
+  assert.match(compose, /arena-web:[\s\S]*?networks: \[ingress, app\]/);
+  assert.match(compose, /arena-worker:[\s\S]*?image:/);
+  assert.doesNotMatch(
+    compose.match(/arena-worker:[\s\S]*?(?=\n  arena-web:)/)?.[0] ?? '',
+    /ingress/,
+  );
+  assert.doesNotMatch(
+    compose.match(/postgres:[\s\S]*?(?=\n  arena-migrate:)/)?.[0] ?? '',
+    /ingress/,
+  );
+  assert.match(compose, /app: \{ internal: true \}/);
+  assert.match(compose, /data: \{ internal: true \}/);
   assert.match(compose, /127\.0\.0\.1:3001:3001/);
   assert.match(compose, /127\.0\.0\.1:3000:3000/);
   assert.doesNotMatch(compose, /5432:5432/);
