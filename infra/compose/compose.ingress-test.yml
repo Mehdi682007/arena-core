@@ -1,8 +1,18 @@
 services:
   arena-api:
     image: alpine:3.23
-    command: [sh, -c, 'while true; do printf "ok\n" | nc -l -p 3001; done']
+    command:
+      [
+        sh,
+        -c,
+        'while true; do printf "HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok\n" | nc -l -p 3001; done',
+      ]
     healthcheck: { disable: true }
   arena-web:
     image: alpine:3.23
-    command: [sh, -c, 'while true; do printf "ok\n" | nc -l -p 3000; done']
+    command:
+      [
+        sh,
+        -c,
+        'while true; do printf "HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok\n" | nc -l -p 3000; done',
+      ]
