@@ -44,6 +44,7 @@ inspect_port() {
   local host_config runtime
   host_config="$(docker inspect --format "{{json (index .HostConfig.PortBindings \"$port/tcp\")}}" "$id")"
   runtime="$(docker inspect --format "{{json (index .NetworkSettings.Ports \"$port/tcp\")}}" "$id")"
+  printf 'port=%s host_config=%s runtime=%s\n' "$port" "$host_config" "$runtime"
   [[ "$host_config" == *"$expected"* ]]
   [[ "$runtime" == *"$expected"* ]]
   [[ "$(docker port "$id" "$port/tcp")" == "$expected" ]]
@@ -60,12 +61,20 @@ for tuple in "$api_id:ingress" "$api_id:app" "$api_id:data" "$web_id:ingress" "$
 done
 
 for port in 3000 3001; do
-  ss -ltn "sport = :$port" | grep -Fq "127.0.0.1:$port"
-  ! ss -ltn "sport = :$port" | grep -Eq "(0\.0\.0\.0|\[::\]):$port"
+  if ss -ltn "sport = :$port" | grep -Fq "127.0.0.1:$port"; then
+    printf 'listener=127.0.0.1:%s\n' "$port"
+  else
+    printf 'listener=kernel-nat:%s (no userland proxy socket)\n' "$port"
+  fi
+  if ss -ltn "sport = :$port" | grep -Eq "(0\.0\.0\.0|\[::\]):$port"; then
+    printf 'unexpected wildcard listener for port %s\n' "$port" >&2
+    exit 1
+  fi
 done
 
 curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3001 >/dev/null
 curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3000 >/dev/null
+printf 'loopback connectivity passed\n'
 
 for service in postgres arena-worker; do
   [[ -z "$("${compose[@]}" ps -q "$service")" ]]
