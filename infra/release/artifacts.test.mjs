@@ -26,6 +26,29 @@ async function validateImageManifest(mutator = () => undefined) {
   }
 }
 
+function validateSeedCompose(mutator = () => undefined, expectedImage) {
+  const image =
+    expectedImage ?? `ghcr.io/example/arena-seed:${'a'.repeat(40)}@sha256:${'b'.repeat(64)}`;
+  const document = {
+    services: {
+      'arena-seed': {
+        image,
+        user: '10001:10001',
+        read_only: true,
+        tmpfs: ['/tmp:rw,noexec,nosuid,size=64m'],
+        networks: { app: null, data: null },
+        volumes: [],
+      },
+    },
+  };
+  mutator(document.services['arena-seed']);
+  return spawnSync(
+    process.platform === 'win32' ? 'python' : 'python3',
+    ['infra/scripts/validate-seed-compose.py', image],
+    { cwd: root, encoding: 'utf8', input: JSON.stringify(document) },
+  );
+}
+
 test('Dockerfile defines pinned multi-stage non-root targets', async () => {
   const value = await read('docker/Dockerfile');
   assert.match(value, /FROM node:24\.14\.0-bookworm-slim AS base/);
@@ -134,6 +157,7 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   const builder = await read('scripts/release/build-prebuilt-images.sh');
   const migrationValidator = await read('scripts/release/validate-migration-image.sh');
   const seedValidator = await read('scripts/release/validate-seed-image.sh');
+  const composeRuntimeValidator = await read('scripts/release/validate-seed-compose-runtime.sh');
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /packages: write/);
   assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
@@ -170,6 +194,13 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(seedValidator, /player_ratings/);
   assert.match(seedValidator, /users/);
   assert.match(seedValidator, /matches/);
+  assert.match(composeRuntimeValidator, /compose\.base\.yml/);
+  assert.match(composeRuntimeValidator, /compose\.automation\.staging\.yml/);
+  assert.match(composeRuntimeValidator, /ReadonlyRootfs/);
+  assert.match(composeRuntimeValidator, /HostConfig.*Tmpfs/s);
+  assert.match(composeRuntimeValidator, /10001:10001/);
+  assert.match(composeRuntimeValidator, /Privileged/);
+  assert.match(composeRuntimeValidator, /immutable image reference mismatch/);
 });
 
 test('migration runtime contains pinned pnpm and bypasses Corepack resolution', async () => {
@@ -194,6 +225,43 @@ test('Seed runtime executes packaged JavaScript without package-manager mutation
   assert.match(seedScript, /bounded redacted diagnostics/);
   assert.match(seedScript, /tail -c 16384/);
   assert.match(seedScript, /exit "\$rc"/);
+});
+
+test('Seed Compose validator rejects every security-contract regression', () => {
+  assert.equal(validateSeedCompose().status, 0);
+  for (const mutate of [
+    (service) => delete service.tmpfs,
+    (service) => {
+      service.tmpfs = ['/var/tmp:rw,noexec,nosuid,size=64m'];
+    },
+    (service) => {
+      service.tmpfs = ['/tmp:rw,nosuid,size=64m'];
+    },
+    (service) => {
+      service.tmpfs = ['/tmp:rw,noexec,size=64m'];
+    },
+    (service) => {
+      service.tmpfs = ['/tmp:rw,noexec,nosuid'];
+    },
+    (service) => {
+      service.read_only = false;
+    },
+    (service) => {
+      service.user = '0:0';
+    },
+    (service) => {
+      service.volumes = [{ type: 'bind', source: '/host/app', target: '/app' }];
+    },
+    (service) => {
+      service.privileged = true;
+    },
+    (service) => {
+      service.command = ['pnpm', 'db:seed:fc26'];
+    },
+  ]) {
+    assert.notEqual(validateSeedCompose(mutate).status, 0);
+  }
+  assert.notEqual(validateSeedCompose(() => undefined, 'arena-seed:latest').status, 0);
 });
 
 test('shell release artifacts are normalized to LF', async () => {

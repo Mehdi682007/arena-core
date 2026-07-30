@@ -5,6 +5,7 @@ parse_common_args "$@"; [[ "$ENVIRONMENT" == staging || "${ALLOW_PRODUCTION_BASE
 export_runtime_paths
 if [[ "$DRY_RUN" == true ]]; then info "seed dry-run validated inventory; no lock or container created"; exit 0; fi
 configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
+validate_seed_compose_contract
 acquire_lock "$SERVER_APP_ROOT/run/seed.lock"
 log="$(mktemp)"
 trap 'rm -f "$log"' EXIT

@@ -13,6 +13,11 @@ compose() {
   [[ "${POSTGRES_MODE:-container}" == container ]] && profile=(--profile container-db)
   docker compose --project-directory "$REPO_ROOT" "${files[@]}" "${profile[@]}" "$@"
 }
+validate_seed_compose_contract() {
+  : "${ARENA_SEED_IMAGE:?ARENA_SEED_IMAGE required}"
+  compose --profile seed config --format json |
+    python3 "$SCRIPT_DIR/validate-seed-compose.py" "$ARENA_SEED_IMAGE"
+}
 export_runtime_paths() {
   export ARENA_RELEASE_DIR="$SERVER_APP_ROOT/releases/${RELEASE_VERSION:?RELEASE_VERSION required}"
   export ARENA_ENV_FILE="$SERVER_APP_ROOT/shared/env/runtime.env"
