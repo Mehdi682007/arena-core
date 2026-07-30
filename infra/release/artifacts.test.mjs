@@ -198,6 +198,7 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(composeRuntimeValidator, /compose\.automation\.staging\.yml/);
   assert.match(composeRuntimeValidator, /ReadonlyRootfs/);
   assert.match(composeRuntimeValidator, /HostConfig.*Tmpfs/s);
+  assert.match(composeRuntimeValidator, /ps --all -q arena-seed/);
   assert.match(composeRuntimeValidator, /10001:10001/);
   assert.match(composeRuntimeValidator, /Privileged/);
   assert.match(composeRuntimeValidator, /immutable image reference mismatch/);

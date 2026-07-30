@@ -59,7 +59,7 @@ compose_args=(
 docker compose "${compose_args[@]}" config --format json |
   python3 infra/scripts/validate-seed-compose.py "$immutable"
 docker compose "${compose_args[@]}" create --no-build arena-seed >/dev/null
-container="$(docker compose "${compose_args[@]}" ps -q arena-seed)"
+container="$(docker compose "${compose_args[@]}" ps --all -q arena-seed)"
 [[ -n "$container" ]]
 
 python3 - "$container" "$immutable" <<'PY'
