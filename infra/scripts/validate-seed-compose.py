@@ -2,7 +2,6 @@
 import json
 import sys
 
-APPROVED_TMPFS = ["/tmp:rw,noexec,nosuid,size=64m"]
 APPROVED_NETWORKS = {"app", "data"}
 
 
@@ -26,7 +25,18 @@ if service.get("user") != "10001:10001":
     fail("user must be 10001:10001")
 if service.get("read_only") is not True:
     fail("root filesystem must be read-only")
-if service.get("tmpfs") != APPROVED_TMPFS:
+tmpfs = service.get("tmpfs")
+if not isinstance(tmpfs, list) or len(tmpfs) != 1:
+    fail("tmpfs must be exactly /tmp:rw,noexec,nosuid,size=64m")
+path, separator, raw_options = tmpfs[0].partition(":")
+options = set(raw_options.split(","))
+size_options = {option for option in options if option.startswith("size=")}
+if (
+    path != "/tmp"
+    or not separator
+    or options - size_options != {"rw", "noexec", "nosuid"}
+    or size_options not in ({"size=64m"}, {"size=67108864"})
+):
     fail("tmpfs must be exactly /tmp:rw,noexec,nosuid,size=64m")
 if service.get("privileged") is True:
     fail("privileged mode is forbidden")

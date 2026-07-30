@@ -229,6 +229,12 @@ test('Seed runtime executes packaged JavaScript without package-manager mutation
 
 test('Seed Compose validator rejects every security-contract regression', () => {
   assert.equal(validateSeedCompose().status, 0);
+  assert.equal(
+    validateSeedCompose((service) => {
+      service.tmpfs = ['/tmp:rw,noexec,nosuid,size=67108864'];
+    }).status,
+    0,
+  );
   for (const mutate of [
     (service) => delete service.tmpfs,
     (service) => {

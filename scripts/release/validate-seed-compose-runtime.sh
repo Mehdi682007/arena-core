@@ -79,7 +79,11 @@ if data["HostConfig"]["Privileged"] is not False:
     raise SystemExit("privileged mode enabled")
 tmpfs = data["HostConfig"].get("Tmpfs") or {}
 options = set((tmpfs.get("/tmp") or "").split(","))
-if options != {"rw", "noexec", "nosuid", "size=64m"}:
+size_options = {option for option in options if option.startswith("size=")}
+if (
+    options - size_options != {"rw", "noexec", "nosuid"}
+    or size_options not in ({"size=64m"}, {"size=67108864"})
+):
     raise SystemExit(f"tmpfs mismatch: {tmpfs!r}")
 if data["Config"]["Image"] != expected_image:
     raise SystemExit("immutable image reference mismatch")
