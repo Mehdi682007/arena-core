@@ -57,7 +57,7 @@ services:
     profiles: [seed]
     image: ${ARENA_SEED_IMAGE:-arena-seed:disabled}
     restart: 'no'
-    tmpfs: [/tmp:rw, noexec, nosuid, size=64m]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=64m']
 networks:
   ingress:
     driver: bridge

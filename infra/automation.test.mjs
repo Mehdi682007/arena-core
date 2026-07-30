@@ -209,7 +209,7 @@ test('real deployment path enforces the exact Seed Compose runtime contract', as
   const seed = await readFile(path.join(scripts, 'seed.sh'), 'utf8');
   const service = compose.match(/  arena-seed:[\s\S]*?(?=\nnetworks:)/)?.[0] ?? '';
   assert.match(service, /image: \$\{ARENA_SEED_IMAGE/);
-  assert.match(service, /tmpfs: \[\/tmp:rw, noexec, nosuid, size=64m\]/);
+  assert.match(service, /tmpfs: \['\/tmp:rw,noexec,nosuid,size=64m'\]/);
   assert.doesNotMatch(service, /privileged:|docker\.sock|\/app:/);
   assert.match(compose, /read_only: true/);
   assert.match(compose, /user: '10001:10001'/);
