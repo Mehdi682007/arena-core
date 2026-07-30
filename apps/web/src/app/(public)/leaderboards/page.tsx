@@ -19,12 +19,12 @@ export default async function LeaderboardPage({
   searchParams: Promise<{ mode?: string; cursor?: string }>;
 }) {
   const query = await searchParams;
-  const mode = query.mode === 'two_v_two' ? 'two_v_two' : 'one_v_one';
+  const mode = query.mode === 'two-v-two' ? 'two-v-two' : 'one-v-one';
   let page: { items: Entry[]; nextCursor: string | null };
   try {
     page = await apiRequest(
       getWebConfig().server.apiBaseUrl,
-      `/leaderboards/ea_sports_fc_26/${mode}?limit=25${query.cursor ? `&cursor=${encodeURIComponent(query.cursor)}` : ''}`,
+      `/leaderboards/fc-26/${mode}?limit=25${query.cursor ? `&cursor=${encodeURIComponent(query.cursor)}` : ''}`,
       { cache: 'force-cache' },
     );
   } catch (error) {
@@ -41,8 +41,8 @@ export default async function LeaderboardPage({
       <form method="get" className="cluster">
         <label htmlFor="mode">حالت بازی</label>
         <Select id="mode" name="mode" defaultValue={mode}>
-          <option value="one_v_one">۱ در برابر ۱</option>
-          <option value="two_v_two">۲ در برابر ۲</option>
+          <option value="one-v-one">۱ در برابر ۱</option>
+          <option value="two-v-two">۲ در برابر ۲</option>
         </Select>
         <button className="button secondary">اعمال</button>
       </form>

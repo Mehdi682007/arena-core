@@ -89,6 +89,8 @@ test('runtime environment generator emits the complete canonical API contract', 
     runtime,
     /AUTH_ALLOWED_ORIGINS=%s:\/\/%s\\nIDENTITY_PUBLIC_BASE_URL=%s:\/\/%s\\n' "\$scheme" "\$base" "\$scheme" "\$base"/,
   );
+  assert.match(runtime, /API_BASE_URL=%s:\/\/%s\/api\/v1\\n/);
+  assert.doesNotMatch(runtime, /API_BASE_URL=%s:\/\/%s\/api\\n/);
 });
 
 test('Web runtime port and canonical variables remain consistent through deployment', async () => {
