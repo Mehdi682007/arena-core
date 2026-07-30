@@ -44,9 +44,12 @@ inspect_port() {
   local host_config runtime
   host_config="$(docker inspect --format "{{json (index .HostConfig.PortBindings \"$port/tcp\")}}" "$id")"
   runtime="$(docker inspect --format "{{json (index .NetworkSettings.Ports \"$port/tcp\")}}" "$id")"
-  printf 'port=%s host_config=%s runtime=%s\n' "$port" "$host_config" "$runtime"
-  [[ "$host_config" == *"$expected"* ]]
-  [[ "$runtime" == *"$expected"* ]]
+  printf 'port=%s host_config=%s runtime=%s docker_port=%s\n' \
+    "$port" "$host_config" "$runtime" "$(docker port "$id" "$port/tcp")"
+  [[ "$host_config" == *'"HostIp":"127.0.0.1"'* ]]
+  [[ "$host_config" == *"\"HostPort\":\"$port\""* ]]
+  [[ "$runtime" == *'"HostIp":"127.0.0.1"'* ]]
+  [[ "$runtime" == *"\"HostPort\":\"$port\""* ]]
   [[ "$(docker port "$id" "$port/tcp")" == "$expected" ]]
 }
 
