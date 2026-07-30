@@ -14,8 +14,10 @@ git ls-files -z '*.sh' | xargs -0 -n1 bash -n
 command -v shellcheck >/dev/null || { echo "ShellCheck is required" >&2; exit 2; }
 shellcheck --severity=warning --exclude=SC1091,SC2034 \
   infra/scripts/prepare-runtime-env.sh \
+  infra/scripts/seed.sh \
   infra/scripts/verify.sh \
-  scripts/release/build-prebuilt-images.sh
+  scripts/release/build-prebuilt-images.sh \
+  scripts/release/validate-seed-image.sh
 
 output="${IMAGE_MANIFEST_OUTPUT:-deployment-images.json}"
 records="$(mktemp)"
@@ -32,6 +34,10 @@ for service in migrate api worker web seed; do
     --tag "$tagged" .
   if [[ "$service" == migrate ]]; then
     bash scripts/release/validate-migration-image.sh "$tagged"
+  fi
+  if [[ "$service" == seed ]]; then
+    bash scripts/release/validate-seed-image.sh \
+      "$tagged" "$ARENA_REGISTRY/arena-migrate:$ARENA_IMAGE_TAG"
   fi
   image_revision="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$tagged")"
   image_version="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$tagged")"

@@ -133,6 +133,7 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   const workflow = await read('.github/workflows/prebuilt-images.yml');
   const builder = await read('scripts/release/build-prebuilt-images.sh');
   const migrationValidator = await read('scripts/release/validate-migration-image.sh');
+  const seedValidator = await read('scripts/release/validate-seed-image.sh');
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /packages: write/);
   assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
@@ -146,6 +147,7 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(builder, /buildx imagetools inspect/);
   assert.match(builder, /latest is forbidden/);
   assert.match(builder, /validate-migration-image\.sh "\$tagged"/);
+  assert.match(builder, /validate-seed-image\.sh/);
   assert.match(builder, /org\.opencontainers\.image\.revision/);
   assert.match(builder, /org\.opencontainers\.image\.version/);
   assert.match(builder, /source commit label mismatch/);
@@ -160,6 +162,14 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(migrationValidator, /expected_pnpm_version=11\.9\.0/);
   assert.match(migrationValidator, /registry\\\.npmjs\\\.org/);
   assert.match(migrationValidator, /Prisma schema loaded/);
+  assert.match(seedValidator, /--read-only/);
+  assert.match(seedValidator, /--network none/);
+  assert.match(seedValidator, /pnpm \(install\|fetch\)/);
+  assert.match(seedValidator, /dist\/seed-fc26-cli\.js/);
+  assert.match(seedValidator, /second_counts.*first_counts/s);
+  assert.match(seedValidator, /player_ratings/);
+  assert.match(seedValidator, /users/);
+  assert.match(seedValidator, /matches/);
 });
 
 test('migration runtime contains pinned pnpm and bypasses Corepack resolution', async () => {
@@ -173,6 +183,17 @@ test('migration runtime contains pinned pnpm and bypasses Corepack resolution', 
     /ENTRYPOINT \["\/app\/node_modules\/\.bin\/prisma", "migrate", "deploy", "--config", "prisma\.config\.ts"\]/,
   );
   assert.doesNotMatch(dockerfile, /corepack (?:enable|prepare)/);
+});
+
+test('Seed runtime executes packaged JavaScript without package-manager mutation', async () => {
+  const dockerfile = await read('docker/Dockerfile');
+  const seedScript = await read('infra/scripts/seed.sh');
+  assert.match(dockerfile, /ENTRYPOINT \["node", "dist\/seed-fc26-cli\.js"\]/);
+  assert.doesNotMatch(dockerfile, /ENTRYPOINT \["pnpm", "db:seed:fc26"\]/);
+  assert.match(seedScript, /configure_release_images "\$ARENA_RELEASE_DIR" "\$RELEASE_VERSION"/);
+  assert.match(seedScript, /bounded redacted diagnostics/);
+  assert.match(seedScript, /tail -c 16384/);
+  assert.match(seedScript, /exit "\$rc"/);
 });
 
 test('shell release artifacts are normalized to LF', async () => {

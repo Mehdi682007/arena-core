@@ -82,4 +82,4 @@ ENTRYPOINT ["/app/node_modules/.bin/prisma", "migrate", "deploy", "--config", "p
 
 FROM job-runtime AS seed
 COPY --from=deploy-seed --chown=10001:10001 /output/seed/ ./
-ENTRYPOINT ["pnpm", "db:seed:fc26"]
+ENTRYPOINT ["node", "dist/seed-fc26-cli.js"]
