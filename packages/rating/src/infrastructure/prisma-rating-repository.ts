@@ -404,27 +404,46 @@ export class PrismaRatingRepository implements RatingRepository {
     crossplayGroupKey?: string,
   ): Promise<RatingScope | null> {
     const mode = await this.client.gameMode.findFirst({
-      where: { key: modeKey, game: { key: gameKey } },
-      select: { id: true, gameId: true },
+      where: {
+        status: 'ACTIVE',
+        OR: [{ key: modeKey }, { slug: modeKey }],
+        game: {
+          status: 'ACTIVE',
+          isVisible: true,
+          OR: [{ key: gameKey }, { slug: gameKey }],
+        },
+      },
+      select: {
+        id: true,
+        gameId: true,
+      },
     });
+
     if (!mode) return null;
+
     const group = await this.client.crossplayGroup.findFirst({
       where: {
         gameId: mode.gameId,
-        ...(crossplayGroupKey ? { key: crossplayGroupKey } : { status: 'ACTIVE' }),
+        status: 'ACTIVE',
+        ...(crossplayGroupKey ? { key: crossplayGroupKey } : {}),
       },
-      select: { id: true },
-      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+      },
+      orderBy: {
+        sortOrder: 'asc',
+      },
     });
-    return group
-      ? {
-          gameId: mode.gameId,
-          gameModeId: mode.id,
-          crossplayGroupId: group.id,
-          policyKey: 'ELO',
-          policyVersion: 1,
-        }
-      : null;
+
+    if (!group) return null;
+
+    return {
+      gameId: mode.gameId,
+      gameModeId: mode.id,
+      crossplayGroupId: group.id,
+      policyKey: 'ELO',
+      policyVersion: 1,
+    };
   }
 
   public async listLeaderboard(query: LeaderboardQuery): Promise<LeaderboardPage> {
