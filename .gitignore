@@ -66,3 +66,7 @@ release/deployment-images.json
 *.tgz
 *.tar.gz
 *.zip
+arena-release-*/
+deployment-images-*/
+staging*-*.json
+staging*-*.diff
