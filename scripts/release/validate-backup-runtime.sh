@@ -19,7 +19,7 @@ cleanup() {
     variable="ARENA_${service^^}_IMAGE"
     printf -v "$variable" 'ghcr.io/example/arena-%s:%s@%s' \
       "$service" "$source_commit" "$digest"
-    export "${variable}"
+    declare -x "$variable"
   done
   docker compose --project-directory . \
     -f infra/compose/compose.base.yml \
@@ -113,7 +113,7 @@ for service in migrate api worker web seed; do
   variable="ARENA_${service^^}_IMAGE"
   printf -v "$variable" 'ghcr.io/example/arena-%s:%s@%s' \
     "$service" "$source_commit" "$digest"
-  export "${variable}"
+  declare -x "$variable"
 done
 docker compose --project-directory . \
   -f infra/compose/compose.base.yml \
