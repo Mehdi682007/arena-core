@@ -32,7 +32,10 @@ load_prebuilt_images() {
       seed) export ARENA_SEED_IMAGE="$reference" ;;
       *) die "unexpected image service: $service" ;;
     esac
-  done < <(python3 "$SCRIPT_DIR/validate-image-manifest.py" "$manifest" "$RELEASE_VERSION")
+  done < <(
+    python3 "$SCRIPT_DIR/validate-image-manifest.py" \
+      "$manifest" "$RELEASE_VERSION" "${BUILD_SHA:?BUILD_SHA required}"
+  )
   : "${ARENA_MIGRATE_IMAGE:?migrate image missing}"
   : "${ARENA_API_IMAGE:?api image missing}"
   : "${ARENA_WORKER_IMAGE:?worker image missing}"

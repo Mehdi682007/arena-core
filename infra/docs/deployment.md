@@ -80,6 +80,12 @@ sudo infra/scripts/deploy.sh /secure/path/arena-staging.env --dry-run
 sudo infra/scripts/deploy.sh /secure/path/arena-staging.env
 ```
 
+`backup.sh` independently loads and validates the target release's five-image
+`release/deployment-images.json` before Compose interpolation. Operators must not manually export
+`ARENA_*_IMAGE` variables. Missing, mutable, malformed, or release-mismatched image entries fail
+before the backup lock, partial directory, or `pg_dump`. A custom-format dump is finalized only
+after `pg_restore -l` and the checksum manifest succeed.
+
 Prebuilt deployment validates the manifest and registry token before acquiring the lifecycle lock.
 It then optionally logs in using a temporary `DOCKER_CONFIG`, pulls and inspects the four runtime
 and migration references, runs the prebuilt migration image, starts API/Worker/Web, performs

@@ -376,6 +376,12 @@ test('database lifecycle supports container and external PostgreSQL', async () =
   assert.match(backup, /BACKUP_MIN_FREE_MB/);
   assert.match(backup, /find \. -type f ! -name SHA256SUMS/);
   assert.match(backup, /cleanup_partial/);
+  assert.match(backup, /source "\$SCRIPT_DIR\/lib\/images\.sh"/);
+  assert.match(backup, /configure_release_images "\$ARENA_RELEASE_DIR" "\$RELEASE_VERSION"/);
+  assert.match(backup, /pg_restore -l/);
+  assert.ok(backup.indexOf('configure_release_images') < backup.indexOf('compose config --quiet'));
+  assert.ok(backup.indexOf('compose config --quiet') < backup.indexOf('acquire_lock'));
+  assert.ok(backup.indexOf('configure_release_images') < backup.indexOf('pg_dump'));
   const restore = await readFile(path.join(scripts, 'restore.sh'), 'utf8');
   assert.ok(
     restore.indexOf('compose stop arena-api') <
