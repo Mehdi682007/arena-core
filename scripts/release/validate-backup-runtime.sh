@@ -119,7 +119,7 @@ docker compose --project-directory . \
   -f infra/compose/compose.base.yml \
   -f infra/compose/compose.automation.staging.yml \
   --profile container-db up -d --wait postgres
-unset ARENA_MIGRATE_IMAGE ARENA_API_IMAGE ARENA_WORKER_IMAGE ARENA_WEB_IMAGE ARENA_SEED_IMAGE
+#unset ARENA_MIGRATE_IMAGE ARENA_API_IMAGE ARENA_WORKER_IMAGE ARENA_WEB_IMAGE ARENA_SEED_IMAGE
 
 if ! BACKUP_MIN_FREE_MB=1 \
   bash infra/scripts/backup.sh "$inventory" >"$work/backup.log" 2>&1; then
