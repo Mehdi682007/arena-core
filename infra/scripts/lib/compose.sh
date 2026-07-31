@@ -44,3 +44,17 @@ export_runtime_paths() {
     export ARENA_SEED_IMAGE="arena-seed:$IMAGE_TAG"
   fi
 }
+export_runtime_environment() {
+
+  export POSTGRES_DB="${POSTGRES_DB:-}"
+  export POSTGRES_USER="${POSTGRES_USER:-}"
+  export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
+
+  export ARENA_ENV_FILE="${ARENA_ENV_FILE:-$SERVER_APP_ROOT/shared/env/runtime.env}"
+  export ARENA_SECRETS_DIR="${ARENA_SECRETS_DIR:-$SERVER_APP_ROOT/shared/secrets}"
+
+  : "${POSTGRES_DB:?POSTGRES_DB required}"
+  : "${POSTGRES_USER:?POSTGRES_USER required}"
+  : "${ARENA_ENV_FILE:?ARENA_ENV_FILE required}"
+  : "${ARENA_SECRETS_DIR:?ARENA_SECRETS_DIR required}"
+}
