@@ -1,0 +1,90 @@
+name: arena-core-local
+
+services:
+  postgres:
+    image: postgres:17.10-alpine3.23
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-arena_core}
+      POSTGRES_USER: ${POSTGRES_USER:-arena_core}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arena_core_dev_only}
+    ports:
+      - '${POSTGRES_HOST:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:8.2.8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_HOST:-127.0.0.1}:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-arena_core}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-arena_core_dev_only}
+    ports:
+      - '${MINIO_HOST:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000'
+      - '${MINIO_HOST:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl --fail --silent http://localhost:9000/minio/health/live >/dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    restart: 'no'
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-arena_core}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-arena_core_dev_only}
+      MINIO_EVIDENCE_BUCKET: ${MINIO_EVIDENCE_BUCKET:-match-evidence}
+    entrypoint: ['/bin/sh', '-ec']
+    command:
+      - |
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" >/dev/null
+        mc mb --ignore-existing "local/$${MINIO_EVIDENCE_BUCKET}" >/dev/null
+        mc anonymous set none "local/$${MINIO_EVIDENCE_BUCKET}" >/dev/null
+        mc stat "local/$${MINIO_EVIDENCE_BUCKET}" >/dev/null
+
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_HOST:-127.0.0.1}:${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${MAILPIT_HOST:-127.0.0.1}:${MAILPIT_UI_PORT:-8025}:8025'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

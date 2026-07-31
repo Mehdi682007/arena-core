@@ -8,15 +8,31 @@ compose_files() {
 }
 compose() {
   local -a files profile
+
   mapfile -t files < <(compose_files)
+
   profile=()
   [[ "${POSTGRES_MODE:-container}" == container ]] && profile=(--profile container-db)
-  docker compose --project-directory "$REPO_ROOT" "${files[@]}" "${profile[@]}" "$@"
-}
-validate_seed_compose_contract() {
-  : "${ARENA_SEED_IMAGE:?ARENA_SEED_IMAGE required}"
-  compose --profile seed config --format json |
-    python3 "$SCRIPT_DIR/validate-seed-compose.py" "$ARENA_SEED_IMAGE"
+
+  export \
+    ARENA_ENV_FILE \
+    ARENA_SECRETS_DIR \
+    POSTGRES_DB \
+    POSTGRES_USER \
+    POSTGRES_PASSWORD \
+    RELEASE_VERSION \
+    BUILD_SHA \
+    ARENA_MIGRATE_IMAGE \
+    ARENA_API_IMAGE \
+    ARENA_WORKER_IMAGE \
+    ARENA_WEB_IMAGE \
+    ARENA_SEED_IMAGE
+
+  docker compose \
+    --project-directory "$REPO_ROOT" \
+    "${files[@]}" \
+    "${profile[@]}" \
+    "$@"
 }
 export_runtime_paths() {
   export ARENA_RELEASE_DIR="$SERVER_APP_ROOT/releases/${RELEASE_VERSION:?RELEASE_VERSION required}"
@@ -35,6 +51,11 @@ export_runtime_paths() {
 
   export ARENA_ENV_FILE
   export ARENA_SECRETS_DIR
+  
+  export RELEASE_VERSION
+  export BUILD_SHA
+  export POSTGRES_DB
+  export POSTGRES_USER
 
   if [[ "$DEPLOY_MODE" == build-local ]]; then
     export ARENA_MIGRATE_IMAGE="arena-migrate:$IMAGE_TAG"

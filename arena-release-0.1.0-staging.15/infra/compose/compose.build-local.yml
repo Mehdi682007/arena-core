@@ -1,0 +1,18 @@
+x-build: &build
+  context: ${ARENA_RELEASE_DIR:?ARENA_RELEASE_DIR required}
+  dockerfile: docker/Dockerfile
+  args:
+    BUILD_SHA: '${BUILD_SHA:?BUILD_SHA required}'
+    RELEASE_VERSION: '${RELEASE_VERSION:?RELEASE_VERSION required}'
+
+services:
+  arena-migrate:
+    build: { <<: *build, target: migrate }
+  arena-api:
+    build: { <<: *build, target: api }
+  arena-worker:
+    build: { <<: *build, target: worker }
+  arena-web:
+    build: { <<: *build, target: web }
+  arena-seed:
+    build: { <<: *build, target: seed }

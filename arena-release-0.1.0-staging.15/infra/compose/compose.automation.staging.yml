@@ -1,0 +1,5 @@
+services:
+  postgres:
+    profiles: [container-db]
+  arena-migrate:
+    depends_on: !reset {}
