@@ -1,0 +1,79 @@
+name: Package deployment release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Immutable Arena release ID
+        required: true
+      image_run_id:
+        description: Workflow run ID that produced deployment images
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Download deployment image manifest
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.image_run_id }}
+          pattern: deployment-images-${{ inputs.release_id }}
+          path: artifacts
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release
+
+          cp artifacts/**/deployment-images.json \
+             release/deployment-images.json
+
+      - name: Generate release manifest
+        env:
+          RELEASE_VERSION: ${{ inputs.release_id }}
+          BUILD_SHA: ${{ github.sha }}
+          SOURCE_DATE_EPOCH: ${{ github.event.repository.updated_at }}
+        run: |
+          export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+          node scripts/release/generate-manifest.mjs release/manifest.json
+
+      - name: Validate image manifest
+        run: |
+          python3 infra/scripts/validate-image-manifest.py \
+            release/deployment-images.json \
+            "${{ inputs.release_id }}"
+
+      - name: Verify release artifacts
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm release:verify
+
+      - name: Create deployment archive
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=node_modules \
+            -czf \
+            arena-release-${{ inputs.release_id }}.tar.gz \
+            release \
+            infra \
+            docker \
+            scripts \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml
+
+      - name: Upload deployment archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-release-${{ inputs.release_id }}
+          path: arena-release-${{ inputs.release_id }}.tar.gz
