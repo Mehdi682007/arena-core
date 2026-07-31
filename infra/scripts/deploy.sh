@@ -4,6 +4,17 @@ source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; 
 [[ $# -ge 1 ]] || die "inventory required"; inventory="$1"; shift; load_inventory "$inventory"
 while (($#)); do case "$1" in --dry-run) DRY_RUN=true ;; *) die "unknown argument: $1";; esac; shift; done
 export_runtime_paths
+
+if [[ -n "${RELEASE_ARCHIVE:-}" ]]; then
+  [[ -f "$RELEASE_ARCHIVE" ]] || die "release archive missing: $RELEASE_ARCHIVE"
+
+  mkdir -p "$ARENA_RELEASE_DIR"
+
+  tar -xzf "$RELEASE_ARCHIVE" -C "$ARENA_RELEASE_DIR"
+
+  info "release archive extracted: $RELEASE_ARCHIVE"
+fi
+
 [[ -f "$ARENA_RELEASE_DIR/release/manifest.json" ]] || die "release manifest missing"
 configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
 validate_seed_compose_contract
