@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/compose.sh"
+source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/compose.sh"; source "$SCRIPT_DIR/lib/images.sh"
 parse_common_args "$@"; export_runtime_paths
+configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
+compose config --quiet
 if [[ "$DRY_RUN" == true ]]; then
   info "backup dry-run validated inventory and paths; no lock, directory, dump, or checksum file created"
   exit 0
@@ -20,10 +22,12 @@ available_kb="$(df -Pk "$SERVER_BACKUP_ROOT" | awk 'NR==2 {print $4}')"
 mkdir -m 0700 "$partial"
 if [[ "$POSTGRES_MODE" == container ]]; then
   compose --profile container-db exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc >"$partial/postgres.dump"
+  compose --profile container-db exec -T postgres pg_restore -l <"$partial/postgres.dump" >/dev/null
 else
   docker run --rm -i -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
     postgres:17.10-alpine3.23 sh -ec \
     'pg_dump --dbname="$(cat /run/arena-secrets/DATABASE_DIRECT_URL)" -Fc' >"$partial/postgres.dump"
+  docker run --rm -i postgres:17.10-alpine3.23 pg_restore -l <"$partial/postgres.dump" >/dev/null
 fi
 rsync -a --exclude='secrets/*' "$SERVER_APP_ROOT/shared/uploads/" "$partial/uploads/"
 cp "$SERVER_APP_ROOT/shared/deployment.json" "$partial/" 2>/dev/null || true

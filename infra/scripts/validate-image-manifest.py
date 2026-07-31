@@ -17,8 +17,10 @@ def fail(message: str) -> None:
     raise SystemExit(f"invalid deployment image manifest: {message}")
 
 
-if len(sys.argv) != 3:
-    raise SystemExit("usage: validate-image-manifest.py MANIFEST RELEASE_ID")
+if len(sys.argv) not in (3, 4):
+    raise SystemExit(
+        "usage: validate-image-manifest.py MANIFEST RELEASE_ID [EXPECTED_SOURCE_COMMIT]"
+    )
 
 path = Path(sys.argv[1])
 if not path.is_file() or path.is_symlink():
@@ -35,6 +37,8 @@ if manifest.get("releaseId") != sys.argv[2]:
     fail("releaseId does not match RELEASE_VERSION")
 if not COMMIT.fullmatch(str(manifest.get("sourceCommit", ""))):
     fail("sourceCommit must be a full lowercase Git SHA")
+if len(sys.argv) == 4 and manifest["sourceCommit"] != sys.argv[3]:
+    fail("sourceCommit does not match BUILD_SHA")
 if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", str(manifest.get("buildTimestamp", ""))):
     fail("buildTimestamp must be UTC ISO-8601")
 

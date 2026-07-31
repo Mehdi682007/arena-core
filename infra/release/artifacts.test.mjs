@@ -49,6 +49,37 @@ function validateSeedCompose(mutator = () => undefined, expectedImage) {
   );
 }
 
+async function validateImageManifestForCommit(
+  mutator = () => undefined,
+  expectedCommit = 'a'.repeat(40),
+) {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'arena-image-manifest-'));
+  const manifestPath = path.join(directory, 'deployment-images.json');
+  const manifest = JSON.parse(await read('release/deployment-images.example.json'));
+  manifest.releaseId = '0.1.0-test';
+  manifest.sourceCommit = 'a'.repeat(40);
+  for (const image of Object.values(manifest.images)) {
+    image.tag = manifest.sourceCommit;
+    image.reference = `${image.name}:${image.tag}@${image.digest}`;
+  }
+  mutator(manifest);
+  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`);
+  try {
+    return spawnSync(
+      process.platform === 'win32' ? 'python' : 'python3',
+      [
+        'infra/scripts/validate-image-manifest.py',
+        manifestPath,
+        manifest.releaseId,
+        expectedCommit,
+      ],
+      { cwd: root, encoding: 'utf8' },
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 test('Dockerfile defines pinned multi-stage non-root targets', async () => {
   const value = await read('docker/Dockerfile');
   assert.match(value, /FROM node:24\.14\.0-bookworm-slim AS base/);
@@ -152,6 +183,14 @@ test('deployment image validator enforces immutable Seed identity', async () => 
   );
 });
 
+test('deployment image validator binds the manifest revision to BUILD_SHA', async () => {
+  assert.equal((await validateImageManifestForCommit()).status, 0);
+  assert.notEqual(
+    (await validateImageManifestForCommit(() => undefined, 'b'.repeat(40))).status,
+    0,
+  );
+});
+
 test('prebuilt workflow builds sequentially, pushes immutable images, and never deploys', async () => {
   const workflow = await read('.github/workflows/prebuilt-images.yml');
   const builder = await read('scripts/release/build-prebuilt-images.sh');
@@ -202,6 +241,22 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(composeRuntimeValidator, /10001:10001/);
   assert.match(composeRuntimeValidator, /Privileged/);
   assert.match(composeRuntimeValidator, /immutable image reference mismatch/);
+});
+
+test('release verification exercises the tracked prebuilt backup path', async () => {
+  const workflow = await read('.github/workflows/release-verify.yml');
+  const validator = await read('scripts/release/validate-backup-runtime.sh');
+  assert.match(workflow, /backup-runtime:/);
+  assert.match(workflow, /sudo bash scripts\/release\/validate-backup-runtime\.sh/);
+  assert.match(validator, /bash infra\/scripts\/backup\.sh "\$inventory"/);
+  assert.match(validator, /env[\s\S]*-u ARENA_MIGRATE_IMAGE[\s\S]*backup\.sh/);
+  assert.match(validator, /pg_restore -l/);
+  assert.match(
+    validator,
+    /missing-image mutable bad-digest wrong-release wrong-revision invalid-path/,
+  );
+  assert.match(validator, /forced pg_dump failure unexpectedly passed/);
+  assert.match(validator, /failure diagnostics exposed a credential/);
 });
 
 test('migration runtime contains pinned pnpm and bypasses Corepack resolution', async () => {
