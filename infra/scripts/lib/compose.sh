@@ -25,6 +25,17 @@ export_runtime_paths() {
   export IMAGE_TAG="$RELEASE_VERSION"
   export BUILD_SHA="${BUILD_SHA:-uncommitted}"
   export ARENA_IMAGE_MANIFEST="$ARENA_RELEASE_DIR/release/deployment-images.json"
+
+  if [[ -f "$ARENA_ENV_FILE" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ARENA_ENV_FILE"
+    set +a
+  fi
+
+  export ARENA_ENV_FILE
+  export ARENA_SECRETS_DIR
+
   if [[ "$DEPLOY_MODE" == build-local ]]; then
     export ARENA_MIGRATE_IMAGE="arena-migrate:$IMAGE_TAG"
     export ARENA_API_IMAGE="arena-api:$IMAGE_TAG"
