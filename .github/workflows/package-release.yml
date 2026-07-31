@@ -55,6 +55,11 @@ jobs:
             release/deployment-images.json \
             "${{ inputs.release_id }}"
 
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.9.0 --activate
+
       - name: Verify release artifacts
         run: |
           pnpm install --frozen-lockfile
