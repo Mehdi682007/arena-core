@@ -19,7 +19,7 @@ cleanup() {
     variable="ARENA_${service^^}_IMAGE"
     printf -v "$variable" 'ghcr.io/example/arena-%s:%s@%s' \
       "$service" "$source_commit" "$digest"
-    export "$variable"
+    export "${variable}"
   done
   docker compose --project-directory . \
     -f infra/compose/compose.base.yml \
@@ -113,7 +113,7 @@ for service in migrate api worker web seed; do
   variable="ARENA_${service^^}_IMAGE"
   printf -v "$variable" 'ghcr.io/example/arena-%s:%s@%s' \
     "$service" "$source_commit" "$digest"
-  export "$variable"
+  export "${variable}"
 done
 docker compose --project-directory . \
   -f infra/compose/compose.base.yml \
@@ -214,7 +214,8 @@ PY
     echo "negative manifest unexpectedly passed: $variant" >&2
     exit 1
   fi
-  [[ ! -e "$work/negative-backups"/*.partial ]]
+  partial="$(find "$work/negative-backups" -name '*.partial' -print -quit)"
+  [[ -z "$partial" ]]
 }
 for variant in missing missing-image mutable bad-digest wrong-release wrong-revision invalid-path; do
   expect_manifest_failure "$variant"
