@@ -1,5 +1,8 @@
 # syntax=docker/dockerfile:1.7
 FROM node:24.14.0-bookworm-slim AS base
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN npm install --global pnpm@11.9.0 && test "$(pnpm --version)" = "11.9.0"
@@ -26,7 +29,7 @@ RUN pnpm --filter @arena-core/database deploy --legacy /output/database
 FROM builder AS deploy-seed
 RUN pnpm --filter @arena-core/game-catalog deploy --legacy /output/seed
 
-FROM node:24.14.0-bookworm-slim AS runtime
+FROM base AS runtime
 ARG BUILD_SHA=unknown
 ARG RELEASE_VERSION=0.0.0
 LABEL org.opencontainers.image.revision=$BUILD_SHA \

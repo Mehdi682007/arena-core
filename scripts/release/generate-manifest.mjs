@@ -13,29 +13,16 @@ if (!version || !buildSha || !Number.isInteger(epoch) || epoch < 0) {
   );
 }
 
-const deploymentImagesPath = path.resolve(
-  root,
-  'release/deployment-images.json',
-);
+const deploymentImagesPath = path.resolve(root, 'release/deployment-images.json');
 
-const deploymentImages = JSON.parse(
-  await readFile(deploymentImagesPath, 'utf8'),
-);
+const deploymentImages = JSON.parse(await readFile(deploymentImagesPath, 'utf8'));
 
-if (
-  deploymentImages.schemaVersion !== 1 ||
-  deploymentImages.sourceCommit !== buildSha
-) {
-  throw new Error(
-    'deployment-images.json does not match release build SHA',
-  );
+if (deploymentImages.schemaVersion !== 1 || deploymentImages.sourceCommit !== buildSha) {
+  throw new Error('deployment-images.json does not match release build SHA');
 }
 
 const imageReferences = Object.fromEntries(
-  Object.entries(deploymentImages.images).map(([name, image]) => [
-    name,
-    image.reference,
-  ]),
+  Object.entries(deploymentImages.images).map(([name, image]) => [name, image.reference]),
 );
 
 const manifest = {
@@ -50,17 +37,8 @@ const manifest = {
   images: imageReferences,
 };
 
-const output = path.resolve(
-  root,
-  process.argv[2] ?? 'release/manifest.json',
-);
+const output = path.resolve(root, process.argv[2] ?? 'release/manifest.json');
 
-await writeFile(
-  output,
-  `${JSON.stringify(manifest, null, 2)}\n`,
-  { flag: 'wx' },
-);
+await writeFile(output, `${JSON.stringify(manifest, null, 2)}\n`, { flag: 'wx' });
 
-process.stdout.write(
-  `Release manifest written: ${path.relative(root, output)}\n`,
-);
+process.stdout.write(`Release manifest written: ${path.relative(root, output)}\n`);

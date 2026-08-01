@@ -29,7 +29,19 @@ jobs:
       - run: pnpm build
       - run: pnpm audit --prod
       - run: pnpm release:preflight
-      - run: pnpm release:verify
+      - name: Generate deterministic release fixture
+        shell: bash
+        run: |
+          cp release/deployment-images.example.json release/deployment-images.json
+          rm -f release/manifest.ci.json
+
+          RELEASE_VERSION=0.1.0-staging.1 \
+          BUILD_SHA=0123456789abcdef0123456789abcdef01234567 \
+          SOURCE_DATE_EPOCH=1785283200 \
+          node scripts/release/generate-manifest.mjs release/manifest.ci.json
+
+      - name: Verify release fixture
+        run: node scripts/release/verify-artifacts.mjs release/manifest.ci.json
   container-build:
     runs-on: ubuntu-24.04
     needs: quality

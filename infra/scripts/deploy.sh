@@ -234,8 +234,4 @@ fi
 
 
 ln -sfn "$ARENA_RELEASE_DIR" "$SERVER_APP_ROOT/current"
-
-record_deployment \
-  "$RELEASE_VERSION" \
-  active \
-  "${previous_release##*/}"
+record_deployment "$RELEASE_VERSION" active "${previous_release##*/}"

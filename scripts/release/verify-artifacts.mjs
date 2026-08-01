@@ -14,10 +14,7 @@ if (manifest.schemaVersion !== 1) {
   fail('unsupported manifest schema');
 }
 
-if (
-  manifest.buildSha !== 'uncommitted' &&
-  !/^[0-9a-f]{7,64}$/i.test(manifest.buildSha)
-) {
+if (manifest.buildSha !== 'uncommitted' && !/^[0-9a-f]{7,64}$/i.test(manifest.buildSha)) {
   fail('invalid build SHA');
 }
 
@@ -29,10 +26,7 @@ if (manifest.lockfileSha256 !== (await fileHash('pnpm-lock.yaml'))) {
   fail('lockfile drift');
 }
 
-if (
-  JSON.stringify(manifest.migrations) !==
-  JSON.stringify(await migrations())
-) {
+if (JSON.stringify(manifest.migrations) !== JSON.stringify(await migrations())) {
   fail('migration drift');
 }
 
