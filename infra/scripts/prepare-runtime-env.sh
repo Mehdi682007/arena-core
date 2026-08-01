@@ -32,7 +32,7 @@ base="${APP_DOMAIN:-$SERVER_HOST}"; scheme=http; [[ "$ENABLE_TLS" == true ]] && 
   done
   printf 'SMTP_ENABLED=false\nTRUST_PROXY_MODE=hop-count\nTRUST_PROXY_HOPS=1\n'
   printf 'ALLOWED_ORIGINS=%s://%s\nCORS_ALLOW_NO_ORIGIN=false\nCOOKIE_SECURE=%s\n' "$scheme" "$base" "$ENABLE_TLS"
-  printf 'RATE_LIMIT_ENABLED=true\nMIGRATION_MODE=external\nBUILD_SHA=%s\nRELEASE_VERSION=%s\n' "${BUILD_SHA:-uncommitted}" "$RELEASE_VERSION"
+  printf 'RATE_LIMIT_ENABLED=true\nMIGRATION_MODE=external\n'
 } >"$tmp"
 install -m 0600 -o "$SERVER_APP_USER" -g "$SERVER_APP_USER" "$tmp" "$target"
 info "runtime environment created with restricted permissions; values were not logged"
