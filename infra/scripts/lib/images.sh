@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+validate_release_archive() {
+  : "${RELEASE_ARCHIVE:?RELEASE_ARCHIVE required}"
+  : "${RELEASE_ARCHIVE_SHA256:?RELEASE_ARCHIVE_SHA256 required}"
+  [[ -f "$RELEASE_ARCHIVE" && ! -L "$RELEASE_ARCHIVE" ]] || die "release archive missing or unsafe"
+  [[ "$RELEASE_ARCHIVE_SHA256" =~ ^[0-9a-fA-F]{64}$ ]] || die "invalid RELEASE_ARCHIVE_SHA256"
+  python3 "$SCRIPT_DIR/validate-release-archive.py" \
+    "$RELEASE_ARCHIVE" "$RELEASE_VERSION" "$BUILD_SHA" "$RELEASE_ARCHIVE_SHA256" >/dev/null ||
+    die "release archive identity validation failed"
+}
+
 load_release_metadata() {
   local release_dir="$1"
   local expected_release_version="${2:-}"

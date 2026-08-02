@@ -129,3 +129,17 @@ The prebuilt path has local regression/config validation only. Images have not y
 and the path has not yet been exercised on staging. F10.1 therefore remains PARTIAL. After explicit
 approval and image publication, Phase 4 must prove that no BuildKit, pnpm, Turbo, or source build
 starts on the VPS, followed by at least 15 minutes of runtime resource monitoring.
+
+## Immutable release installation
+
+`RELEASE_ARCHIVE` must be named `arena-release-$RELEASE_VERSION.tar.gz` and accompanied by its
+trusted `RELEASE_ARCHIVE_SHA256`. Run `install-release.sh INVENTORY --dry-run` before the real
+installer. The installer validates the archive path safety, release ID, build SHA and deployment
+image source commit before taking the lifecycle lock, extracts into a private incoming directory,
+and atomically renames it. An existing release directory is never overwritten. A failed or manually
+modified release ID is tainted: preserve it for evidence and publish a new immutable release rather
+than patching it in place. `deploy.sh` validates the same archive identity but never re-extracts it.
+
+For external PostgreSQL, the canonical file-backed URLs use `host.docker.internal`. Every temporary
+PostgreSQL utility container adds `host.docker.internal:host-gateway`; do not persist a Docker bridge
+IP such as `172.17.0.1` in application secrets.

@@ -31,18 +31,13 @@ export_runtime_paths
 export_runtime_environment
 
 if [[ -n "${RELEASE_ARCHIVE:-}" ]]; then
-  [[ -f "$RELEASE_ARCHIVE" ]] || die "release archive missing: $RELEASE_ARCHIVE"
-
-  mkdir -p "$ARENA_RELEASE_DIR"
-
-  tar -xzf "$RELEASE_ARCHIVE" -C "$ARENA_RELEASE_DIR"
-
-  info "release archive extracted: $RELEASE_ARCHIVE"
+  validate_release_archive
 fi
 
 [[ -f "$ARENA_RELEASE_DIR/release/manifest.json" ]] ||
-  die "release manifest missing"
+  die "installed release missing; run install-release.sh first"
 
+# shellcheck disable=SC2153 # RELEASE_VERSION is assigned by load_inventory in validation.sh.
 configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
 
 validate_seed_compose_contract

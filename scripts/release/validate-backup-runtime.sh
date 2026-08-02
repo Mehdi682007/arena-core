@@ -8,7 +8,6 @@ work="$(mktemp -d)"
 app_root="$work/arena"
 backup_root="$work/backups"
 inventory="$work/staging-prebuilt-backup.env"
-project=arena
 
 cleanup() {
   export ARENA_ENV_FILE="$app_root/shared/env/runtime.env"
@@ -28,6 +27,18 @@ cleanup() {
   rm -rf "$work"
 }
 trap cleanup EXIT
+
+nonroot_tree="$work/nonroot-backup"
+chmod 0711 "$work"
+mkdir -m 0700 "$nonroot_tree"
+printf 'private\n' >"$nonroot_tree/postgres.dump"
+chown -R 65534:65534 "$nonroot_tree"
+# shellcheck disable=SC2016 # $1 is expanded by the non-root child shell.
+setpriv --reuid=65534 --regid=65534 --clear-groups \
+  bash -c 'source infra/scripts/lib/backup-permissions.sh; secure_backup_tree "$1"' bash "$nonroot_tree"
+[[ "$(stat -c '%u:%g %a' "$nonroot_tree")" == '65534:65534 700' ]]
+[[ "$(stat -c '%u:%g %a' "$nonroot_tree/postgres.dump")" == '65534:65534 600' ]]
+chmod 0700 "$work"
 
 mkdir -p \
   "$app_root/releases/$release_id/release" \

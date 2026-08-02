@@ -34,6 +34,12 @@ load_inventory() {
   done
   [[ "${POSTGRES_MODE:-}" == container || "${POSTGRES_MODE:-}" == external ]] || die "invalid POSTGRES_MODE"
   [[ "$DEPLOY_MODE" == prebuilt || "$DEPLOY_MODE" == build-local ]] || die "invalid DEPLOY_MODE"
+  INVENTORY_BUILD_SHA="${BUILD_SHA:-}"
+  export INVENTORY_BUILD_SHA
+  if [[ -n "${RELEASE_ARCHIVE:-}" ]]; then
+    valid_abs_path "$RELEASE_ARCHIVE" || die "unsafe RELEASE_ARCHIVE"
+    [[ "${RELEASE_ARCHIVE_SHA256:-}" =~ ^[0-9a-fA-F]{64}$ ]] || die "RELEASE_ARCHIVE_SHA256 required for release archive"
+  fi
   valid_bool "${SMTP_ENABLED:-false}" || die "SMTP_ENABLED must be true or false"
   if [[ "${SMTP_ENABLED:-false}" == true ]]; then
     : "${SMTP_HOST:?SMTP_HOST required when SMTP is enabled}"

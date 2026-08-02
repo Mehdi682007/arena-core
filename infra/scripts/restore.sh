@@ -21,7 +21,7 @@ if [[ "$POSTGRES_MODE" == container ]]; then
   compose --profile container-db exec -T postgres pg_restore --clean --if-exists --no-owner --exit-on-error \
     -U "$POSTGRES_USER" -d "$POSTGRES_DB" <"$backup/postgres.dump"
 else
-  docker run --rm -i -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
+  docker run --rm -i --add-host host.docker.internal:host-gateway -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
     postgres:17.10-alpine3.23 sh -ec \
     'pg_restore --dbname="$(cat /run/arena-secrets/DATABASE_DIRECT_URL)" --clean --if-exists --no-owner --exit-on-error' \
     <"$backup/postgres.dump"
