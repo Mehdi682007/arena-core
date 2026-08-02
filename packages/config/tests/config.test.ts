@@ -26,7 +26,7 @@ function generatedStrictRuntime() {
   for (const match of runtimeGenerator.matchAll(/printf '([^']*)'/g)) {
     const literal = match[1];
     if (literal === undefined) continue;
-    for (const line of literal.replaceAll('\\n', '\n').split('\n')) {
+    for (const line of literal.replaceAll('\\\\ ', ' ').replaceAll('\\n', '\n').split('\n')) {
       if (/^[A-Z][A-Z0-9_]*=[^%]*$/.test(line)) {
         const separator = line.indexOf('=');
         generated[line.slice(0, separator)] = line.slice(separator + 1);
