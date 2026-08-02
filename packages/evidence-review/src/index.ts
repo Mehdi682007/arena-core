@@ -50,12 +50,15 @@ export class EvidenceReviewService {
       controller.abort();
     }, timeoutMs);
     try {
-      const raw = await this.provider.analyze({
-        ...input,
-        ...(input.submittedClaim === undefined
-          ? {}
-          : { submittedClaim: input.submittedClaim.slice(0, 500) }),
-      }, controller.signal);
+      const raw = await this.provider.analyze(
+        {
+          ...input,
+          ...(input.submittedClaim === undefined
+            ? {}
+            : { submittedClaim: input.submittedClaim.slice(0, 500) }),
+        },
+        controller.signal,
+      );
       const result = evidenceReviewResultSchema.parse(raw);
       this.#completed.set(key, result);
       return result;
