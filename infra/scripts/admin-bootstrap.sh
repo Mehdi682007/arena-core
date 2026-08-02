@@ -3,7 +3,8 @@ set -Eeuo pipefail
 source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/compose.sh"; source "$SCRIPT_DIR/lib/images.sh"
 inventory="${1:?inventory path required}"; shift
 load_inventory "$inventory"
-email= verify_email=false
+email=''
+verify_email=false
 while (($#)); do
   case "$1" in
     --email) shift; email="${1:-}" ;;
