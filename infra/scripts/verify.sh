@@ -100,6 +100,13 @@ fi
 if [[ "$ENABLE_TLS" == true ]]; then
   check "Nginx TLS API upstream" curl -fsS --max-time 5 \
     --resolve "$proxy_host:443:127.0.0.1" "https://$proxy_host/api/v1/health/ready" || true
+  check "public admin concealment" test "$(curl -ksS -o /dev/null -w '%{http_code}' --resolve "$APP_DOMAIN:443:127.0.0.1" "https://$APP_DOMAIN/admin")" = 404 || true
+  check "admin root redirect" test "$(curl -ksS -o /dev/null -w '%{redirect_url}' --resolve "$ADMIN_DOMAIN:443:127.0.0.1" "https://$ADMIN_DOMAIN/")" = "https://$ADMIN_DOMAIN/admin" || true
+  check "admin login page" curl -ksSf --max-time 5 --resolve "$ADMIN_DOMAIN:443:127.0.0.1" "https://$ADMIN_DOMAIN/login?returnTo=%2Fadmin" || true
+  admin_status="$(curl -ksS -o /dev/null -w '%{http_code}' --resolve "$ADMIN_DOMAIN:443:127.0.0.1" "https://$ADMIN_DOMAIN/admin")"
+  [[ "$admin_status" == 200 || "$admin_status" == 307 ]] || { warn "admin route returned unexpected status $admin_status"; status=FAIL; }
+  certificate="$(echo | openssl s_client -connect 127.0.0.1:443 -servername "$APP_DOMAIN" 2>/dev/null | openssl x509 -noout -ext subjectAltName 2>/dev/null || true)"
+  [[ "$certificate" == *"DNS:$APP_DOMAIN"* && "$certificate" == *"DNS:$ADMIN_DOMAIN"* ]] || { warn "TLS certificate does not cover both domains"; status=FAIL; }
 else
   check "Nginx API upstream" curl -fsS --max-time 5 -H "Host: $proxy_host" \
     http://127.0.0.1/api/v1/health/ready || true

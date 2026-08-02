@@ -10,12 +10,14 @@ fi
 target="$SERVER_APP_ROOT/shared/env/runtime.env"; tmp="$(mktemp)"
 trap 'rm -f -- "$tmp"' EXIT
 base="${APP_DOMAIN:-$SERVER_HOST}"; scheme=http; [[ "$ENABLE_TLS" == true ]] && scheme=https
+admin_base="${ADMIN_DOMAIN:-admin.$base}"
 {
   printf 'APP_ENV=%s\nNODE_ENV=production\n' "$ENVIRONMENT"
   printf 'APP_BASE_URL=%s://%s\nWEB_BASE_URL=%s://%s\nAPI_BASE_URL=%s://%s/api/v1\n' "$scheme" "$base" "$scheme" "$base" "$scheme" "$base"
+  printf 'ADMIN_ORIGIN=%s://%s\nADMIN_DOMAIN=%s\n' "$scheme" "$admin_base" "$admin_base"
   printf 'LOG_LEVEL=info\nHOST=0.0.0.0\nAPI_PORT=3001\nAPI_PREFIX=/api/v1\nCORS_ENABLED=false\nWORKER_SHUTDOWN_TIMEOUT_MS=10000\n'
   printf 'WEB_PORT=3000\nNEXT_PUBLIC_APP_NAME=Arena\\ Core\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\n'
-  printf 'AUTH_ALLOWED_ORIGINS=%s://%s\nIDENTITY_PUBLIC_BASE_URL=%s://%s\n' "$scheme" "$base" "$scheme" "$base"
+  printf 'AUTH_ALLOWED_ORIGINS=%s://%s,%s://%s\nIDENTITY_PUBLIC_BASE_URL=%s://%s\n' "$scheme" "$base" "$scheme" "$admin_base" "$scheme" "$base"
   printf 'DATABASE_ENABLED=true\n'
   if [[ "$POSTGRES_MODE" == container ]]; then
     printf 'DATABASE_URL=postgresql://%s:' "$POSTGRES_USER"
@@ -30,8 +32,13 @@ base="${APP_DOMAIN:-$SERVER_HOST}"; scheme=http; [[ "$ENABLE_TLS" == true ]] && 
   for key in SESSION_SECRET CSRF_SECRET AUTH_TOKEN_HASH_KEY AUTH_IP_HASH_KEY; do
     printf '%s=' "$key"; tr -d '\r\n' <"$(secret_path "$key")"; printf '\n'
   done
-  printf 'SMTP_ENABLED=false\nTRUST_PROXY_MODE=hop-count\nTRUST_PROXY_HOPS=1\n'
-  printf 'ALLOWED_ORIGINS=%s://%s\nCORS_ALLOW_NO_ORIGIN=false\nCOOKIE_SECURE=%s\n' "$scheme" "$base" "$ENABLE_TLS"
+  printf 'SMTP_ENABLED=%s\n' "${SMTP_ENABLED:-false}"
+  if [[ "${SMTP_ENABLED:-false}" == true ]]; then
+    printf 'SMTP_HOST=%s\nSMTP_PORT=%s\nSMTP_SECURE=%s\nSMTP_USERNAME=%s\nSMTP_PASSWORD_FILE=/run/arena-secrets/SMTP_PASSWORD\nSMTP_FROM_ADDRESS=%s\nSMTP_FROM_NAME=%s\n' \
+      "$SMTP_HOST" "$SMTP_PORT" "$SMTP_SECURE" "$SMTP_USERNAME" "$SMTP_FROM_ADDRESS" "${SMTP_FROM_NAME:-Arena Core}"
+  fi
+  printf 'TRUST_PROXY_MODE=hop-count\nTRUST_PROXY_HOPS=1\n'
+  printf 'ALLOWED_ORIGINS=%s://%s,%s://%s\nCORS_ALLOW_NO_ORIGIN=false\nCOOKIE_SECURE=%s\n' "$scheme" "$base" "$scheme" "$admin_base" "$ENABLE_TLS"
   printf 'RATE_LIMIT_ENABLED=true\nMIGRATION_MODE=external\n'
 } >"$tmp"
 install -m 0600 -o "$SERVER_APP_USER" -g "$SERVER_APP_USER" "$tmp" "$target"

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import process from 'node:process';
+import { seedSystemRbac } from '@arena-core/admin-rbac';
 import { createPrismaClient, disconnectPrisma } from '@arena-core/database';
 import { seedFc26Catalog } from './fixtures/fc26-seed';
 
@@ -17,6 +18,8 @@ async function main(): Promise<void> {
     connectTimeoutSeconds: 5,
   });
   try {
+    const rbac = await seedSystemRbac(client);
+    console.log(`System RBAC seed completed (${String(rbac.permissionCount)} permissions).`);
     await seedFc26Catalog(client);
     console.log('FC 26 catalog seed completed.');
   } finally {

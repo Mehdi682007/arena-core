@@ -28,6 +28,10 @@ typed variables documented in `production-configuration.md`.
 5. Wait for API readiness and Web health, then shift traffic.
 6. Run the bounded smoke script and observe structured logs/metrics.
 
+For the isolated administration origin, create DNS for `ADMIN_DOMAIN`, render the two-host
+Nginx template, and issue a trusted certificate covering both `APP_DOMAIN` and `ADMIN_DOMAIN`.
+Follow `admin-origin-and-bootstrap.md`; public `/admin` must return 404.
+
 Compose binds application ports to loopback as a reverse-proxy foundation. `read_only`,
 `no-new-privileges`, dropped capabilities, fixed UID/GID, bounded temporary filesystems, log
 rotation, memory/CPU limits, restart policies, and stop grace periods are defaults. Tune limits

@@ -1,4 +1,5 @@
 import { isIP } from 'node:net';
+import { readFileSync } from 'node:fs';
 import { inspect } from 'node:util';
 import { satisfies, valid } from 'semver';
 import { z } from 'zod';
@@ -24,6 +25,11 @@ export interface NetworkConfig {
 export interface PublicWebConfig {
   readonly appName: string;
   readonly defaultLocale: Locale;
+}
+
+export interface AdminOriginConfig {
+  readonly origin: string;
+  readonly hostname: string;
 }
 
 export interface DisabledDatabaseConfig {
@@ -175,6 +181,7 @@ export interface WebServiceConfig {
   readonly web: Readonly<{ port: number }>;
   readonly public: PublicWebConfig;
   readonly server: Readonly<{ apiBaseUrl: string }>;
+  readonly admin: AdminOriginConfig;
   readonly warnings: readonly string[];
 }
 
@@ -184,6 +191,7 @@ export interface ApiServiceConfig {
   readonly database: DatabaseConfig;
   readonly authentication: AuthenticationConfig;
   readonly identityHttp: IdentityHttpConfig;
+  readonly admin: AdminOriginConfig;
   readonly email: EmailConfig;
   readonly identityEmail: IdentityEmailConfig;
   readonly matchmaking: MatchmakingConfig;
@@ -347,6 +355,66 @@ function parseOrigins(
     }
   }
   return Object.freeze([...unique]);
+}
+
+function parseAdminOrigin(
+  source: EnvironmentSource,
+  environment: Environment,
+  issues: { variable: string; message: string }[],
+): AdminOriginConfig {
+  const required = environment === 'production';
+  const rawOrigin = source.ADMIN_ORIGIN?.trim() ?? '';
+  const rawDomain = source.ADMIN_DOMAIN?.trim().toLowerCase() ?? '';
+  if (required && !rawOrigin)
+    issues.push({ variable: 'ADMIN_ORIGIN', message: 'must be set explicitly in production' });
+  if (required && !rawDomain)
+    issues.push({ variable: 'ADMIN_DOMAIN', message: 'must be set explicitly in production' });
+  if (rawDomain && (!validateHost(rawDomain) || isIP(rawDomain) !== 0 || rawDomain.includes('*'))) {
+    issues.push({
+      variable: 'ADMIN_DOMAIN',
+      message: 'must be a valid DNS hostname without wildcards',
+    });
+  }
+  let origin = rawOrigin || 'http://admin.localhost';
+  let hostname = rawDomain || 'admin.localhost';
+  try {
+    const url = new URL(origin);
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash ||
+      url.hostname.includes('*')
+    )
+      throw new Error('invalid');
+    if (required && url.protocol !== 'https:')
+      issues.push({ variable: 'ADMIN_ORIGIN', message: 'must use HTTPS in production' });
+    origin = url.origin;
+    hostname = rawDomain || url.hostname.toLowerCase();
+    if (rawDomain && url.hostname.toLowerCase() !== rawDomain)
+      issues.push({ variable: 'ADMIN_DOMAIN', message: 'must match the ADMIN_ORIGIN hostname' });
+    const publicOrigin = source.APP_BASE_URL?.trim();
+    if (required && publicOrigin) {
+      try {
+        if (new URL(publicOrigin).origin === origin)
+          issues.push({
+            variable: 'ADMIN_ORIGIN',
+            message: 'must differ from APP_BASE_URL in production',
+          });
+      } catch {
+        /* APP_BASE_URL validation reports its own issue. */
+      }
+    }
+  } catch {
+    issues.push({
+      variable: 'ADMIN_ORIGIN',
+      message:
+        'must be an exact HTTP(S) origin without credentials, path, query, fragment, or wildcard',
+    });
+  }
+  return Object.freeze({ origin, hostname });
 }
 
 function parseRuntime(
@@ -766,7 +834,29 @@ function parseEmailConfig(
     parseValue('SMTP_SECURE', booleanSchema, source.SMTP_SECURE?.trim() || 'false', issues) ??
     false;
   const username = source.SMTP_USERNAME?.trim() || undefined;
-  const rawPassword = source.SMTP_PASSWORD?.trim() || undefined;
+  const passwordFile = source.SMTP_PASSWORD_FILE?.trim();
+  if (source.SMTP_PASSWORD?.trim() && passwordFile) {
+    issues.push({
+      variable: 'SMTP_PASSWORD_FILE',
+      message: 'must not be combined with SMTP_PASSWORD',
+    });
+  }
+  let filePassword: string | undefined;
+  if (passwordFile && enabled) {
+    if (!passwordFile.startsWith('/') || /[\r\n]/.test(passwordFile)) {
+      issues.push({ variable: 'SMTP_PASSWORD_FILE', message: 'must be an absolute path' });
+    } else {
+      try {
+        filePassword = readFileSync(passwordFile, 'utf8').trim();
+      } catch {
+        issues.push({
+          variable: 'SMTP_PASSWORD_FILE',
+          message: 'must reference a readable secret file',
+        });
+      }
+    }
+  }
+  const rawPassword = source.SMTP_PASSWORD?.trim() || filePassword;
   if ((username === undefined) !== (rawPassword === undefined)) {
     issues.push({
       variable: username === undefined ? 'SMTP_USERNAME' : 'SMTP_PASSWORD',
@@ -916,6 +1006,7 @@ export function createWebConfig(
 ): WebServiceConfig {
   const issues: { variable: string; message: string }[] = [];
   const base = parseRuntime(source, options, issues);
+  const admin = parseAdminOrigin(source, base.runtime.environment, issues);
   const port =
     parseValue(
       'WEB_PORT',
@@ -969,6 +1060,7 @@ export function createWebConfig(
     web: Object.freeze({ port }),
     public: Object.freeze({ appName, defaultLocale }),
     server: Object.freeze({ apiBaseUrl }),
+    admin,
     warnings: base.warnings,
   });
 }
@@ -979,6 +1071,7 @@ export function createApiConfig(
 ): ApiServiceConfig {
   const issues: { variable: string; message: string }[] = [];
   const base = parseRuntime(source, options, issues);
+  const admin = parseAdminOrigin(source, base.runtime.environment, issues);
   const hardening = createProductionHardeningConfig(source);
   const port =
     parseValue(
@@ -1233,6 +1326,7 @@ export function createApiConfig(
     database,
     authentication,
     identityHttp,
+    admin,
     email: emailConfiguration.email,
     identityEmail: emailConfiguration.identityEmail,
     matchmaking,

@@ -14,6 +14,7 @@ git ls-files -z '*.sh' | xargs -0 -n1 bash -n
 command -v shellcheck >/dev/null || { echo "ShellCheck is required" >&2; exit 2; }
 shellcheck --severity=warning --exclude=SC1091,SC2034 \
   infra/scripts/backup.sh \
+  infra/scripts/admin-bootstrap.sh \
   infra/scripts/prepare-runtime-env.sh \
   infra/scripts/seed.sh \
   infra/scripts/verify.sh \

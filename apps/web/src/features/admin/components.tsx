@@ -25,6 +25,15 @@ export function AdminShell({
     ['/admin/notifications', 'اعلان‌ها', allowed.has('notifications.read')],
     ['/admin/diagnostics', 'وضعیت سرویس', allowed.has('diagnostics.read')],
     ['/admin/support', 'عملیات پشتیبانی', allowed.has('support.manage')],
+    ['/admin/game-accounts', 'بررسی حساب‌های بازی', allowed.has('game_accounts.read')],
+    ['/admin/matches', 'مسابقه‌ها', allowed.has('matches.read')],
+    ['/admin/results', 'تعارض نتیجه‌ها', allowed.has('match_results.read')],
+    ['/admin/disputes', 'اختلاف‌ها', allowed.has('match_disputes.read')],
+    ['/admin/matchmaking', 'همتایابی', allowed.has('matchmaking.read')],
+    ['/admin/wallets', 'کیف پول و دفترکل', allowed.has('wallets.read')],
+    ['/admin/finance', 'مالی مسابقه', allowed.has('match_finance.read')],
+    ['/admin/settlements', 'تسویه‌ها', allowed.has('match_settlements.read')],
+    ['/admin/ratings', 'رتبه‌بندی', allowed.has('ratings.read')],
   ] as const;
   return (
     <div className="admin-shell">

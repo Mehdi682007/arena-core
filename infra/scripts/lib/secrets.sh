@@ -8,6 +8,7 @@ required_secret_names() {
     printf '%s\n' DATABASE_URL DATABASE_DIRECT_URL
   fi
   printf '%s\n' SESSION_SECRET CSRF_SECRET AUTH_TOKEN_HASH_KEY AUTH_IP_HASH_KEY
+  [[ "${SMTP_ENABLED:-false}" != true ]] || printf '%s\n' SMTP_PASSWORD
 }
 secret_path() { printf '%s/shared/secrets/%s\n' "$SERVER_APP_ROOT" "$1"; }
 validate_secret_files() {

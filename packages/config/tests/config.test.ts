@@ -37,6 +37,8 @@ function generatedStrictRuntime() {
     ...generated,
     APP_ENV: 'staging',
     APP_BASE_URL: 'https://staging.example.test',
+    ADMIN_ORIGIN: 'https://admin.staging.example.test',
+    ADMIN_DOMAIN: 'admin.staging.example.test',
     WEB_BASE_URL: 'https://staging.example.test',
     API_BASE_URL: 'https://staging.example.test/api',
     AUTH_ALLOWED_ORIGINS: 'https://staging.example.test',
@@ -360,6 +362,9 @@ describe('central configuration', () => {
         NEXT_PUBLIC_APP_NAME: 'Arena Core',
         NEXT_PUBLIC_DEFAULT_LOCALE: 'fa',
         API_BASE_URL: 'https://example.test/api',
+        ADMIN_ORIGIN: 'https://admin.example.test',
+        ADMIN_DOMAIN: 'admin.example.test',
+        APP_BASE_URL: 'https://example.test',
       };
       expect(createWebConfig(canonical, options)).toMatchObject({
         web: { port: 3000 },
@@ -384,6 +389,33 @@ describe('central configuration', () => {
       web: { port: 3000 },
       public: { appName: 'Arena Core', defaultLocale: 'fa' },
     });
+  });
+
+  it('enforces the exact production admin origin and hostname', () => {
+    const valid = {
+      ...generatedStrictRuntime(),
+      APP_ENV: 'production',
+      APP_BASE_URL: 'https://example.test',
+      ADMIN_ORIGIN: 'https://admin.example.test/',
+      ADMIN_DOMAIN: 'admin.example.test',
+    };
+    expect(createApiConfig(valid, options).admin).toEqual({
+      origin: 'https://admin.example.test',
+      hostname: 'admin.example.test',
+    });
+    for (const invalid of [
+      { ADMIN_ORIGIN: 'http://admin.example.test' },
+      { ADMIN_ORIGIN: 'https://user:pass@admin.example.test' },
+      { ADMIN_ORIGIN: 'https://admin.example.test/path' },
+      { ADMIN_ORIGIN: 'https://admin.example.test?query=yes' },
+      { ADMIN_ORIGIN: 'https://*.example.test' },
+      { ADMIN_ORIGIN: 'https://example.test', ADMIN_DOMAIN: 'example.test' },
+      { ADMIN_DOMAIN: 'other.example.test' },
+    ]) {
+      expect(() => createApiConfig({ ...valid, ...invalid }, options)).toThrow(
+        /ADMIN_(ORIGIN|DOMAIN)/,
+      );
+    }
   });
 
   it('validates the server-only Web API URL without exposing credentials', () => {
