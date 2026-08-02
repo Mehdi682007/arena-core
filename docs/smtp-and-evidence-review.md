@@ -6,9 +6,11 @@ username, sender and reply-to in inventory. Put only the password in the root-ow
 password in inventory or Git. Identity verification and password-reset messages use the existing
 outbox and bounded SMTP timeouts. Provider failures are sanitized.
 
-`@arena-core/evidence-review` defines a strict provider-neutral result contract. External upload is
+`@arena-core/evidence-review` is a foundation defining a strict provider-neutral result contract. External upload is
 disabled until an operator explicitly configures an adapter. Providers receive only an opaque evidence
 id, the allowlisted image, and a bounded claim; no profile, token, DSN or wallet data. Results are
 recommendations requiring a human decision. They can never settle, pay, ban, approve, resolve, or alter
-ratings. Original evidence follows upload retention; hashes support duplicate detection. Structured
-results and sanitized failure metadata should be retained according to the audit retention policy.
+ratings. Its in-process cache keys provider, model, MIME type, bounded claim context and bytes.
+Runtime validation covers allowlisted MIME types, empty/oversized input, bounded timeout and strict
+structured output. It has no persistence, asynchronous Worker integration, Admin UI workflow or
+configured external provider. Original evidence follows upload retention; hashes support duplicate detection.

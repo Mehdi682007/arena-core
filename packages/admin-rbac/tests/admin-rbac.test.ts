@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import type { ArenaPrismaClient } from '@arena-core/database';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +14,7 @@ function fakeClient(overrides: Record<string, unknown> = {}) {
   >();
   const audit: unknown[] = [];
   const userRoles = new Set<string>();
+  const userRoleUpdates: unknown[] = [];
   const target: any = {
     id: 'email-1',
     isPrimary: true,
@@ -61,8 +62,12 @@ function fakeClient(overrides: Record<string, unknown> = {}) {
       },
     },
     userRole: {
-      findUnique: async () => (userRoles.has('user-1:role-1') ? { userId: 'user-1' } : null),
-      update: async () => ({ userId: 'user-1' }),
+      findUnique: async () =>
+        userRoles.has('user-1:role-1') ? { userId: 'user-1', expiresAt: new Date(0) } : null,
+      update: async ({ data }: any) => {
+        userRoleUpdates.push(data);
+        return { userId: 'user-1' };
+      },
       create: async () => {
         userRoles.add('user-1:role-1');
         return { userId: 'user-1' };
@@ -83,6 +88,7 @@ function fakeClient(overrides: Record<string, unknown> = {}) {
     rolePermissions,
     userRoles,
     audit,
+    userRoleUpdates,
     target,
   };
 }
@@ -92,21 +98,10 @@ describe('administrative RBAC', () => {
     expect(ADMIN_PERMISSION_KEYS).toHaveLength(37);
     expect(new Set(ADMIN_PERMISSION_KEYS).size).toBe(37);
     const root = path.resolve(process.cwd(), '../..');
-    const controllers = [
-      'admin-operations/admin-operations.controller.ts',
-      'game-catalog/admin-catalog.controller.ts',
-      'player-identity/admin-game-account.controller.ts',
-      'matches/admin-matches.controller.ts',
-      'matches/admin-match-results.controller.ts',
-      'matches/admin-match-dispute.controller.ts',
-      'matchmaking/admin-matchmaking.controller.ts',
-      'wallet/admin-wallet.controller.ts',
-      'match-finance/admin-match-finance.controller.ts',
-      'match-finance/settlements/admin-match-settlement.controller.ts',
-      'ratings/admin/admin-ratings.controller.ts',
-      'notifications/admin/admin-notifications.controller.ts',
-    ]
-      .map((file) => readFileSync(path.join(root, 'apps/api/src', file), 'utf8'))
+    const apiRoot = path.join(root, 'apps/api/src');
+    const controllers = readdirSync(apiRoot, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.controller.ts'))
+      .map((entry) => readFileSync(path.join(entry.parentPath, entry.name), 'utf8'))
       .join('\n');
     const used = [...controllers.matchAll(/@Require[A-Za-z]+Permission\(\s*'([^']+)'/g)].map(
       (match) => match[1],
@@ -162,6 +157,8 @@ describe('administrative RBAC', () => {
       ).alreadyAssigned,
     ).toBe(true);
     expect(JSON.stringify(state.audit)).not.toContain('admin@example.test');
+    expect(JSON.stringify(state.audit)).not.toMatch(/password|secret|token/i);
+    expect(state.userRoleUpdates).toEqual([{ expiresAt: null }]);
   });
 
   it('rejects unknown, ambiguous, suspended, deleted, and missing-role targets', async () => {
@@ -192,6 +189,13 @@ describe('administrative RBAC', () => {
         { email: 'a@example.test', verifyEmail: false },
       ),
     ).rejects.toThrow('DELETED');
+    await expect(
+      bootstrapAdministrator(
+        fakeClient({ target: { user: { id: 'user-1', status: 'DISABLED', deletedAt: null } } })
+          .client,
+        { email: 'a@example.test', verifyEmail: false },
+      ),
+    ).rejects.toThrow('INELIGIBLE');
     await expect(
       bootstrapAdministrator(fakeClient({ missingRole: true }).client, {
         email: 'a@example.test',

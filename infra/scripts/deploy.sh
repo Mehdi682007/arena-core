@@ -165,7 +165,7 @@ if [[ "${DEPLOY_BACKUP_ENABLED:-true}" == true ]] &&
   compose --profile container-db ps --status running postgres >/dev/null 2>&1;
 }; then
 
-  "$SCRIPT_DIR/backup.sh" "$inventory"
+  ARENA_LIFECYCLE_LOCK_HELD=true "$SCRIPT_DIR/backup.sh" "$inventory"
 
 elif [[ "$ENVIRONMENT" == production ]]; then
 

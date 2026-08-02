@@ -11,6 +11,7 @@ fi
 [[ "$ENVIRONMENT" == staging ]] || die "production restore is not automated by this command"
 [[ -f "$backup/postgres.dump" && -f "$backup/SHA256SUMS" ]] || die "invalid backup"
 (cd "$backup" && sha256sum -c SHA256SUMS)
+acquire_lock "$SERVER_APP_ROOT/run/deploy.lock"
 acquire_lock "$SERVER_APP_ROOT/run/restore.lock"
 compose stop arena-api arena-worker arena-web
 restart_application() { compose up -d arena-api arena-worker arena-web || true; }

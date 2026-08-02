@@ -33,6 +33,19 @@ export class DisabledEvidenceReviewProvider implements EvidenceReviewProvider {
   }
 }
 export const evidenceHash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+const supportedMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const cacheKey = (provider: EvidenceReviewProvider, input: EvidenceReviewInput) =>
+  createHash('sha256')
+    .update(provider.name)
+    .update('\0')
+    .update(provider.model)
+    .update('\0')
+    .update(input.mimeType)
+    .update('\0')
+    .update(input.submittedClaim?.slice(0, 500) ?? '')
+    .update('\0')
+    .update(input.bytes)
+    .digest('hex');
 export class EvidenceReviewService {
   readonly #completed = new Map<string, EvidenceReviewResult>();
   constructor(
@@ -40,9 +53,12 @@ export class EvidenceReviewService {
     private readonly maximumBytes = 8_388_608,
   ) {}
   async review(input: EvidenceReviewInput, timeoutMs = 15_000): Promise<EvidenceReviewResult> {
+    if (!supportedMimeTypes.has(input.mimeType)) throw new Error('EVIDENCE_MIME_UNSUPPORTED');
     if (input.bytes.byteLength === 0) throw new Error('EVIDENCE_MISSING');
     if (input.bytes.byteLength > this.maximumBytes) throw new Error('EVIDENCE_TOO_LARGE');
-    const key = evidenceHash(input.bytes);
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0)
+      throw new Error('EVIDENCE_TIMEOUT_INVALID');
+    const key = cacheKey(this.provider, input);
     const cached = this.#completed.get(key);
     if (cached) return cached;
     const controller = new AbortController();

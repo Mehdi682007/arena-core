@@ -20,6 +20,15 @@ permission guard.
 
 The dashboard shows only links supported by the current session projection. This is presentation,
 not authorization: Backend guards remain the source of truth and permission failures fail closed.
+The additional catalog, account, match, dispute, matchmaking, wallet, finance, settlement and Rating
+routes are initial permission-aware operational views over sanitized existing APIs. Wallet and finance
+views currently provide navigation/instructions; they are not a complete business administration UI
+and intentionally provide no high-risk financial mutation workflow.
+
+The administrator bootstrap reactivates an existing expired system-role assignment by clearing only
+`expiresAt`; it intentionally preserves the original `assignedAt` and `assignedByUserId` provenance
+and appends a fresh audit event. Suspended, disabled, deleted and ambiguous users remain ineligible,
+and audit metadata contains neither the submitted email nor credentials.
 
 ## Operational experiences
 

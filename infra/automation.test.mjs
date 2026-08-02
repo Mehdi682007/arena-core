@@ -458,10 +458,14 @@ test('logging and status redact common credentials', async () => {
 
 test('operations timers are bounded, persistent, and repository managed', async () => {
   const backupTimer = await readFile(path.join(infra, 'systemd/arena-backup.timer'), 'utf8');
+  const backupService = await readFile(path.join(infra, 'systemd/arena-backup.service'), 'utf8');
   const monitorTimer = await readFile(path.join(infra, 'systemd/arena-monitor.timer'), 'utf8');
   const monitorService = await readFile(path.join(infra, 'systemd/arena-monitor.service'), 'utf8');
   assert.match(backupTimer, /OnCalendar=\*-\*-\* 03:00:00/);
   assert.match(backupTimer, /Persistent=true/);
+  assert.match(backupService, /ARENA_INVENTORY_FILE/);
+  assert.match(backupService, /backup\.sh \$\{ARENA_INVENTORY_FILE\}/);
+  assert.match(backupService, /stat -c %%u/);
   assert.match(monitorTimer, /OnUnitActiveSec=5m/);
   assert.match(monitorService, /TimeoutStartSec=2m/);
   assert.match(monitorService, /NoNewPrivileges=true/);
@@ -472,8 +476,68 @@ test('monitoring and SMTP secrets are opt-in and file-backed', async () => {
   const inventory = await readFile(path.join(infra, 'inventory/monitoring.env.example'), 'utf8');
   const runtime = await readFile(path.join(scripts, 'prepare-runtime-env.sh'), 'utf8');
   assert.match(inventory, /TELEGRAM_ALERTS_ENABLED=false/);
+  assert.match(inventory, /ARENA_INVENTORY_FILE=\/etc\/arena\/production\.env/);
   assert.match(monitor, /\[REDACTED\]/);
-  assert.match(monitor, /--max-time 10/);
+  assert.match(monitor, /timeout --signal=TERM/);
+  assert.match(monitor, /compose ps -q|bounded_compose ps -q/);
+  assert.match(monitor, /\.State\.Status/);
+  assert.match(monitor, /\.RestartCount/);
+  assert.match(monitor, /\.State\.Health/);
+  assert.doesNotMatch(monitor, /docker inspect "arena-(api|web|worker)"/);
+  for (const check of [
+    'public-api',
+    'public-web',
+    'admin-web',
+    'public-admin-concealment',
+    'backup-stale',
+    'backup-checksum',
+    'tls-expiry',
+    'systemd-failed-units',
+    'current-release',
+  ])
+    assert.match(monitor, new RegExp(check));
+  assert.match(monitor, /mktemp "\$state_dir\/\.alert-state/);
+  assert.match(monitor, /notification_ok/);
   assert.match(runtime, /SMTP_PASSWORD_FILE=\/run\/arena-secrets\/SMTP_PASSWORD/);
   assert.doesNotMatch(runtime, /printf ['"]SMTP_PASSWORD=/);
+});
+
+test('backup retention validates successful archives and never removes partial or newest backup', async () => {
+  const backup = await readFile(path.join(scripts, 'backup.sh'), 'utf8');
+  assert.match(backup, /BACKUP_RETENTION_DAYS:-14/);
+  assert.match(backup, /BACKUP_CLEANUP_LIMIT:-100/);
+  assert.match(backup, /! -name '\*\.partial'/);
+  assert.match(backup, /candidate.*!=.*target/);
+  assert.match(backup, /sha256sum -c SHA256SUMS/);
+  assert.match(backup, /pg_restore -l/);
+  assert.match(backup, /deleted < cleanup_limit/);
+  assert.ok(backup.indexOf('mv "$partial" "$target"') < backup.indexOf('for candidate'));
+  assert.match(backup, /run\/deploy\.lock/);
+  assert.match(backup, /run\/backup\.lock/);
+});
+
+test('container monitoring rejects representative exited, unhealthy and restart-loop states', () => {
+  const bash = process.platform === 'win32' ? 'C:\\Program Files\\Git\\bin\\bash.exe' : 'bash';
+  const library = path.join(scripts, 'lib/monitoring.sh').replaceAll('\\', '/');
+  const evaluate = (service, state, health, restarts, threshold = 1) =>
+    spawnSync(
+      bash,
+      [
+        '-c',
+        'source "$1"; container_state_is_acceptable "$2" "$3" "$4" "$5" "$6"',
+        'bash',
+        library,
+        service,
+        state,
+        health,
+        String(restarts),
+        String(threshold),
+      ],
+      { encoding: 'utf8' },
+    ).status;
+  assert.equal(evaluate('arena-api', 'running', 'healthy', 0), 0);
+  assert.equal(evaluate('arena-web', 'exited', 'healthy', 0), 1);
+  assert.equal(evaluate('arena-api', 'running', 'unhealthy', 0), 1);
+  assert.equal(evaluate('arena-worker', 'running', 'none', 2), 1);
+  assert.equal(evaluate('arena-worker', 'running', 'none', 0), 0);
 });
