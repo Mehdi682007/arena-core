@@ -26,4 +26,5 @@ export const adminApi = {
   outboxDetail: (id: string) =>
     serverApi<OutboxItem>(`/admin/notifications/outbox/${encodeURIComponent(id)}`),
   diagnostics: () => serverApi<Diagnostics>('/admin/diagnostics'),
+  resource: <T = unknown>(path: string) => serverApi<T>(path),
 };

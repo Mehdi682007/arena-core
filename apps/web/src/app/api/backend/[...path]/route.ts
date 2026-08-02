@@ -1,5 +1,6 @@
 import { getWebConfig } from '@/config';
 import { NextRequest, NextResponse } from 'next/server';
+import { requestOriginForHost } from '@/lib/host-policy';
 
 const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 const allowedRoots = new Set([
@@ -26,10 +27,16 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     );
   }
   const writes = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
+  const requestOrigin = requestOriginForHost(request.headers.get('host'));
+  if (!requestOrigin) {
+    return NextResponse.json(
+      { error: { code: 'HOST_REJECTED', message: 'Host is not allowed.' } },
+      { status: 421 },
+    );
+  }
   if (writes) {
-    const expectedOrigin = new URL(process.env.WEB_BASE_URL ?? request.nextUrl.origin).origin;
     if (
-      request.headers.get('origin') !== expectedOrigin ||
+      request.headers.get('origin') !== requestOrigin ||
       !request.headers.get('content-type')?.toLowerCase().startsWith('application/json')
     ) {
       return NextResponse.json(
@@ -51,7 +58,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       ...(body ? { 'Content-Type': 'application/json' } : {}),
       ...(cookie ? { cookie } : {}),
       ...(requestId ? { 'x-request-id': requestId } : {}),
-      Origin: process.env.WEB_BASE_URL ?? request.nextUrl.origin,
+      Origin: requestOrigin,
     },
     ...(body === undefined ? {} : { body }),
     signal: AbortSignal.timeout(8_000),

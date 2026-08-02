@@ -13,6 +13,7 @@
     }
   },
   "scripts": {
+    "admin:bootstrap": "tsx scripts/admin-bootstrap.ts",
     "build": "rimraf dist tsconfig.build.tsbuildinfo && tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
     "db:seed": "pnpm db:seed:fc26",
@@ -23,6 +24,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@arena-core/admin-rbac": "workspace:*",
     "@arena-core/database": "workspace:*"
   },
   "devDependencies": {

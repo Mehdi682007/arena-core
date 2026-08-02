@@ -1,0 +1,14 @@
+[Unit]
+Description=Arena Core scheduled PostgreSQL backup
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/arena/monitoring.env
+ExecStartPre=/bin/sh -c 'test -f "$ARENA_INVENTORY_FILE" && test ! -L "$ARENA_INVENTORY_FILE" && test "$(stat -c %%u "$ARENA_INVENTORY_FILE")" -eq 0 && test -r "$ARENA_INVENTORY_FILE"'
+ExecStart=/opt/arena/current/infra/scripts/backup.sh ${ARENA_INVENTORY_FILE}
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

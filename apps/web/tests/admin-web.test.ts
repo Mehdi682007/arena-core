@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { redactAdminValue, safeAdminHref } from '../src/features/admin/privacy';
+import { canonicalHostname, requestOriginForHost } from '../src/lib/host-policy';
 
 const root = path.resolve(import.meta.dirname, '..');
 describe('administrative web safety and routes', () => {
@@ -65,5 +66,17 @@ describe('administrative web safety and routes', () => {
       /localStorage|sessionStorage|wallet\/credit|wallet\/debit|result\/override/i,
     );
     expect(files).toContain("method: 'POST'");
+  });
+  it('uses exact host-only admin routing without forwarded-host trust', () => {
+    process.env.WEB_BASE_URL = 'https://example.test';
+    process.env.ADMIN_ORIGIN = 'https://admin.example.test';
+    expect(canonicalHostname('example.test:443')).toBe('example.test');
+    expect(requestOriginForHost('admin.example.test')).toBe('https://admin.example.test');
+    expect(requestOriginForHost('evil.example.test')).toBeNull();
+    const proxy = readFileSync(path.join(root, 'src/proxy.ts'), 'utf8');
+    expect(proxy).toContain("request.headers.get('host')");
+    expect(proxy).not.toMatch(/x-forwarded-host/i);
+    expect(proxy).toContain('status: 404');
+    expect(proxy).toContain("new URL('/admin'");
   });
 });

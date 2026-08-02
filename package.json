@@ -24,6 +24,7 @@
     "db:seed": "pnpm --filter @arena-core/game-catalog db:seed",
     "db:seed:fc26": "pnpm --filter @arena-core/game-catalog db:seed:fc26",
     "db:seed:validate": "pnpm --filter @arena-core/game-catalog db:seed:validate",
+    "admin:bootstrap": "pnpm --filter @arena-core/game-catalog admin:bootstrap",
     "db:studio": "pnpm --filter @arena-core/database db:studio",
     "db:validate": "pnpm --filter @arena-core/database db:validate",
     "dev": "turbo run dev",

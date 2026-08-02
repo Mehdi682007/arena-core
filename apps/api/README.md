@@ -39,7 +39,9 @@ Public routes are `GET /api/v1/catalog/games`, `GET /api/v1/catalog/games/:slug`
 The `/api/v1/admin/catalog` foundation supports games, shared platforms, game-platform attachment,
 modes, crossplay groups, and draft/publish/default/archive ruleset flows. It reuses session and CSRF
 guards, validates strict JSON DTOs, returns `no-store`, and uses `games.manage`,
-`platforms.manage`, or `rulesets.manage`. No permission or catalog seed is installed.
+`platforms.manage`, or `rulesets.manage`. The production system seed installs the typed
+permission catalog and `super_admin` role without assigning any user; administrator assignment
+uses the separate audited bootstrap command.
 
 When `DATABASE_ENABLED=false`, routes still register: public database operations return
 `GAME_CATALOG_UNAVAILABLE`, unauthenticated admin calls return 401, and authorization fails closed.

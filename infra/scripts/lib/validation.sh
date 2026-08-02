@@ -34,6 +34,16 @@ load_inventory() {
   done
   [[ "${POSTGRES_MODE:-}" == container || "${POSTGRES_MODE:-}" == external ]] || die "invalid POSTGRES_MODE"
   [[ "$DEPLOY_MODE" == prebuilt || "$DEPLOY_MODE" == build-local ]] || die "invalid DEPLOY_MODE"
+  valid_bool "${SMTP_ENABLED:-false}" || die "SMTP_ENABLED must be true or false"
+  if [[ "${SMTP_ENABLED:-false}" == true ]]; then
+    : "${SMTP_HOST:?SMTP_HOST required when SMTP is enabled}"
+    : "${SMTP_PORT:?SMTP_PORT required when SMTP is enabled}"
+    : "${SMTP_SECURE:?SMTP_SECURE required when SMTP is enabled}"
+    : "${SMTP_USERNAME:?SMTP_USERNAME required when SMTP is enabled}"
+    : "${SMTP_FROM_ADDRESS:?SMTP_FROM_ADDRESS required when SMTP is enabled}"
+    valid_port "$SMTP_PORT" || die "invalid SMTP_PORT"
+    valid_bool "$SMTP_SECURE" || die "SMTP_SECURE must be true or false"
+  fi
   if [[ -n "${REGISTRY_USERNAME:-}" || -n "${REGISTRY_TOKEN_FILE:-}" ]]; then
     [[ -n "${REGISTRY_USERNAME:-}" && -n "${REGISTRY_TOKEN_FILE:-}" ]] ||
       die "REGISTRY_USERNAME and REGISTRY_TOKEN_FILE must be configured together"
@@ -41,6 +51,10 @@ load_inventory() {
   fi
   if [[ "$ENVIRONMENT" == production ]]; then
     [[ -n "${APP_DOMAIN:-}" ]] || die "APP_DOMAIN required in production"
+    [[ -n "${ADMIN_DOMAIN:-}" ]] || die "ADMIN_DOMAIN required in production"
+    [[ "$ADMIN_DOMAIN" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ && "$ADMIN_DOMAIN" != *"*"* ]] ||
+      die "invalid ADMIN_DOMAIN"
+    [[ "$ADMIN_DOMAIN" != "$APP_DOMAIN" ]] || die "ADMIN_DOMAIN must differ from APP_DOMAIN"
     [[ "$ENABLE_TLS" == true ]] || die "TLS required in production inventory"
   fi
 }
