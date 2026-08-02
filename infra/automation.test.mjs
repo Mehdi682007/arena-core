@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -35,6 +36,7 @@ const required = [
   'status.sh',
   'logs.sh',
   'backup.sh',
+  'install-release.sh',
   'restore.sh',
   'rollback.sh',
 ];
@@ -447,6 +449,88 @@ test('database lifecycle supports container and external PostgreSQL', async () =
     'compose/compose.automation.production.yml',
   ]) {
     assert.match(await readFile(path.join(infra, overlay), 'utf8'), /depends_on: !reset \{\}/);
+  }
+});
+
+test('external PostgreSQL utility containers use the stable Docker host gateway', async () => {
+  for (const name of ['backup.sh', 'restore.sh', 'monitor.sh', 'verify.sh']) {
+    const source = await readFile(path.join(scripts, name), 'utf8');
+    for (const invocation of source.match(/docker run[^\n]*(?:\\\r?\n[^\n]*)?/g) ?? []) {
+      if (invocation.includes('postgres:17.10-alpine3.23')) {
+        assert.match(invocation, /--add-host host\.docker\.internal:host-gateway/, name);
+      }
+    }
+  }
+  assert.doesNotMatch(await readFile(path.join(scripts, 'backup.sh'), 'utf8'), /172\.17\.0\.1/);
+});
+
+test('backup ownership follows the effective user and never requires non-root chown', async () => {
+  const backup = await readFile(path.join(scripts, 'backup.sh'), 'utf8');
+  const permissions = await readFile(path.join(scripts, 'lib/backup-permissions.sh'), 'utf8');
+  assert.match(backup, /secure_backup_tree "\$partial"/);
+  assert.match(permissions, /if \(\(EUID == 0\)\)/);
+  assert.match(permissions, /chmod 0700/);
+  assert.match(permissions, /chmod 0600/);
+  assert.doesNotMatch(backup, /chown -R root:root "\$partial"/);
+  assert.match(backup, /-w "\$candidate"/);
+});
+
+test('release archive identity is validated before immutable installation', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'arena-archive-'));
+  const releaseId = '0.1.0-production.test';
+  const buildSha = 'a'.repeat(40);
+  const archive = path.join(directory, `arena-release-${releaseId}.tar.gz`);
+  const release = path.join(directory, 'fixture', 'release');
+  const validator = path.join(scripts, 'validate-release-archive.py');
+  const python =
+    process.env.ARENA_TEST_PYTHON ??
+    (process.platform === 'win32'
+      ? path.join(
+          os.homedir(),
+          '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',
+        )
+      : 'python3');
+  try {
+    await mkdir(release, { recursive: true });
+    await writeFile(
+      path.join(release, 'manifest.json'),
+      JSON.stringify({ releaseVersion: releaseId, buildSha }),
+    );
+    await writeFile(
+      path.join(release, 'deployment-images.json'),
+      JSON.stringify({ releaseId, sourceCommit: buildSha }),
+    );
+    const packed = spawnSync('tar', [
+      '-czf',
+      archive,
+      '-C',
+      path.join(directory, 'fixture'),
+      'release',
+    ]);
+    assert.equal(packed.status, 0);
+    const checksum = createHash('sha256')
+      .update(await readFile(archive))
+      .digest('hex');
+    const valid = spawnSync(python, [validator, archive, releaseId, buildSha, checksum]);
+    assert.equal(valid.status, 0);
+    const stale = spawnSync(python, [
+      validator,
+      archive,
+      '0.1.0-production.other',
+      buildSha,
+      checksum,
+    ]);
+    assert.notEqual(stale.status, 0);
+    const wrongSha = spawnSync(python, [validator, archive, releaseId, 'b'.repeat(40), checksum]);
+    assert.notEqual(wrongSha.status, 0);
+    const installer = await readFile(path.join(scripts, 'install-release.sh'), 'utf8');
+    assert.ok(installer.indexOf('validate_release_archive') < installer.indexOf('mkdir -m 0750'));
+    assert.match(
+      installer,
+      /release directory already exists; immutable release will not be overwritten/,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
 

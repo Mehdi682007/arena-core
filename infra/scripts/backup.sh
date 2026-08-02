@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/compose.sh"; source "$SCRIPT_DIR/lib/images.sh"
+source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/compose.sh"; source "$SCRIPT_DIR/lib/images.sh"; source "$SCRIPT_DIR/lib/backup-permissions.sh"
 parse_common_args "$@"; export_runtime_paths
 configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
 compose config --quiet
@@ -27,16 +27,16 @@ if [[ "$POSTGRES_MODE" == container ]]; then
   compose --profile container-db exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc >"$partial/postgres.dump"
   compose --profile container-db exec -T postgres pg_restore -l <"$partial/postgres.dump" >/dev/null
 else
-  docker run --rm -i -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
+  docker run --rm -i --add-host host.docker.internal:host-gateway -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
     postgres:17.10-alpine3.23 sh -ec \
     'pg_dump --dbname="$(cat /run/arena-secrets/DATABASE_DIRECT_URL)" -Fc' >"$partial/postgres.dump"
-  docker run --rm -i postgres:17.10-alpine3.23 pg_restore -l <"$partial/postgres.dump" >/dev/null
+  docker run --rm -i --add-host host.docker.internal:host-gateway postgres:17.10-alpine3.23 pg_restore -l <"$partial/postgres.dump" >/dev/null
 fi
 rsync -a --exclude='secrets/*' "$SERVER_APP_ROOT/shared/uploads/" "$partial/uploads/"
 cp "$SERVER_APP_ROOT/shared/deployment.json" "$partial/" 2>/dev/null || true
 find "$SERVER_APP_ROOT/shared/secrets" -maxdepth 1 -type f -printf '%f\n' | sort >"$partial/secret-inventory.txt"
 (cd "$partial" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS)
-chown -R root:root "$partial"; chmod -R go-rwx "$partial"
+secure_backup_tree "$partial"
 mv "$partial" "$target"; trap - ERR INT TERM
 
 retention="${BACKUP_RETENTION_DAYS:-14}"
@@ -47,7 +47,7 @@ valid_dump() {
   if [[ "$POSTGRES_MODE" == container ]]; then
     compose --profile container-db exec -T postgres pg_restore -l <"$1" >/dev/null 2>&1
   else
-    docker run --rm -i postgres:17.10-alpine3.23 pg_restore -l <"$1" >/dev/null 2>&1
+    docker run --rm -i --add-host host.docker.internal:host-gateway postgres:17.10-alpine3.23 pg_restore -l <"$1" >/dev/null 2>&1
   fi
 }
 mapfile -t candidates < <(
@@ -64,7 +64,7 @@ done
 deleted=0
 for candidate in "${valid[@]:$retention}"; do
   (( deleted < cleanup_limit )) || break
-  [[ "$candidate" != "$target" ]] || continue
+  [[ "$candidate" != "$target" && -w "$candidate" && -w "$SERVER_BACKUP_ROOT" ]] || continue
   rm -rf -- "$candidate"
   ((deleted += 1))
 done

@@ -114,7 +114,7 @@ fi
 if [[ "$POSTGRES_MODE" == container ]]; then
   check "PostgreSQL" compose --profile container-db exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || true
 else
-  check "external PostgreSQL" docker run --rm -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
+  check "external PostgreSQL" docker run --rm --add-host host.docker.internal:host-gateway -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
     postgres:17.10-alpine3.23 sh -ec \
     'pg_isready --dbname="$(cat /run/arena-secrets/DATABASE_DIRECT_URL)"' || true
 fi

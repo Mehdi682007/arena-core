@@ -36,7 +36,7 @@ validate_dump() {
   if [[ "$POSTGRES_MODE" == container ]]; then
     bounded_compose exec -T postgres pg_restore -l <"$dump" >/dev/null
   else
-    bounded docker run --rm -i postgres:17.10-alpine3.23 pg_restore -l <"$dump" >/dev/null
+    bounded docker run --rm -i --add-host host.docker.internal:host-gateway postgres:17.10-alpine3.23 pg_restore -l <"$dump" >/dev/null
   fi
 }
 
