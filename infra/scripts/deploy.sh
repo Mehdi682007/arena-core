@@ -37,6 +37,7 @@ fi
 [[ -f "$ARENA_RELEASE_DIR/release/manifest.json" ]] ||
   die "installed release missing; run install-release.sh first"
 
+# shellcheck disable=SC2153 # RELEASE_VERSION is assigned by load_inventory in validation.sh.
 configure_release_images "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
 
 validate_seed_compose_contract

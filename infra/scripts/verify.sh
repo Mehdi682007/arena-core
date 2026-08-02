@@ -3,20 +3,24 @@ set -Eeuo pipefail
 source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/secrets.sh"; source "$SCRIPT_DIR/lib/compose.sh"
 parse_common_args "$@"
 [[ -z "${ARENA_VERIFY_RELEASE_VERSION:-}" ]] || RELEASE_VERSION="$ARENA_VERIFY_RELEASE_VERSION"
+export RELEASE_VERSION
 export_runtime_paths
 report="${VERIFY_REPORT:-$SERVER_APP_ROOT/logs/verify.json}"; status=PASS
 VERIFY_READINESS_TIMEOUT_SECONDS="${VERIFY_READINESS_TIMEOUT_SECONDS:-120}"
 VERIFY_READINESS_INTERVAL_SECONDS="${VERIFY_READINESS_INTERVAL_SECONDS:-2}"
 VERIFY_DIAGNOSTIC_MAX_BYTES="${VERIFY_DIAGNOSTIC_MAX_BYTES:-16384}"
-[[ "$VERIFY_READINESS_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] &&
-  (( VERIFY_READINESS_TIMEOUT_SECONDS >= 10 && VERIFY_READINESS_TIMEOUT_SECONDS <= 600 )) ||
+if [[ ! "$VERIFY_READINESS_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] ||
+  (( VERIFY_READINESS_TIMEOUT_SECONDS < 10 || VERIFY_READINESS_TIMEOUT_SECONDS > 600 )); then
   die "VERIFY_READINESS_TIMEOUT_SECONDS must be between 10 and 600"
-[[ "$VERIFY_READINESS_INTERVAL_SECONDS" =~ ^[0-9]+$ ]] &&
-  (( VERIFY_READINESS_INTERVAL_SECONDS >= 1 && VERIFY_READINESS_INTERVAL_SECONDS <= 10 )) ||
+fi
+if [[ ! "$VERIFY_READINESS_INTERVAL_SECONDS" =~ ^[0-9]+$ ]] ||
+  (( VERIFY_READINESS_INTERVAL_SECONDS < 1 || VERIFY_READINESS_INTERVAL_SECONDS > 10 )); then
   die "VERIFY_READINESS_INTERVAL_SECONDS must be between 1 and 10"
-[[ "$VERIFY_DIAGNOSTIC_MAX_BYTES" =~ ^[0-9]+$ ]] &&
-  (( VERIFY_DIAGNOSTIC_MAX_BYTES >= 1024 && VERIFY_DIAGNOSTIC_MAX_BYTES <= 65536 )) ||
+fi
+if [[ ! "$VERIFY_DIAGNOSTIC_MAX_BYTES" =~ ^[0-9]+$ ]] ||
+  (( VERIFY_DIAGNOSTIC_MAX_BYTES < 1024 || VERIFY_DIAGNOSTIC_MAX_BYTES > 65536 )); then
   die "VERIFY_DIAGNOSTIC_MAX_BYTES must be between 1024 and 65536"
+fi
 
 check() {
   local label="$1"; shift
@@ -114,6 +118,7 @@ fi
 if [[ "$POSTGRES_MODE" == container ]]; then
   check "PostgreSQL" compose --profile container-db exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || true
 else
+  # shellcheck disable=SC2016 # DATABASE_DIRECT_URL is expanded inside the utility container.
   check "external PostgreSQL" docker run --rm --add-host host.docker.internal:host-gateway -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
     postgres:17.10-alpine3.23 sh -ec \
     'pg_isready --dbname="$(cat /run/arena-secrets/DATABASE_DIRECT_URL)"' || true

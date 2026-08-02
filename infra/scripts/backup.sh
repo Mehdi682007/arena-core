@@ -35,6 +35,7 @@ fi
 rsync -a --exclude='secrets/*' "$SERVER_APP_ROOT/shared/uploads/" "$partial/uploads/"
 cp "$SERVER_APP_ROOT/shared/deployment.json" "$partial/" 2>/dev/null || true
 find "$SERVER_APP_ROOT/shared/secrets" -maxdepth 1 -type f -printf '%f\n' | sort >"$partial/secret-inventory.txt"
+# shellcheck disable=SC2094 # SHA256SUMS is explicitly excluded from the find input.
 (cd "$partial" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS)
 secure_backup_tree "$partial"
 mv "$partial" "$target"; trap - ERR INT TERM
