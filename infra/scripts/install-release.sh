@@ -12,7 +12,8 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 0
 fi
 acquire_lock "$SERVER_APP_ROOT/run/deploy.lock"
-[[ ! -e "$ARENA_RELEASE_DIR" ]] || die "release directory already exists; immutable release will not be overwritten"
+target_release="$ARENA_RELEASE_DIR"
+[[ ! -e "$target_release" ]] || die "release directory already exists; immutable release will not be overwritten"
 incoming="$SERVER_APP_ROOT/releases/.${RELEASE_VERSION}.incoming.$$"
 cleanup_incoming() { [[ ! -e "$incoming" ]] || rm -rf -- "$incoming"; }
 trap cleanup_incoming ERR INT TERM
@@ -21,6 +22,6 @@ tar -xzf "$RELEASE_ARCHIVE" -C "$incoming" --no-same-owner --no-same-permissions
 configure_release_images "$incoming" "$RELEASE_VERSION"
 [[ "$BUILD_SHA" == "${INVENTORY_BUILD_SHA:?inventory BUILD_SHA required}" ]] || die "installed release build SHA mismatch"
 chmod -R go-w "$incoming"
-mv "$incoming" "$ARENA_RELEASE_DIR"
+mv "$incoming" "$target_release"
 trap - ERR INT TERM
-info "immutable release installed: $ARENA_RELEASE_DIR"
+info "immutable release installed: $target_release"
