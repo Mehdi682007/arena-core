@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -80,10 +83,10 @@ test('runtime environment generator emits the complete canonical API contract', 
     'CORS_ENABLED=false',
     'WORKER_SHUTDOWN_TIMEOUT_MS=10000',
     'WEB_PORT=3000',
-    'NEXT_PUBLIC_APP_NAME=Arena Core',
     'NEXT_PUBLIC_DEFAULT_LOCALE=fa',
   ]) {
-    assert.match(runtime, new RegExp(`${entry.replaceAll('.', '\\.')}\\\\n`), entry);
+    const escaped = entry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(runtime, new RegExp(escaped + '\\\\n'), entry);
   }
   assert.match(
     runtime,
@@ -91,6 +94,38 @@ test('runtime environment generator emits the complete canonical API contract', 
   );
   assert.match(runtime, /API_BASE_URL=%s:\/\/%s\/api\/v1\\n/);
   assert.doesNotMatch(runtime, /API_BASE_URL=%s:\/\/%s\/api\\n/);
+
+  const format = runtime.match(
+    /printf '(WEB_PORT=3000\\nNEXT_PUBLIC_APP_NAME=Arena\\\\ Core\\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\\n)'/,
+  )?.[1];
+  assert.ok(format, 'source contains the canonical Web runtime printf format');
+  assert.doesNotMatch(format, /\\\\n|\\n\/$/);
+
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'arena-runtime-env-'));
+  const output = path.join(directory, 'runtime.env');
+  const bash = process.platform === 'win32' ? 'C:\\Program Files\\Git\\bin\\bash.exe' : 'bash';
+  try {
+    const generated = spawnSync(bash, ['-c', "printf '" + format + "'"], {
+      encoding: 'utf8',
+    });
+    assert.equal(generated.status, 0, generated.stderr);
+    assert.equal(
+      generated.stdout,
+      'WEB_PORT=3000\nNEXT_PUBLIC_APP_NAME=Arena\\ Core\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\n',
+    );
+    await writeFile(output, generated.stdout);
+    const syntax = spawnSync(bash, ['-n', output], { encoding: 'utf8' });
+    assert.equal(syntax.status, 0, syntax.stderr);
+    const sourced = spawnSync(
+      bash,
+      ['-c', 'source "$1" && printf "%s" "$NEXT_PUBLIC_APP_NAME"', 'bash', output],
+      { encoding: 'utf8' },
+    );
+    assert.equal(sourced.status, 0, sourced.stderr);
+    assert.equal(sourced.stdout, 'Arena Core');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test('Web runtime port and canonical variables remain consistent through deployment', async () => {
@@ -102,7 +137,7 @@ test('Web runtime port and canonical variables remain consistent through deploym
   const dockerfile = await readFile(path.join(infra, '../docker/Dockerfile'), 'utf8');
   assert.match(
     runtime,
-    /WEB_PORT=3000\\nNEXT_PUBLIC_APP_NAME=Arena Core\\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\\n/,
+    /WEB_PORT=3000\\nNEXT_PUBLIC_APP_NAME=Arena\\\\ Core\\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\\n/,
   );
   assert.match(config, /requiredValue\(source, 'WEB_PORT', '3000'/);
   assert.match(compose, /arena-web:[\s\S]*ports: \['127\.0\.0\.1:3000:3000'\]/);
