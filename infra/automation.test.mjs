@@ -452,6 +452,40 @@ test('database lifecycle supports container and external PostgreSQL', async () =
   }
 });
 
+test('external PostgreSQL clients retain the host-gateway contract', async () => {
+  const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  const production = await readFile(
+    path.join(infra, 'compose/compose.automation.production.yml'),
+    'utf8',
+  );
+  const backup = await readFile(path.join(scripts, 'backup.sh'), 'utf8');
+  const restore = await readFile(path.join(scripts, 'restore.sh'), 'utf8');
+
+  for (const [service, next] of [
+    ['arena-migrate', 'arena-api'],
+    ['arena-api', 'arena-worker'],
+    ['arena-worker', 'arena-web'],
+    ['arena-seed', null],
+  ]) {
+    const end = next ? `(?=\\n  ${next}:)` : '(?=\\nnetworks:)';
+    const block = compose.match(new RegExp(`  ${service}:[\\s\\S]*?${end}`))?.[0] ?? '';
+    assert.match(block, /extra_hosts: \['host\.docker\.internal:host-gateway'\]/, service);
+  }
+
+  const web = compose.match(/  arena-web:[\s\S]*?(?=\n  arena-seed:)/)?.[0] ?? '';
+  assert.doesNotMatch(web, /extra_hosts/, 'arena-web does not connect to PostgreSQL');
+
+  for (const [name, source] of [
+    ['backup', backup],
+    ['restore', restore],
+  ]) {
+    assert.match(source, /--add-host host\.docker\.internal:host-gateway/, name);
+  }
+
+  assert.match(production, /postgres:\r?\n\s+profiles: \[container-db\]/);
+  assert.match(production, /arena-migrate:\r?\n\s+depends_on: !reset \{\}/);
+});
+
 test('external PostgreSQL utility containers use the stable Docker host gateway', async () => {
   for (const name of ['backup.sh', 'restore.sh', 'monitor.sh', 'verify.sh']) {
     const source = await readFile(path.join(scripts, name), 'utf8');

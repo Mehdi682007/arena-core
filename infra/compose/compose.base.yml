@@ -30,11 +30,13 @@ services:
   arena-migrate:
     <<: *app
     image: ${ARENA_MIGRATE_IMAGE:?ARENA_MIGRATE_IMAGE required}
+    extra_hosts: ['host.docker.internal:host-gateway']
     restart: 'no'
     depends_on: { postgres: { condition: service_healthy } }
   arena-api:
     <<: *app
     image: ${ARENA_API_IMAGE:?ARENA_API_IMAGE required}
+    extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:3001:3001']
     networks: [ingress, app, data]
     healthcheck:
@@ -47,6 +49,7 @@ services:
   arena-worker:
     <<: *app
     image: ${ARENA_WORKER_IMAGE:?ARENA_WORKER_IMAGE required}
+    extra_hosts: ['host.docker.internal:host-gateway']
   arena-web:
     <<: *app
     image: ${ARENA_WEB_IMAGE:?ARENA_WEB_IMAGE required}
@@ -56,6 +59,7 @@ services:
     <<: *app
     profiles: [seed]
     image: ${ARENA_SEED_IMAGE:-arena-seed:disabled}
+    extra_hosts: ['host.docker.internal:host-gateway']
     restart: 'no'
     tmpfs: ['/tmp:rw,noexec,nosuid,size=64m']
 networks:
