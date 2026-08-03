@@ -207,16 +207,16 @@ if ! "$SCRIPT_DIR/verify.sh" "$inventory"; then
 
     fi
 
-    warn "previous release failed verification; restoring failed deployment for diagnosis"
+    warn "previous release verification also failed; keeping the previous release active"
 
-    activate_release "$failed_release" "$failed_version"
+    ln -sfn "$previous_release" "$SERVER_APP_ROOT/current"
 
     record_deployment \
-      "$failed_version" \
-      rollback-failed \
-      "$previous_version"
+      "$previous_version" \
+      rollback-verification-failed \
+      "$failed_version"
 
-    die "deployment and automatic rollback verification both failed"
+    die "deployment failed; previous release was restored but verification still failed"
 
   fi
 

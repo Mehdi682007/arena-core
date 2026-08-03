@@ -567,6 +567,50 @@ test('external PostgreSQL utility containers use the stable Docker host gateway'
   assert.doesNotMatch(await readFile(path.join(scripts, 'backup.sh'), 'utf8'), /172\.17\.0\.1/);
 });
 
+test('external PostgreSQL boundary rejects wildcard and public listeners', async () => {
+  const boundary = await readFile(path.join(scripts, 'lib/database-boundary.sh'), 'utf8');
+  const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
+
+  assert.match(boundary, /verify_external_postgres_boundary\(\)/);
+  assert.ok(
+    boundary.includes('0.0.0.0 | "*" | "::")'),
+    'wildcard IPv4 and IPv6 listeners must be rejected',
+  );
+  assert.match(boundary, /is_private_ipv4/);
+  assert.match(boundary, /is_private_ipv6/);
+  assert.match(boundary, /172\\\.\(1\[6-9\]\|2\[0-9\]\|3\[01\]\)/);
+  assert.match(boundary, /192\\\.168\\\./);
+  assert.match(boundary, /10\\\./);
+  assert.match(verify, /verify_external_postgres_boundary/);
+  assert.doesNotMatch(
+    verify,
+    /grep -Eq '\(\^\|:\)5432\[\[:space:\]\]'/,
+    'verification must not reject every host PostgreSQL listener',
+  );
+});
+
+test('failed rollback verification keeps current and running release aligned', async () => {
+  const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
+
+  assert.match(
+    deploy,
+    /previous release verification also failed; keeping the previous release active/,
+  );
+  assert.match(deploy, /ln -sfn "\$previous_release" "\$SERVER_APP_ROOT\/current"/);
+  assert.match(deploy, /rollback-verification-failed/);
+
+  const failureBlock =
+    deploy.match(
+      /previous release verification also failed[\s\S]*?deployment failed; previous release was restored but verification still failed/,
+    )?.[0] ?? '';
+
+  assert.doesNotMatch(
+    failureBlock,
+    /activate_release "\$failed_release"/,
+    'a failed release must not be reactivated after rollback verification fails',
+  );
+});
+
 test('backup ownership follows the effective user and never requires non-root chown', async () => {
   const backup = await readFile(path.join(scripts, 'backup.sh'), 'utf8');
   const permissions = await readFile(path.join(scripts, 'lib/backup-permissions.sh'), 'utf8');

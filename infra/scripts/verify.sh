@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/secrets.sh"; source "$SCRIPT_DIR/lib/compose.sh"
+source "$(dirname "$0")/lib/common.sh"; source "$SCRIPT_DIR/lib/validation.sh"; source "$SCRIPT_DIR/lib/secrets.sh"; source "$SCRIPT_DIR/lib/compose.sh"; source "$SCRIPT_DIR/lib/database-boundary.sh"
 parse_common_args "$@"
 [[ -z "${ARENA_VERIFY_RELEASE_VERSION:-}" ]] || RELEASE_VERSION="$ARENA_VERIFY_RELEASE_VERSION"
 export RELEASE_VERSION
@@ -126,8 +126,12 @@ else
   check "external PostgreSQL" docker run --rm --add-host host.docker.internal:host-gateway -v "$SERVER_APP_ROOT/shared/secrets:/run/arena-secrets:ro" \
     postgres:17.10-alpine3.23 sh -ec \
     'pg_isready --dbname="$(cat /run/arena-secrets/DATABASE_DIRECT_URL)"' || true
+
+  if ! verify_external_postgres_boundary; then
+    status=FAIL
+  fi
 fi
-ss -lnt | grep -Eq '(^|:)5432[[:space:]]' && status=FAIL
+
 ss -lnt | grep -Eq '(^|:)2375[[:space:]]|(^|:)2376[[:space:]]' && status=FAIL
 validate_secret_files
 if [[ "$DRY_RUN" == true ]]; then
