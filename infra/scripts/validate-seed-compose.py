@@ -2,7 +2,7 @@
 import json
 import sys
 
-APPROVED_NETWORKS = {"app", "data"}
+APPROVED_NETWORKS = {"app", "data", "db_egress"}
 
 
 def fail(message: str) -> None:
@@ -43,7 +43,7 @@ if service.get("privileged") is True:
 if service.get("entrypoint") is not None or service.get("command") is not None:
     fail("Compose must not override the immutable image entrypoint or command")
 if set(service.get("networks", {})) != APPROVED_NETWORKS:
-    fail("Seed networks must remain app and data")
+    fail("Seed networks must remain app, data, and db_egress")
 for mount in service.get("volumes", []):
     target = mount.get("target", "") if isinstance(mount, dict) else str(mount)
     source = mount.get("source", "") if isinstance(mount, dict) else str(mount)
