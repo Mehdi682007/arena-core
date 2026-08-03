@@ -46,9 +46,13 @@ service_diagnostics() {
   } 2>&1 | sanitize_diagnostics >&2
 }
 wait_for_http() {
-  local service="$1" url="$2" expected="${3:-}" started="$SECONDS" body
+  local service="$1" url="$2" expected="${3:-}" host_header="${4:-}" started="$SECONDS" body
+  local -a curl_args=(-fsS --max-time 5)
+
+  [[ -z "$host_header" ]] || curl_args+=(-H "Host: $host_header")
+
   while (( SECONDS - started < VERIFY_READINESS_TIMEOUT_SECONDS )); do
-    if body="$(curl -fsS --max-time 5 "$url" 2>/dev/null)"; then
+    if body="$(curl "${curl_args[@]}" "$url" 2>/dev/null)"; then
       if [[ -z "$expected" || "$body" == "$expected" ]]; then
         info "$service became ready"
         return 0
@@ -94,7 +98,7 @@ check "NTP synchronization" timedatectl show -p NTPSynchronized --value || true
 check "Compose" compose ps || true
 wait_for_worker || status=FAIL
 wait_for_http arena-api http://127.0.0.1:3001/api/v1/health/ready || status=FAIL
-wait_for_http arena-web http://127.0.0.1:3000/api/health || status=FAIL
+wait_for_http arena-web http://127.0.0.1:3000/api/health '' "$APP_DOMAIN" || status=FAIL
 proxy_host="${APP_DOMAIN:-${SERVER_HOST:-localhost}}"
 if ! proxy_body="$(curl -fsS --max-time 5 http://127.0.0.1:8088/arena-proxy-health 2>/dev/null)" ||
   [[ "$proxy_body" != ok ]]; then

@@ -183,6 +183,47 @@ test('production nginx isolates the exact public and admin hosts', async () => {
   assert.match(verify, /TLS certificate does not cover both domains/);
 });
 
+test('Web healthchecks preserve strict host policy through an explicit public Host header', async () => {
+  const healthcheck = await readFile(path.join(infra, '../docker/healthchecks/http.mjs'), 'utf8');
+  const verification = await readFile(path.join(infra, 'scripts/verify.sh'), 'utf8');
+
+  assert.match(
+    healthcheck,
+    /process\.env\.WEB_BASE_URL/,
+    'container healthcheck must derive its Host header from WEB_BASE_URL',
+  );
+
+  assert.match(
+    healthcheck,
+    /headers\.Host = new URL\(webBaseUrl\)\.host/,
+    'container healthcheck must send the configured public Host header',
+  );
+
+  assert.match(
+    healthcheck,
+    /\['127\.0\.0\.1', 'localhost', '::1'\]\.includes\(target\.hostname\)/,
+    'the Host override must remain limited to loopback probes',
+  );
+
+  assert.match(
+    verification,
+    /local service="\$1" url="\$2" expected="\$\{3:-\}" host_header="\$\{4:-\}"/,
+    'verification must accept an explicit Host header',
+  );
+
+  assert.match(
+    verification,
+    /curl_args\+=\(-H "Host: \$host_header"\)/,
+    'verification must pass the Host header to curl',
+  );
+
+  assert.match(
+    verification,
+    /wait_for_http arena-web http:\/\/127\.0\.0\.1:3000\/api\/health '' "\$APP_DOMAIN"/,
+    'Web readiness must probe loopback using the configured public hostname',
+  );
+});
+
 test('activation verification has bounded API, Web, and Worker readiness', async () => {
   const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
   assert.match(
