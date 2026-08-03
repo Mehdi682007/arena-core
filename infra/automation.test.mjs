@@ -589,6 +589,38 @@ test('external PostgreSQL boundary rejects wildcard and public listeners', async
   );
 });
 
+test('external PostgreSQL hardening is explicit, reversible, and Docker-network aware', async () => {
+  const hardening = await readFile(path.join(scripts, 'harden-external-postgres.sh'), 'utf8');
+  const inventory = await readFile(path.join(infra, 'inventory/production.env.example'), 'utf8');
+
+  assert.match(hardening, /POSTGRES_MODE=external/);
+  assert.match(hardening, /POSTGRES_DOCKER_NETWORK:-arena_db_egress/);
+  assert.match(hardening, /docker network inspect/);
+  assert.match(hardening, /ALTER SYSTEM SET listen_addresses/);
+  assert.match(hardening, /127\.0\.0\.1,\$gateway/);
+  assert.match(hardening, /BEGIN ARENA MANAGED DATABASE BOUNDARY/);
+  assert.match(hardening, /127\.0\.0\.1\/32\s+scram-sha-256/);
+  assert.match(hardening, /::1\/128\s+scram-sha-256/);
+  assert.match(hardening, /0\.0\.0\.0\/0\s+reject/);
+  assert.match(hardening, /::\/0\s+reject/);
+  assert.match(hardening, /hba_owner=.*stat -c %u/);
+  assert.match(hardening, /hba_group=.*stat -c %g/);
+  assert.match(hardening, /hba_mode=.*stat -c %a/);
+  assert.match(hardening, /psql --dbname=.*SELECT 1/);
+  assert.doesNotMatch(hardening, /PostgreSQL configuration must be root-owned/);
+  assert.match(hardening, /restore_previous_configuration/);
+  assert.match(hardening, /systemctl restart postgresql/);
+  assert.match(hardening, /--network "\$network_name"/);
+  assert.match(hardening, /verify_external_postgres_boundary/);
+  assert.match(inventory, /POSTGRES_DOCKER_NETWORK=arena_db_egress/);
+
+  assert.doesNotMatch(
+    hardening,
+    /172\.(?:17|18|19|20|21)\.0\.1/,
+    'the repository must not persist a discovered Docker gateway',
+  );
+});
+
 test('failed rollback verification keeps current and running release aligned', async () => {
   const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
 
