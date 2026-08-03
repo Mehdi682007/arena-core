@@ -28,6 +28,7 @@ jobs:
             infra/scripts/backup.sh \
             infra/scripts/deploy.sh \
             infra/scripts/install-release.sh \
+            infra/scripts/validate-external-db-egress-runtime.sh \
             infra/scripts/lib/backup-permissions.sh \
             infra/scripts/lib/images.sh \
             infra/scripts/monitor.sh \
@@ -81,6 +82,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate loopback ingress publication and isolation
         run: sudo bash infra/scripts/validate-ingress-runtime.sh
+  external-db-egress-runtime:
+    runs-on: ubuntu-24.04
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate bounded host access from database clients
+        run: sudo bash infra/scripts/validate-external-db-egress-runtime.sh
   backup-runtime:
     runs-on: ubuntu-24.04
     needs: quality

@@ -33,6 +33,7 @@ const required = [
   'seed.sh',
   'admin-bootstrap.sh',
   'verify.sh',
+  'validate-external-db-egress-runtime.sh',
   'status.sh',
   'logs.sh',
   'backup.sh',
@@ -236,7 +237,7 @@ test('Compose exposes only loopback Web/API and keeps database private', async (
   const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
   assert.match(compose, /ingress:\r?\n\s+driver: bridge/);
   assert.match(compose, /com\.docker\.network\.bridge\.host_binding_ipv4: '127\.0\.0\.1'/);
-  assert.match(compose, /arena-api:[\s\S]*?networks: \[ingress, app, data\]/);
+  assert.match(compose, /arena-api:[\s\S]*?networks: \[ingress, app, data, db_egress\]/);
   assert.match(compose, /arena-web:[\s\S]*?networks: \[ingress, app\]/);
   assert.match(compose, /arena-worker:[\s\S]*?image:/);
   assert.doesNotMatch(
@@ -264,6 +265,7 @@ test('real deployment path enforces the exact Seed Compose runtime contract', as
   const service = compose.match(/  arena-seed:[\s\S]*?(?=\nnetworks:)/)?.[0] ?? '';
   assert.match(service, /image: \$\{ARENA_SEED_IMAGE/);
   assert.match(service, /tmpfs: \['\/tmp:rw,noexec,nosuid,size=64m'\]/);
+  assert.match(service, /networks: \[app, data, db_egress\]/);
   assert.doesNotMatch(service, /privileged:|docker\.sock|\/app:/);
   assert.match(compose, /read_only: true/);
   assert.match(compose, /user: '10001:10001'/);
@@ -470,10 +472,12 @@ test('external PostgreSQL clients retain the host-gateway contract', async () =>
     const end = next ? `(?=\\n  ${next}:)` : '(?=\\nnetworks:)';
     const block = compose.match(new RegExp(`  ${service}:[\\s\\S]*?${end}`))?.[0] ?? '';
     assert.match(block, /extra_hosts: \['host\.docker\.internal:host-gateway'\]/, service);
+    assert.match(block, /networks: \[[^\]]*db_egress[^\]]*\]/, service);
   }
 
   const web = compose.match(/  arena-web:[\s\S]*?(?=\n  arena-seed:)/)?.[0] ?? '';
   assert.doesNotMatch(web, /extra_hosts/, 'arena-web does not connect to PostgreSQL');
+  assert.doesNotMatch(web, /db_egress/, 'arena-web does not connect to PostgreSQL');
 
   for (const [name, source] of [
     ['backup', backup],
@@ -484,6 +488,30 @@ test('external PostgreSQL clients retain the host-gateway contract', async () =>
 
   assert.match(production, /postgres:\r?\n\s+profiles: \[container-db\]/);
   assert.match(production, /arena-migrate:\r?\n\s+depends_on: !reset \{\}/);
+  assert.match(compose, /app: \{ internal: true \}/);
+  assert.match(compose, /data: \{ internal: true \}/);
+  assert.match(compose, /db_egress: \{ driver: bridge, internal: false \}/);
+  assert.doesNotMatch(compose, /172\.(?:17|18)\.0\.1/);
+  assert.doesNotMatch(compose, /network_mode:\s*host|privileged:\s*true|docker\.sock/);
+});
+
+test('Linux runtime validates the dedicated external database egress path', async () => {
+  const workflow = await readFile(
+    path.join(path.dirname(infra), '.github/workflows/release-verify.yml'),
+    'utf8',
+  );
+  const runtime = await readFile(
+    path.join(scripts, 'validate-external-db-egress-runtime.sh'),
+    'utf8',
+  );
+  const fixture = await readFile(path.join(infra, 'compose/compose.db-egress-test.yml'), 'utf8');
+
+  assert.match(workflow, /external-db-egress-runtime:/);
+  assert.match(workflow, /validate-external-db-egress-runtime\.sh/);
+  assert.match(fixture, /host\.docker\.internal/);
+  assert.match(runtime, /internal-only-probe/);
+  assert.match(fixture, /db_egress:\r?\n\s+internal: false/);
+  assert.doesNotMatch(fixture, /ports:|network_mode:|privileged:|docker\.sock/);
 });
 
 test('external PostgreSQL utility containers use the stable Docker host gateway', async () => {

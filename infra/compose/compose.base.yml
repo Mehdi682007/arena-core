@@ -31,6 +31,7 @@ services:
     <<: *app
     image: ${ARENA_MIGRATE_IMAGE:?ARENA_MIGRATE_IMAGE required}
     extra_hosts: ['host.docker.internal:host-gateway']
+    networks: [app, data, db_egress]
     restart: 'no'
     depends_on: { postgres: { condition: service_healthy } }
   arena-api:
@@ -38,7 +39,7 @@ services:
     image: ${ARENA_API_IMAGE:?ARENA_API_IMAGE required}
     extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:3001:3001']
-    networks: [ingress, app, data]
+    networks: [ingress, app, data, db_egress]
     healthcheck:
       {
         test: [CMD, node, /healthchecks/http.mjs, http://127.0.0.1:3001/api/v1/health],
@@ -50,6 +51,7 @@ services:
     <<: *app
     image: ${ARENA_WORKER_IMAGE:?ARENA_WORKER_IMAGE required}
     extra_hosts: ['host.docker.internal:host-gateway']
+    networks: [app, data, db_egress]
   arena-web:
     <<: *app
     image: ${ARENA_WEB_IMAGE:?ARENA_WEB_IMAGE required}
@@ -60,6 +62,7 @@ services:
     profiles: [seed]
     image: ${ARENA_SEED_IMAGE:-arena-seed:disabled}
     extra_hosts: ['host.docker.internal:host-gateway']
+    networks: [app, data, db_egress]
     restart: 'no'
     tmpfs: ['/tmp:rw,noexec,nosuid,size=64m']
 networks:
@@ -69,6 +72,7 @@ networks:
       com.docker.network.bridge.host_binding_ipv4: '127.0.0.1'
   app: { internal: true }
   data: { internal: true }
+  db_egress: { driver: bridge, internal: false }
 volumes:
   postgres_data:
 secrets:
