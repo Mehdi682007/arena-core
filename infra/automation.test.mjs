@@ -525,6 +525,12 @@ test('release archive identity is validated before immutable installation', asyn
     assert.notEqual(wrongSha.status, 0);
     const installer = await readFile(path.join(scripts, 'install-release.sh'), 'utf8');
     assert.ok(installer.indexOf('validate_release_archive') < installer.indexOf('mkdir -m 0750'));
+    assert.match(installer, /target_release="\$ARENA_RELEASE_DIR"/);
+    assert.match(installer, /mv "\$incoming" "\$target_release"/);
+    assert.ok(
+      installer.indexOf('target_release="$ARENA_RELEASE_DIR"') <
+        installer.indexOf('configure_release_images "$incoming"'),
+    );
     assert.match(
       installer,
       /release directory already exists; immutable release will not be overwritten/,
