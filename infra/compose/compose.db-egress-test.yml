@@ -1,0 +1,31 @@
+services:
+  egress-probe:
+    image: alpine:3.23
+    command:
+      [
+        'sh',
+        '-ec',
+        'getent hosts host.docker.internal && nc -z -w 5 host.docker.internal $${HOST_TEST_PORT}',
+      ]
+    environment:
+      HOST_TEST_PORT: ${HOST_TEST_PORT:?HOST_TEST_PORT required}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    networks: [internal_test, db_egress]
+  internal-only-probe:
+    image: alpine:3.23
+    profiles: [negative]
+    command:
+      [
+        'sh',
+        '-ec',
+        'getent hosts host.docker.internal && nc -z -w 3 host.docker.internal $${HOST_TEST_PORT}',
+      ]
+    environment:
+      HOST_TEST_PORT: ${HOST_TEST_PORT:?HOST_TEST_PORT required}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    networks: [internal_test]
+networks:
+  internal_test:
+    internal: true
+  db_egress:
+    internal: false
