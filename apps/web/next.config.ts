@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['vaforta.localhost', 'admin.vaforta.localhost'],
   output: 'standalone',
   poweredByHeader: false,
   productionBrowserSourceMaps: false,

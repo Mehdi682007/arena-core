@@ -49,6 +49,59 @@ describe('administrative web safety and routes', () => {
     expect(layout).toContain("redirect('/dashboard?admin=forbidden')");
     expect(layout).toContain("dynamic = 'force-dynamic'");
   });
+  it('provides a grouped operations console and a diagnostics-backed dashboard', () => {
+    const shell = readFileSync(path.join(root, 'src/features/admin/admin-shell.tsx'), 'utf8');
+    const dashboard = readFileSync(path.join(root, 'src/app/(admin)/admin/page.tsx'), 'utf8');
+    const layout = readFileSync(path.join(root, 'src/app/(admin)/admin/layout.tsx'), 'utf8');
+
+    expect(shell).toContain("'use client'");
+    expect(shell).toContain('const navigation: readonly AdminNavigationGroup[]');
+    expect(shell).toContain("href: '/admin/diagnostics'");
+    expect(shell).toContain("href: '/admin/disputes'");
+    expect(shell).toContain("href: '/admin/wallets'");
+    expect(shell).toContain("href: '/admin/notifications'");
+    expect(shell).toContain('usePathname');
+    expect(shell).toContain("aria-current={active ? 'page' : undefined}");
+    expect(shell).toContain('allowed.has(item.permission)');
+
+    expect(dashboard).toContain('adminApi.diagnostics()');
+    expect(dashboard).toContain('admin-dashboard-hero');
+    expect(dashboard).toContain('admin-metric-grid');
+    expect(dashboard).toContain('admin-shortcut-grid');
+    expect(dashboard).toContain('diagnostics.uptimeSeconds');
+
+    expect(layout).toContain('AdminOperationsShell');
+    expect(layout).not.toContain('<AdminShell');
+  });
+
+  it('persists an explicit light or dark admin theme with Persian typography', () => {
+    const shell = readFileSync(path.join(root, 'src/features/admin/admin-shell.tsx'), 'utf8');
+    const toggle = readFileSync(path.join(root, 'src/features/admin/theme-toggle.tsx'), 'utf8');
+    const styles = readFileSync(path.join(root, 'src/styles/globals.css'), 'utf8');
+    const rootLayout = readFileSync(path.join(root, 'src/app/layout.tsx'), 'utf8');
+
+    expect(shell).toContain('<ThemeToggle />');
+    expect(toggle).toContain('arena-admin-theme');
+    expect(toggle).toContain('document.documentElement.dataset.theme');
+    expect(toggle).toContain('prefers-color-scheme: dark');
+    expect(styles).toContain("html[data-theme='dark']");
+    expect(styles).toContain("'Vazirmatn Variable'");
+    expect(rootLayout).toContain("import '@fontsource-variable/vazirmatn';");
+  });
+
+  it('styles legacy administration surfaces consistently in light and dark modes', () => {
+    const styles = readFileSync(path.join(root, 'src/styles/globals.css'), 'utf8');
+
+    expect(styles).toContain('ADMIN_OPERATION_SURFACES_V1');
+    expect(styles).toContain('.admin-table');
+    expect(styles).toContain('.admin-filter');
+    expect(styles).toContain('.admin-details');
+    expect(styles).toContain('.admin-json');
+    expect(styles).toContain('.admin-console dialog');
+    expect(styles).toContain("html[data-theme='dark'] .admin-table tbody tr:hover");
+    expect(styles).toContain('@media (max-width: 760px)');
+  });
+
   it('keeps prohibited capabilities and unsafe rendering out of production admin UI', () => {
     const files = [
       'src/features/admin/admin-action.tsx',
