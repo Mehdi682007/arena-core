@@ -36,7 +36,7 @@ function validateSeedCompose(mutator = () => undefined, expectedImage) {
         user: '10001:10001',
         read_only: true,
         tmpfs: ['/tmp:rw,noexec,nosuid,size=64m'],
-        networks: { app: null, data: null },
+        networks: { app: null, data: null, db_egress: null },
         volumes: [],
       },
     },
@@ -319,6 +319,12 @@ test('Seed Compose validator rejects every security-contract regression', () => 
     },
     (service) => {
       service.command = ['pnpm', 'db:seed:fc26'];
+    },
+    (service) => {
+      delete service.networks.db_egress;
+    },
+    (service) => {
+      service.networks.unapproved = null;
     },
   ]) {
     assert.notEqual(validateSeedCompose(mutate).status, 0);
