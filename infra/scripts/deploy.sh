@@ -182,7 +182,6 @@ activate_release "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
 if ! "$SCRIPT_DIR/verify.sh" "$inventory"; then
 
   failed_version="$RELEASE_VERSION"
-  failed_release="$ARENA_RELEASE_DIR"
 
   if [[ -n "$previous_release" &&
         -f "$previous_release/release/manifest.json" ]]; then
