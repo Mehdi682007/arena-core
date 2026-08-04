@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { ADMIN_PERMISSION_KEYS } from '@arena-core/admin-rbac';
 import {
   AdminOperationError,
   type AdminSearchService,
@@ -55,16 +56,7 @@ export class AdminOperationsController {
   public async capabilities(@Req() request: PrincipalRequest) {
     const userId = request.principal?.userId;
     if (!userId) throw new AdminOperationError('ADMIN_OPERATIONS_UNAVAILABLE');
-    const allowed = new Set([
-      'audit.read',
-      'support.read',
-      'support.manage',
-      'timeline.read',
-      'diagnostics.read',
-      'notifications.read',
-      'notifications.retry',
-      'notifications.manage',
-    ]);
+    const allowed = new Set<string>(ADMIN_PERMISSION_KEYS);
     const permissions = (await this.authorization.listPermissions?.(userId)) ?? [];
     return { permissions: permissions.filter((permission) => allowed.has(permission)).sort() };
   }

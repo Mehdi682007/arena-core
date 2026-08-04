@@ -12,6 +12,7 @@ enum UserStatus {
   PENDING_VERIFICATION
   ACTIVE
   SUSPENDED
+  BANNED
   DISABLED
   DELETED
 
@@ -452,6 +453,10 @@ model User {
   deletedAt               DateTime?                @map("deleted_at") @db.Timestamptz(3)
   lastAuthenticatedAt     DateTime?                @map("last_authenticated_at") @db.Timestamptz(3)
   securityVersion         Int                      @default(0) @map("security_version")
+  statusChangedAt         DateTime?                @map("status_changed_at") @db.Timestamptz(3)
+  suspendedUntil          DateTime?                @map("suspended_until") @db.Timestamptz(3)
+  restrictionReasonCode   String?                  @map("restriction_reason_code") @db.VarChar(64)
+  restrictionNote         String?                  @map("restriction_note") @db.VarChar(500)
   profile                 UserProfile?
   emails                  UserEmail[]
   passwordCredential      PasswordCredential?
@@ -486,6 +491,7 @@ model User {
   adminAuditEvents        AdminAuditEvent[]        @relation("AdminAuditActor")
 
   @@index([status], map: "users_status_idx")
+  @@index([status, suspendedUntil], map: "users_status_suspended_until_idx")
   @@index([createdAt], map: "users_created_at_idx")
   @@index([deletedAt], map: "users_deleted_at_idx")
   @@map("users")

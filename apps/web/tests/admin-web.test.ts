@@ -102,6 +102,55 @@ describe('administrative web safety and routes', () => {
     expect(styles).toContain('@media (max-width: 760px)');
   });
 
+  it('provides user status, session and role management surfaces', () => {
+    const listPage = readFileSync(path.join(root, 'src/app/(admin)/admin/users/page.tsx'), 'utf8');
+
+    const detailPage = readFileSync(
+      path.join(root, 'src/app/(admin)/admin/users/[userId]/page.tsx'),
+      'utf8',
+    );
+
+    const actions = readFileSync(
+      path.join(root, 'src/features/admin/user-access-actions.tsx'),
+      'utf8',
+    );
+
+    const shell = readFileSync(path.join(root, 'src/features/admin/admin-shell.tsx'), 'utf8');
+
+    expect(listPage).toContain("requireAdminPermission('users.read')");
+    expect(listPage).toContain('/admin/users/');
+    expect(detailPage).toContain('<UserAccessActions');
+    expect(actions).toContain("method: 'PATCH'");
+    expect(actions).toContain("method: 'DELETE'");
+    expect(actions).toContain('/sessions/revoke');
+    expect(actions).toContain('/roles');
+    expect(shell).toContain("href: '/admin/users'");
+    expect(shell).toContain("permission: 'users.read'");
+  });
+
+  it('uses SVG navigation icons instead of font symbols', () => {
+    const shell = readFileSync(path.join(root, 'src/features/admin/admin-shell.tsx'), 'utf8');
+
+    const icons = readFileSync(path.join(root, 'src/features/admin/admin-nav-icon.tsx'), 'utf8');
+
+    expect(shell).toContain('<AdminNavIcon href={item.href} />');
+
+    expect(shell).not.toContain('{item.symbol}');
+    expect(shell).not.toMatch(/symbol:\\s*['"]/);
+
+    expect(shell).toContain("href: '/admin/users'");
+
+    expect(shell).toContain("permission: 'users.read'");
+
+    expect(icons).toContain("from 'lucide-react'");
+
+    expect(icons).toContain("'/admin/users': Users");
+
+    expect(icons).toContain("'/admin/search': Search");
+
+    expect(icons).toContain('const Icon = iconByHref[href] ?? ShieldCheck');
+  });
+
   it('keeps prohibited capabilities and unsafe rendering out of production admin UI', () => {
     const files = [
       'src/features/admin/admin-action.tsx',

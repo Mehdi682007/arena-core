@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@arena-core/admin-operations": "workspace:*",
+    "@arena-core/admin-rbac": "workspace:*",
     "@arena-core/config": "workspace:*",
     "@arena-core/contracts": "workspace:*",
     "@arena-core/database": "workspace:*",
@@ -22,8 +23,8 @@
     "@arena-core/game-catalog": "workspace:*",
     "@arena-core/identity": "workspace:*",
     "@arena-core/match-finance": "workspace:*",
-    "@arena-core/matchmaking": "workspace:*",
     "@arena-core/matches": "workspace:*",
+    "@arena-core/matchmaking": "workspace:*",
     "@arena-core/notifications": "workspace:*",
     "@arena-core/player-identity": "workspace:*",
     "@arena-core/rating": "workspace:*",

@@ -1,4 +1,5 @@
-export type UserStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED' | 'DELETED';
+export type UserStatus =
+  'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'DISABLED' | 'DELETED';
 export type SessionStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
 export type TokenKind = 'session' | 'email-verification' | 'password-reset';
 

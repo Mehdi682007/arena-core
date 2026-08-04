@@ -1731,3 +1731,231 @@ html[data-theme='dark'] .admin-console dialog::backdrop {
     padding-inline: 0.75rem;
   }
 }
+
+/* ADMIN_USER_ACCESS_UI_V1 */
+.admin-page-heading,
+.admin-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-page-heading h1,
+.admin-section-heading h2,
+.admin-section-heading h3 {
+  margin: 0;
+}
+
+.admin-page-heading p {
+  margin-block: 0.35rem 0;
+  color: var(--admin-text-muted);
+}
+
+.admin-result-count,
+.admin-user-security-version {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.7rem;
+  color: var(--admin-text-muted);
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-surface-soft);
+  white-space: nowrap;
+}
+
+.admin-user-identity {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.admin-user-identity span {
+  color: var(--admin-text-muted);
+  font-size: 0.78rem;
+  direction: ltr;
+  text-align: start;
+}
+
+.admin-user-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.8rem;
+  padding-inline: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-user-status-active {
+  color: #05603a;
+  border-color: #abefc6;
+  background: #ecfdf3;
+}
+
+.admin-user-status-suspended,
+.admin-user-status-pending_verification {
+  color: #93370d;
+  border-color: #fedf89;
+  background: #fffaeb;
+}
+
+.admin-user-status-banned,
+.admin-user-status-disabled,
+.admin-user-status-deleted {
+  color: #912018;
+  border-color: #fecdca;
+  background: #fef3f2;
+}
+
+.admin-user-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-user-metric-grid .card {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.admin-user-metric-grid span {
+  color: var(--admin-text-muted);
+}
+
+.admin-user-metric-grid strong {
+  font-size: 1.75rem;
+}
+
+.admin-user-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-user-actions {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-user-action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-user-role-actions,
+.admin-user-role-list,
+.admin-session-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-user-role-actions > div,
+.admin-user-role-list article,
+.admin-session-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.8rem;
+  background: var(--admin-surface-soft);
+}
+
+.admin-user-role-list article > div,
+.admin-session-list article > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-user-role-list code,
+.admin-user-role-actions code {
+  margin-inline-start: 0.4rem;
+}
+
+.admin-session-list article > div:last-child {
+  color: var(--admin-text-muted);
+  font-size: 0.78rem;
+  text-align: end;
+}
+
+.admin-permission-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-permission-cloud code {
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.45rem;
+}
+
+html[data-theme='dark'] .admin-user-status-active {
+  color: #6ce9a6;
+  border-color: #067647;
+  background: #053321;
+}
+
+html[data-theme='dark'] .admin-user-status-suspended,
+html[data-theme='dark'] .admin-user-status-pending_verification {
+  color: #fec84b;
+  border-color: #b54708;
+  background: #4e1d09;
+}
+
+html[data-theme='dark'] .admin-user-status-banned,
+html[data-theme='dark'] .admin-user-status-disabled,
+html[data-theme='dark'] .admin-user-status-deleted {
+  color: #fda29b;
+  border-color: #b42318;
+  background: #55160c;
+}
+
+@media (max-width: 900px) {
+  .admin-user-metric-grid,
+  .admin-user-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-page-heading,
+  .admin-section-heading,
+  .admin-user-role-actions > div,
+  .admin-user-role-list article,
+  .admin-session-list article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-user-metric-grid,
+  .admin-user-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-action-grid {
+    display: grid;
+  }
+
+  .admin-user-action-grid > * {
+    width: 100%;
+  }
+}
+
+/* ADMIN_LUCIDE_NAV_ICONS */
+.admin-console-nav-symbol svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+  flex: none;
+  stroke: currentColor;
+}
+
+.admin-console-nav-group a.is-active .admin-console-nav-symbol svg {
+  stroke-width: 2;
+}

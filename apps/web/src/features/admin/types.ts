@@ -1,4 +1,10 @@
 export type AdminPermission =
+  | 'users.read'
+  | 'users.manage_status'
+  | 'users.manage_sessions'
+  | 'roles.read'
+  | 'roles.assign'
+  | 'roles.manage'
   | 'audit.read'
   | 'support.read'
   | 'support.manage'

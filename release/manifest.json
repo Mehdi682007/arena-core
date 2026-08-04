@@ -58,6 +58,10 @@
     {
       "name": "20260731120000_create_admin_audit_events",
       "sha256": "81D28B235D2A3FA1751B74AA5FF5B960F50D66E5C39136948DD189D615C7F8D0"
+    },
+    {
+      "name": "20260804010000_add_admin_user_restrictions",
+      "sha256": "90338A33C2D7F786F2C64CF15D0182D47597F46F631A845AE295C1A496A5D383"
     }
   ],
   "images": {

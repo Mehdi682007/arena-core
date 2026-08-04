@@ -8,7 +8,17 @@ import {
 const KEY = 'admin-operations.permission';
 const CAPABILITIES_KEY = 'admin-operations.capabilities';
 export type AdminOperationsPermission =
-  'audit.read' | 'support.read' | 'support.manage' | 'timeline.read' | 'diagnostics.read';
+  | 'users.read'
+  | 'users.manage_status'
+  | 'users.manage_sessions'
+  | 'roles.read'
+  | 'roles.assign'
+  | 'roles.manage'
+  | 'audit.read'
+  | 'support.read'
+  | 'support.manage'
+  | 'timeline.read'
+  | 'diagnostics.read';
 export const RequireAdminOperationsPermission = (permission: AdminOperationsPermission) =>
   SetMetadata(KEY, permission);
 export const AllowAdminCapabilities = () => SetMetadata(CAPABILITIES_KEY, true);
