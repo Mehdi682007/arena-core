@@ -1,33 +1,46 @@
-import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import test from 'node:test';
+import { describe, expect, it } from 'vitest';
 
-const serviceSource = readFileSync(
-  resolve(process.cwd(), 'apps/api/src/admin-operations/admin-user-access.service.ts'),
+const source = readFileSync(
+  resolve(process.cwd(), 'src/admin-operations/admin-user-access.service.ts'),
   'utf8',
 );
 
-test('administrators cannot suspend or ban themselves', () => {
-  assert.match(serviceSource, /restricted\s*&&\s*actorUserId\s*===\s*userId/);
+describe('admin user policy enforcement', () => {
+  it('prevents administrators from changing their own account status', () => {
+    expect(source).toContain("code: 'ADMIN_SELF_STATUS_CHANGE_FORBIDDEN'");
 
-  assert.match(serviceSource, /ADMIN_SELF_RESTRICTION_FORBIDDEN/);
-});
+    expect(source).toContain('actorUserId === userId');
+  });
 
-test('the last active holder of a system role cannot be restricted', () => {
-  assert.match(serviceSource, /role:\s*\{\s*isSystem:\s*true/);
+  it('loads active system-role assignments for restrictive transitions', () => {
+    expect(source).toContain('roleAssignments: {');
 
-  assert.match(serviceSource, /transaction\.userRole\.count/);
+    expect(source).toContain('isSystem: true');
 
-  assert.match(serviceSource, /activeHolders\s*<=\s*1/);
+    expect(source).toContain('expiresAt: {');
 
-  assert.match(serviceSource, /ADMIN_LAST_SYSTEM_ROLE_HOLDER/);
+    expect(source).toContain('gt: now');
+  });
 
-  assert.match(serviceSource, /cannot be suspended or banned/);
-});
+  it('prevents restricting the final active holder of a system role', () => {
+    expect(source).toContain("code: 'ADMIN_LAST_SYSTEM_ROLE_HOLDER'");
 
-test('system role protection applies only to restrictive transitions from active state', () => {
-  assert.match(serviceSource, /restricted\s*&&\s*existing\.status\s*===\s*'ACTIVE'/);
+    expect(source).toContain('transaction.userRole.count');
 
-  assert.match(serviceSource, /status:\s*'ACTIVE'/);
+    expect(source).toContain('activeHolderCount <= 1');
+
+    expect(source).toContain("restricted && existing.status === 'ACTIVE'");
+
+    expect(source).toContain('cannot be suspended or banned');
+  });
+
+  it('counts only active non-deleted holders with unexpired assignments', () => {
+    expect(source).toContain("status: 'ACTIVE'");
+
+    expect(source).toContain('deletedAt: null');
+
+    expect(source).toContain('roleId: assignment.roleId');
+  });
 });

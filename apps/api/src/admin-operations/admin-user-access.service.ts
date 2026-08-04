@@ -279,6 +279,33 @@ export class AdminUserAccessService {
           id: true,
           status: true,
           securityVersion: true,
+          roleAssignments: {
+            where: {
+              role: {
+                is: {
+                  isSystem: true,
+                },
+              },
+              OR: [
+                {
+                  expiresAt: null,
+                },
+                {
+                  expiresAt: {
+                    gt: now,
+                  },
+                },
+              ],
+            },
+            select: {
+              roleId: true,
+              role: {
+                select: {
+                  key: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -287,6 +314,39 @@ export class AdminUserAccessService {
           code: 'ADMIN_USER_NOT_FOUND',
           message: 'User was not found.',
         });
+      }
+
+      if (restricted && existing.status === 'ACTIVE') {
+        for (const assignment of existing.roleAssignments) {
+          const activeHolderCount = await transaction.userRole.count({
+            where: {
+              roleId: assignment.roleId,
+              OR: [
+                {
+                  expiresAt: null,
+                },
+                {
+                  expiresAt: {
+                    gt: now,
+                  },
+                },
+              ],
+              user: {
+                is: {
+                  deletedAt: null,
+                  status: 'ACTIVE',
+                },
+              },
+            },
+          });
+
+          if (activeHolderCount <= 1) {
+            throw new ConflictException({
+              code: 'ADMIN_LAST_SYSTEM_ROLE_HOLDER',
+              message: `The final active holder of system role ${assignment.role.key} cannot be suspended or banned.`,
+            });
+          }
+        }
       }
 
       const updated = await transaction.user.update({
