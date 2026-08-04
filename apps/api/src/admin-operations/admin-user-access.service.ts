@@ -8,6 +8,7 @@ import {
 import { type ArenaPrismaClient, Prisma } from '@arena-core/database';
 import { DatabaseService } from '../database/database.service';
 import type {
+  AdminEmailVerificationInput,
   AdminRoleAssignmentInput,
   AdminSessionRevocationInput,
   AdminUserListQuery,
@@ -358,6 +359,140 @@ export class AdminUserAccessService {
       return {
         user: updated,
         revokedSessions,
+      };
+    });
+  }
+
+  public async verifyEmail(
+    actorUserId: string,
+    userId: string,
+    input: AdminEmailVerificationInput,
+  ) {
+    const client = this.client();
+    const now = new Date();
+
+    return client.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          status: true,
+          securityVersion: true,
+          emails: {
+            where: {
+              isPrimary: true,
+            },
+            select: {
+              id: true,
+              email: true,
+              verifiedAt: true,
+            },
+            take: 1,
+          },
+        },
+      });
+
+      if (user === null) {
+        throw new NotFoundException({
+          code: 'ADMIN_USER_NOT_FOUND',
+          message: 'User was not found.',
+        });
+      }
+
+      const primaryEmail = user.emails[0];
+
+      if (primaryEmail === undefined) {
+        throw new ConflictException({
+          code: 'ADMIN_PRIMARY_EMAIL_NOT_FOUND',
+          message: 'The user does not have a primary email address.',
+        });
+      }
+
+      if (primaryEmail.verifiedAt !== null) {
+        return {
+          changed: false,
+          email: primaryEmail.email,
+          verifiedAt: primaryEmail.verifiedAt,
+          status: user.status,
+          securityVersion: user.securityVersion,
+        };
+      }
+
+      const nextStatus = user.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : user.status;
+
+      await transaction.userEmail.update({
+        where: {
+          id: primaryEmail.id,
+        },
+        data: {
+          verifiedAt: now,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await transaction.emailVerificationToken.deleteMany({
+        where: {
+          userEmailId: primaryEmail.id,
+        },
+      });
+
+      const updated = await transaction.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          status: nextStatus,
+          ...(nextStatus !== user.status
+            ? {
+                statusChangedAt: now,
+              }
+            : {}),
+          securityVersion: {
+            increment: 1,
+          },
+        },
+        select: {
+          status: true,
+          securityVersion: true,
+          statusChangedAt: true,
+        },
+      });
+
+      await transaction.adminAuditEvent.create({
+        data: {
+          actorUserId,
+          actorType: 'SUPPORT',
+          action: 'USER_EMAIL_VERIFIED',
+          targetType: 'USER',
+          targetId: userId,
+          source: 'ADMIN_USER_ACCESS',
+          createdAt: now,
+          metadata: {
+            emailId: primaryEmail.id,
+            email: primaryEmail.email,
+            reasonCode: input.reasonCode,
+            note: input.note ?? null,
+            previousStatus: user.status,
+            nextStatus: updated.status,
+            previousSecurityVersion: user.securityVersion,
+            nextSecurityVersion: updated.securityVersion,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return {
+        changed: true,
+        email: primaryEmail.email,
+        verifiedAt: now,
+        status: updated.status,
+        securityVersion: updated.securityVersion,
       };
     });
   }

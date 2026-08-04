@@ -17,12 +17,14 @@ import {
   RequireAdminOperationsPermission,
 } from './admin-operations-permission.guard';
 import {
+  adminEmailVerificationSchema,
   adminRoleAssignmentSchema,
   adminRoleIdSchema,
   adminSessionRevocationSchema,
   adminUserIdSchema,
   adminUserListQuerySchema,
   adminUserStatusSchema,
+  type AdminEmailVerificationInput,
   type AdminRoleAssignmentInput,
   type AdminSessionRevocationInput,
   type AdminUserListQuery,
@@ -63,6 +65,18 @@ export class AdminUserAccessController {
     body: AdminUserStatusInput,
   ) {
     return this.users.changeStatus(actor.userId, userId, body);
+  }
+
+  @Post('users/:userId/email/verify')
+  @RequireAdminOperationsPermission('users.verify_email')
+  public verifyEmail(
+    @CurrentPrincipal() actor: AuthenticatedPrincipal,
+    @Param('userId', new ZodBodyPipe(adminUserIdSchema))
+    userId: string,
+    @Body(new ZodBodyPipe(adminEmailVerificationSchema))
+    body: AdminEmailVerificationInput,
+  ) {
+    return this.users.verifyEmail(actor.userId, userId, body);
   }
 
   @Post('users/:userId/sessions/revoke')

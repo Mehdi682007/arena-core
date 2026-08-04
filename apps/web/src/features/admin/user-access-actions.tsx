@@ -32,6 +32,7 @@ export function UserAccessActions({
 }) {
   const router = useRouter();
   const statusDialog = useRef<HTMLDialogElement>(null);
+  const emailDialog = useRef<HTMLDialogElement>(null);
   const sessionDialog = useRef<HTMLDialogElement>(null);
   const roleDialog = useRef<HTMLDialogElement>(null);
 
@@ -40,6 +41,8 @@ export function UserAccessActions({
   const [message, setMessage] = useState<string | null>(null);
 
   const canManageStatus = permissions.includes('users.manage_status');
+
+  const canVerifyEmail = permissions.includes('users.verify_email');
 
   const canManageSessions = permissions.includes('users.manage_sessions');
 
@@ -90,6 +93,19 @@ export function UserAccessActions({
           </button>
         ) : null}
 
+        {canVerifyEmail && user.email !== null ? (
+          <button
+            className="button secondary"
+            type="button"
+            disabled={user.emailVerifiedAt !== null || state === 'pending'}
+            onClick={() => {
+              emailDialog.current?.showModal();
+            }}
+          >
+            {user.emailVerifiedAt === null ? '????? ?????' : '????? ????? ??? ???'}
+          </button>
+        ) : null}
+
         {canManageSessions ? (
           <button
             className="button secondary"
@@ -111,9 +127,74 @@ export function UserAccessActions({
         ) : null}
       </div>
 
-      {!canManageStatus && !canManageSessions && !canAssignRoles ? (
+      {!canManageStatus && !canVerifyEmail && !canManageSessions && !canAssignRoles ? (
         <p className="muted">این حساب برای شما فقط خواندنی است.</p>
       ) : null}
+
+      <dialog ref={emailDialog} aria-labelledby="user-email-dialog-title">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+
+            const data = new FormData(event.currentTarget);
+            const reasonCode = String(data.get('reasonCode')).trim();
+            const note = String(data.get('note') ?? '').trim();
+
+            void execute(
+              () =>
+                browserApi(`/admin/users/${encodeURIComponent(user.id)}/email/verify`, {
+                  method: 'POST',
+                  body: {
+                    reasonCode,
+                    ...(note.length > 0 ? { note } : {}),
+                  },
+                }),
+              '????? ????? ?? ?????? ????? ??.',
+            );
+
+            emailDialog.current?.close();
+          }}
+        >
+          <h2 id="user-email-dialog-title">????? ???? ?????</h2>
+
+          <p>
+            ????? <strong>{user.email ?? '?'}</strong> ??????? ???? ????? ??????. ??? ?????? ??
+            ????????? ????? ??? ????? ??.
+          </p>
+
+          <label>
+            ?? ????
+            <input
+              name="reasonCode"
+              defaultValue="ADMIN_EMAIL_VERIFIED"
+              pattern="[A-Z0-9_]+"
+              required
+              maxLength={64}
+            />
+          </label>
+
+          <label>
+            ????? ????
+            <textarea name="note" maxLength={500} placeholder="???? ????? ???? ?? ??? ????." />
+          </label>
+
+          <div className="cluster">
+            <button className="button" disabled={state === 'pending'}>
+              ????? ?????
+            </button>
+
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => {
+                emailDialog.current?.close();
+              }}
+            >
+              ??????
+            </button>
+          </div>
+        </form>
+      </dialog>
 
       <dialog ref={statusDialog} aria-labelledby="user-status-dialog-title">
         <form

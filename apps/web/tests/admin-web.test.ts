@@ -182,3 +182,19 @@ describe('administrative web safety and routes', () => {
     expect(proxy).toContain("new URL('/admin'");
   });
 });
+describe('admin manual email verification', () => {
+  it('exposes the permission and only enables verification for an unverified email', () => {
+    const types = readFileSync(path.join(root, 'src/features/admin/types.ts'), 'utf8');
+
+    const actions = readFileSync(
+      path.join(root, 'src/features/admin/user-access-actions.tsx'),
+      'utf8',
+    );
+
+    expect(types).toContain("'users.verify_email'");
+    expect(actions).toContain("permissions.includes('users.verify_email')");
+    expect(actions).toContain('user.emailVerifiedAt !== null');
+    expect(actions).toContain('/email/verify');
+    expect(actions).toContain('ADMIN_EMAIL_VERIFIED');
+  });
+});

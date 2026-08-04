@@ -56,6 +56,19 @@ export const adminUserStatusSchema = z
     }
   });
 
+export const adminEmailVerificationSchema = z
+  .object({
+    reasonCode: z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .regex(/^[A-Z0-9_]+$/)
+      .default('ADMIN_EMAIL_VERIFIED'),
+    note: z.string().trim().min(2).max(500).optional(),
+  })
+  .strict();
+
 export const adminSessionRevocationSchema = z
   .object({
     reasonCode: z
@@ -79,6 +92,8 @@ export const adminRoleAssignmentSchema = z
 export type AdminUserListQuery = z.infer<typeof adminUserListQuerySchema>;
 
 export type AdminUserStatusInput = z.infer<typeof adminUserStatusSchema>;
+
+export type AdminEmailVerificationInput = z.infer<typeof adminEmailVerificationSchema>;
 
 export type AdminSessionRevocationInput = z.infer<typeof adminSessionRevocationSchema>;
 

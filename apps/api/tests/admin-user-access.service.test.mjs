@@ -16,6 +16,12 @@ const createService = (transactionOverrides = {}) => {
     userSession: {
       updateMany: vi.fn(),
     },
+    userEmail: {
+      update: vi.fn(),
+    },
+    emailVerificationToken: {
+      deleteMany: vi.fn(),
+    },
     userRole: {
       findUnique: vi.fn(),
       upsert: vi.fn(),
@@ -240,6 +246,122 @@ describe('AdminUserAccessService', () => {
         }),
       }),
     );
+  });
+
+  it('verifies the primary email, activates a pending user and records audit evidence', async () => {
+    const { service, transaction } = createService();
+
+    transaction.user.findUnique.mockResolvedValue({
+      id: targetUserId,
+      status: 'PENDING_VERIFICATION',
+      securityVersion: 2,
+      emails: [
+        {
+          id: '00000000-0000-4000-8000-000000000904',
+          email: 'player@example.com',
+          verifiedAt: null,
+        },
+      ],
+    });
+
+    transaction.userEmail.update.mockResolvedValue({
+      id: '00000000-0000-4000-8000-000000000904',
+    });
+
+    transaction.emailVerificationToken.deleteMany.mockResolvedValue({
+      count: 1,
+    });
+
+    transaction.user.update.mockResolvedValue({
+      status: 'ACTIVE',
+      securityVersion: 3,
+      statusChangedAt: new Date(),
+    });
+
+    transaction.adminAuditEvent.create.mockResolvedValue({
+      id: 'audit-email-1',
+    });
+
+    const result = await service.verifyEmail(actorUserId, targetUserId, {
+      reasonCode: 'ADMIN_EMAIL_VERIFIED',
+      note: 'Support confirmed mailbox ownership',
+    });
+
+    expect(result.changed).toBe(true);
+    expect(result.status).toBe('ACTIVE');
+
+    expect(transaction.userEmail.update).toHaveBeenCalledWith({
+      where: {
+        id: '00000000-0000-4000-8000-000000000904',
+      },
+      data: {
+        verifiedAt: expect.any(Date),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    expect(transaction.emailVerificationToken.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userEmailId: '00000000-0000-4000-8000-000000000904',
+      },
+    });
+
+    expect(transaction.adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorUserId,
+        action: 'USER_EMAIL_VERIFIED',
+        targetType: 'USER',
+        targetId: targetUserId,
+        source: 'ADMIN_USER_ACCESS',
+        metadata: expect.objectContaining({
+          reasonCode: 'ADMIN_EMAIL_VERIFIED',
+          previousStatus: 'PENDING_VERIFICATION',
+          nextStatus: 'ACTIVE',
+          previousSecurityVersion: 2,
+          nextSecurityVersion: 3,
+        }),
+      }),
+      select: {
+        id: true,
+      },
+    });
+  });
+
+  it('returns an idempotent result when the primary email is already verified', async () => {
+    const { service, transaction } = createService();
+
+    const verifiedAt = new Date('2026-08-04T10:00:00.000Z');
+
+    transaction.user.findUnique.mockResolvedValue({
+      id: targetUserId,
+      status: 'ACTIVE',
+      securityVersion: 7,
+      emails: [
+        {
+          id: '00000000-0000-4000-8000-000000000904',
+          email: 'player@example.com',
+          verifiedAt,
+        },
+      ],
+    });
+
+    const result = await service.verifyEmail(actorUserId, targetUserId, {
+      reasonCode: 'ADMIN_EMAIL_VERIFIED',
+    });
+
+    expect(result).toEqual({
+      changed: false,
+      email: 'player@example.com',
+      verifiedAt,
+      status: 'ACTIVE',
+      securityVersion: 7,
+    });
+
+    expect(transaction.userEmail.update).not.toHaveBeenCalled();
+    expect(transaction.user.update).not.toHaveBeenCalled();
+    expect(transaction.adminAuditEvent.create).not.toHaveBeenCalled();
   });
 
   it('revokes all active sessions and increments the security version', async () => {

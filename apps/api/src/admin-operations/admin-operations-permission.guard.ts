@@ -11,6 +11,7 @@ export type AdminOperationsPermission =
   | 'users.read'
   | 'users.manage_status'
   | 'users.manage_sessions'
+  | 'users.verify_email'
   | 'roles.read'
   | 'roles.assign'
   | 'roles.manage'
