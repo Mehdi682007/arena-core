@@ -13,6 +13,7 @@ const now = new Date();
 const previewPrimaryUser: AdminUserSummary = {
   id: ADMIN_PREVIEW_USER_ID,
   status: 'ACTIVE',
+  deletedAt: null,
   displayName: 'کاربر نمونه Arena',
   email: 'player@example.com',
   emailVerifiedAt: new Date(now.getTime() - 30 * 86_400_000).toISOString(),
@@ -31,6 +32,7 @@ const previewPrimaryUser: AdminUserSummary = {
 const previewSuspendedUser: AdminUserSummary = {
   id: '00000000-0000-4000-8000-000000000903',
   status: 'SUSPENDED',
+  deletedAt: null,
   displayName: 'بازیکن تحت بررسی',
   email: 'review@example.com',
   emailVerifiedAt: new Date(now.getTime() - 60 * 86_400_000).toISOString(),

@@ -8,8 +8,10 @@ import {
 import { type ArenaPrismaClient, Prisma } from '@arena-core/database';
 import { DatabaseService } from '../database/database.service';
 import type {
+  AdminEmailVerificationInput,
   AdminRoleAssignmentInput,
   AdminSessionRevocationInput,
+  AdminUserDeletionInput,
   AdminUserListQuery,
   AdminUserStatusInput,
 } from './admin-user-access.dto';
@@ -19,6 +21,7 @@ const userSummarySelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
+  deletedAt: true,
   lastAuthenticatedAt: true,
   statusChangedAt: true,
   suspendedUntil: true,
@@ -358,6 +361,415 @@ export class AdminUserAccessService {
       return {
         user: updated,
         revokedSessions,
+      };
+    });
+  }
+
+  public async verifyEmail(
+    actorUserId: string,
+    userId: string,
+    input: AdminEmailVerificationInput,
+  ) {
+    const client = this.client();
+    const now = new Date();
+
+    return client.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          status: true,
+          securityVersion: true,
+          emails: {
+            where: {
+              isPrimary: true,
+            },
+            select: {
+              id: true,
+              email: true,
+              verifiedAt: true,
+            },
+            take: 1,
+          },
+        },
+      });
+
+      if (user === null) {
+        throw new NotFoundException({
+          code: 'ADMIN_USER_NOT_FOUND',
+          message: 'User was not found.',
+        });
+      }
+
+      const primaryEmail = user.emails[0];
+
+      if (primaryEmail === undefined) {
+        throw new ConflictException({
+          code: 'ADMIN_PRIMARY_EMAIL_NOT_FOUND',
+          message: 'The user does not have a primary email address.',
+        });
+      }
+
+      if (primaryEmail.verifiedAt !== null) {
+        return {
+          changed: false,
+          email: primaryEmail.email,
+          verifiedAt: primaryEmail.verifiedAt,
+          status: user.status,
+          securityVersion: user.securityVersion,
+        };
+      }
+
+      const nextStatus = user.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : user.status;
+
+      await transaction.userEmail.update({
+        where: {
+          id: primaryEmail.id,
+        },
+        data: {
+          verifiedAt: now,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await transaction.emailVerificationToken.deleteMany({
+        where: {
+          userEmailId: primaryEmail.id,
+        },
+      });
+
+      const updated = await transaction.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          status: nextStatus,
+          ...(nextStatus !== user.status
+            ? {
+                statusChangedAt: now,
+              }
+            : {}),
+          securityVersion: {
+            increment: 1,
+          },
+        },
+        select: {
+          status: true,
+          securityVersion: true,
+          statusChangedAt: true,
+        },
+      });
+
+      await transaction.adminAuditEvent.create({
+        data: {
+          actorUserId,
+          actorType: 'SUPPORT',
+          action: 'USER_EMAIL_VERIFIED',
+          targetType: 'USER',
+          targetId: userId,
+          source: 'ADMIN_USER_ACCESS',
+          createdAt: now,
+          metadata: {
+            emailId: primaryEmail.id,
+            email: primaryEmail.email,
+            reasonCode: input.reasonCode,
+            note: input.note ?? null,
+            previousStatus: user.status,
+            nextStatus: updated.status,
+            previousSecurityVersion: user.securityVersion,
+            nextSecurityVersion: updated.securityVersion,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return {
+        changed: true,
+        email: primaryEmail.email,
+        verifiedAt: now,
+        status: updated.status,
+        securityVersion: updated.securityVersion,
+      };
+    });
+  }
+
+  public async deleteUser(actorUserId: string, userId: string, input: AdminUserDeletionInput) {
+    if (actorUserId === userId) {
+      throw new ForbiddenException({
+        code: 'ADMIN_SELF_DELETION_FORBIDDEN',
+        message: 'Administrators cannot delete their own account.',
+      });
+    }
+
+    const client = this.client();
+    const now = new Date();
+
+    return client.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          status: true,
+          deletedAt: true,
+          securityVersion: true,
+          roleAssignments: {
+            where: {
+              role: {
+                isSystem: true,
+              },
+              OR: [
+                {
+                  expiresAt: null,
+                },
+                {
+                  expiresAt: {
+                    gt: now,
+                  },
+                },
+              ],
+            },
+            select: {
+              roleId: true,
+              role: {
+                select: {
+                  key: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (user === null) {
+        throw new NotFoundException({
+          code: 'ADMIN_USER_NOT_FOUND',
+          message: 'User was not found.',
+        });
+      }
+
+      if (user.deletedAt !== null || user.status === 'DELETED') {
+        return {
+          changed: false,
+          deletedAt: user.deletedAt,
+          status: user.status,
+          securityVersion: user.securityVersion,
+          revokedSessions: 0,
+        };
+      }
+
+      for (const assignment of user.roleAssignments) {
+        const activeHolders = await transaction.userRole.count({
+          where: {
+            roleId: assignment.roleId,
+            OR: [
+              {
+                expiresAt: null,
+              },
+              {
+                expiresAt: {
+                  gt: now,
+                },
+              },
+            ],
+            user: {
+              deletedAt: null,
+              status: {
+                not: 'DELETED',
+              },
+            },
+          },
+        });
+
+        if (activeHolders <= 1) {
+          throw new ConflictException({
+            code: 'ADMIN_LAST_SYSTEM_ROLE_HOLDER',
+            message: `The final active holder of system role ${assignment.role.key} cannot be deleted.`,
+          });
+        }
+      }
+
+      const revoked = await transaction.userSession.updateMany({
+        where: {
+          userId,
+          status: 'ACTIVE',
+        },
+        data: {
+          status: 'REVOKED',
+          revokedAt: now,
+          revocationReason: 'ADMIN_USER_DELETED',
+        },
+      });
+
+      const updated = await transaction.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          status: 'DELETED',
+          deletedAt: now,
+          statusChangedAt: now,
+          suspendedUntil: null,
+          restrictionReasonCode: input.reasonCode,
+          restrictionNote: input.note ?? null,
+          securityVersion: {
+            increment: 1,
+          },
+        },
+        select: {
+          status: true,
+          deletedAt: true,
+          securityVersion: true,
+          statusChangedAt: true,
+          restrictionReasonCode: true,
+          restrictionNote: true,
+        },
+      });
+
+      await transaction.adminAuditEvent.create({
+        data: {
+          actorUserId,
+          actorType: 'SUPPORT',
+          action: 'USER_SOFT_DELETED',
+          targetType: 'USER',
+          targetId: userId,
+          source: 'ADMIN_USER_ACCESS',
+          createdAt: now,
+          metadata: {
+            previousStatus: user.status,
+            nextStatus: updated.status,
+            previousDeletedAt: user.deletedAt,
+            nextDeletedAt: updated.deletedAt?.toISOString() ?? null,
+            reasonCode: input.reasonCode,
+            note: input.note ?? null,
+            revokedSessions: revoked.count,
+            previousSecurityVersion: user.securityVersion,
+            nextSecurityVersion: updated.securityVersion,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return {
+        changed: true,
+        deletedAt: updated.deletedAt,
+        status: updated.status,
+        securityVersion: updated.securityVersion,
+        revokedSessions: revoked.count,
+      };
+    });
+  }
+
+  public async restoreUser(actorUserId: string, userId: string, input: AdminUserDeletionInput) {
+    const client = this.client();
+    const now = new Date();
+
+    return client.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          status: true,
+          deletedAt: true,
+          securityVersion: true,
+          emails: {
+            where: {
+              isPrimary: true,
+            },
+            select: {
+              verifiedAt: true,
+            },
+            take: 1,
+          },
+        },
+      });
+
+      if (user === null) {
+        throw new NotFoundException({
+          code: 'ADMIN_USER_NOT_FOUND',
+          message: 'User was not found.',
+        });
+      }
+
+      if (user.deletedAt === null && user.status !== 'DELETED') {
+        return {
+          changed: false,
+          deletedAt: null,
+          status: user.status,
+          securityVersion: user.securityVersion,
+        };
+      }
+
+      const nextStatus =
+        user.emails[0]?.verifiedAt === null || user.emails[0] === undefined
+          ? 'PENDING_VERIFICATION'
+          : 'ACTIVE';
+
+      const updated = await transaction.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          status: nextStatus,
+          deletedAt: null,
+          statusChangedAt: now,
+          suspendedUntil: null,
+          restrictionReasonCode: null,
+          restrictionNote: null,
+          securityVersion: {
+            increment: 1,
+          },
+        },
+        select: {
+          status: true,
+          deletedAt: true,
+          securityVersion: true,
+          statusChangedAt: true,
+        },
+      });
+
+      await transaction.adminAuditEvent.create({
+        data: {
+          actorUserId,
+          actorType: 'SUPPORT',
+          action: 'USER_RESTORED',
+          targetType: 'USER',
+          targetId: userId,
+          source: 'ADMIN_USER_ACCESS',
+          createdAt: now,
+          metadata: {
+            previousStatus: user.status,
+            nextStatus: updated.status,
+            previousDeletedAt: user.deletedAt?.toISOString() ?? null,
+            nextDeletedAt: null,
+            reasonCode: input.reasonCode,
+            note: input.note ?? null,
+            previousSecurityVersion: user.securityVersion,
+            nextSecurityVersion: updated.securityVersion,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return {
+        changed: true,
+        deletedAt: updated.deletedAt,
+        status: updated.status,
+        securityVersion: updated.securityVersion,
       };
     });
   }
@@ -744,6 +1156,7 @@ export class AdminUserAccessService {
       emailVerifiedAt: primaryEmail?.verifiedAt ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      deletedAt: user.deletedAt,
       lastAuthenticatedAt: user.lastAuthenticatedAt,
       statusChangedAt: user.statusChangedAt,
       suspendedUntil: user.suspendedUntil,

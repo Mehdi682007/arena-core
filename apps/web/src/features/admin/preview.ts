@@ -4,6 +4,8 @@ export const ADMIN_PREVIEW_PERMISSIONS: readonly AdminPermission[] = [
   'users.read',
   'users.manage_status',
   'users.manage_sessions',
+  'users.verify_email',
+  'users.manage_deletion',
   'roles.read',
   'roles.assign',
   'roles.manage',

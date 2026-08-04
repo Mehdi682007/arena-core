@@ -1,7 +1,8 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import type { ReactNode } from 'react';
-import type { SessionUser } from '@/features/session/session';
+import { LanguageToggle } from '@/components/language-toggle';
 import { Avatar, Badge } from '@/components/ui';
+import type { SessionUser } from '@/features/session/session';
 
 const navigation = [
   ['/dashboard', 'داشبورد'],
@@ -21,7 +22,9 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <Link className="brand" href="/">
             Arena Core
           </Link>
+
           <nav aria-label="حساب کاربری" className="cluster">
+            <LanguageToggle compact />
             <Link href="/login">ورود</Link>
             <Link className="button" href="/register">
               ثبت‌نام
@@ -29,13 +32,16 @@ export function PublicShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
+
       {children}
+
       <footer className="public-footer">
         <div className="container">بستر رقابت شفاف و غیرمالی — نسخه پایه</div>
       </footer>
     </>
   );
 }
+
 function Navigation() {
   return (
     <>
@@ -47,6 +53,7 @@ function Navigation() {
     </>
   );
 }
+
 export function AppShell({
   user,
   unreadCount,
@@ -62,27 +69,36 @@ export function AppShell({
         <Link className="brand" href="/dashboard">
           Arena Core
         </Link>
+
         <nav aria-label="ناوبری اصلی" className="stack">
           <Navigation />
         </nav>
       </aside>
+
       <div className="app-main">
         <header className="app-topbar">
           <div className="cluster">
             <Avatar name={user.displayName} />
             <span>{user.displayName}</span>
           </div>
-          <Link href="/notifications" aria-label={`${String(unreadCount)} اعلان خوانده‌نشده`}>
-            اعلان‌ها{' '}
-            {unreadCount > 0 ? (
-              <Badge>{new Intl.NumberFormat('fa').format(unreadCount)}</Badge>
-            ) : null}
-          </Link>
+
+          <div className="cluster">
+            <LanguageToggle compact />
+
+            <Link href="/notifications" aria-label={`${String(unreadCount)} اعلان خوانده‌نشده`}>
+              اعلان‌ها{' '}
+              {unreadCount > 0 ? (
+                <Badge>{new Intl.NumberFormat('fa').format(unreadCount)}</Badge>
+              ) : null}
+            </Link>
+          </div>
         </header>
+
         <main id="main-content" className="content">
           {children}
         </main>
       </div>
+
       <nav className="mobile-nav" aria-label="ناوبری موبایل">
         <Navigation />
       </nav>

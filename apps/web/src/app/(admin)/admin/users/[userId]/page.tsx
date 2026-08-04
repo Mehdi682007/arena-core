@@ -15,6 +15,8 @@ import type {
   AdminUserStatus,
 } from '@/features/admin/user-access-types';
 import { isAdminUiPreviewEnabled } from '@/features/admin/preview';
+import { cookies } from 'next/headers';
+import { localeCookieName, normalizeLocale } from '@/i18n/config';
 
 const statusLabels: Record<AdminUserStatus, string> = {
   PENDING_VERIFICATION: 'در انتظار تأیید',
@@ -39,6 +41,9 @@ export default async function AdminUserDetailPage({
   params: Promise<{ userId: string }>;
 }) {
   await requireAdminPermission('users.read');
+
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(localeCookieName)?.value);
 
   const { userId } = await params;
 
@@ -157,6 +162,7 @@ export default async function AdminUserDetailPage({
           availableRoles={roles.items}
           permissions={permissions}
           preview={preview}
+          locale={locale}
         />
       </Card>
 
