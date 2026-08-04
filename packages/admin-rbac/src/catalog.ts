@@ -1,4 +1,10 @@
 export const ADMIN_PERMISSION_CATALOG = [
+  ['users.read', 'Read user administration data.'],
+  ['users.manage_status', 'Suspend, ban, or restore user accounts.'],
+  ['users.manage_sessions', 'Revoke active user sessions.'],
+  ['roles.read', 'Read administrative roles and effective permissions.'],
+  ['roles.assign', 'Assign or remove roles from users.'],
+  ['roles.manage', 'Manage non-system administrative roles.'],
   ['audit.read', 'Read administrative audit events.'],
   ['support.read', 'Read bounded support information.'],
   ['support.manage', 'Perform audited support operations.'],

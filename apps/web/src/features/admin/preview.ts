@@ -1,6 +1,12 @@
 import type { AdminPermission } from './types';
 
 export const ADMIN_PREVIEW_PERMISSIONS: readonly AdminPermission[] = [
+  'users.read',
+  'users.manage_status',
+  'users.manage_sessions',
+  'roles.read',
+  'roles.assign',
+  'roles.manage',
   'audit.read',
   'support.read',
   'support.manage',
