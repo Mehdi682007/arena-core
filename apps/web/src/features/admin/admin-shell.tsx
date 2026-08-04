@@ -1,152 +1,120 @@
-'use client';
+﻿'use client';
 
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
-import type { AdminPermission } from './types';
-import { ThemeToggle } from './theme-toggle';
-
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { LanguageToggle } from '@/components/language-toggle';
+import { adminDictionaries } from '@/i18n/admin-dictionary';
+import type { AppLocale } from '@/i18n/config';
 import { AdminNavIcon } from './admin-nav-icon';
-type AdminNavigationItem = {
-  href: string;
-  label: string;
-  description: string;
+import { ThemeToggle } from './theme-toggle';
+import type { AdminPermission } from './types';
 
+type AdminNavigationItem = {
+  key: string;
+  href: string;
   permission?: AdminPermission;
 };
 
 type AdminNavigationGroup = {
-  label: string;
+  key: string;
   items: readonly AdminNavigationItem[];
 };
 
 const navigation: readonly AdminNavigationGroup[] = [
   {
-    label: 'مرکز عملیات',
+    key: 'operations',
     items: [
+      { key: 'overview', href: '/admin' },
       {
-        href: '/admin',
-        label: 'نمای کلی',
-        description: 'سلامت و دسترسی‌های مدیریتی',
-      },
-      {
+        key: 'search',
         href: '/admin/search',
-        label: 'جستجوی پشتیبانی',
-        description: 'کاربر، مسابقه و حساب بازی',
-
         permission: 'support.read',
       },
       {
+        key: 'users',
         href: '/admin/users',
-        label: 'مدیریت کاربران',
-        description: 'وضعیت، نشست‌ها و نقش‌های کاربران',
-
         permission: 'users.read',
       },
       {
+        key: 'diagnostics',
         href: '/admin/diagnostics',
-        label: 'وضعیت سرویس',
-        description: 'نسخه، وابستگی‌ها و محیط',
-
         permission: 'diagnostics.read',
       },
       {
+        key: 'audit',
         href: '/admin/audit',
-        label: 'رویدادهای ممیزی',
-        description: 'ردپای عملیات حساس',
-
         permission: 'audit.read',
       },
     ],
   },
   {
-    label: 'رقابت و بازیکنان',
+    key: 'competition',
     items: [
       {
+        key: 'gameAccounts',
         href: '/admin/game-accounts',
-        label: 'حساب‌های بازی',
-        description: 'بررسی و تأیید حساب‌ها',
-
         permission: 'game_accounts.read',
       },
       {
+        key: 'matches',
         href: '/admin/matches',
-        label: 'مسابقه‌ها',
-        description: 'وضعیت و جریان مسابقات',
-
         permission: 'matches.read',
       },
       {
+        key: 'results',
         href: '/admin/results',
-        label: 'تعارض نتیجه‌ها',
-        description: 'نتایج نیازمند تصمیم',
-
         permission: 'match_results.read',
       },
       {
+        key: 'disputes',
         href: '/admin/disputes',
-        label: 'اختلاف‌ها',
-        description: 'صف بررسی اختلافات',
-
         permission: 'match_disputes.read',
       },
       {
+        key: 'matchmaking',
         href: '/admin/matchmaking',
-        label: 'همتایابی',
-        description: 'درخواست‌ها و پیشنهادها',
-
         permission: 'matchmaking.read',
       },
       {
+        key: 'ratings',
         href: '/admin/ratings',
-        label: 'رتبه‌بندی',
-        description: 'اعمال و بازبینی امتیازها',
-
         permission: 'ratings.read',
       },
     ],
   },
   {
-    label: 'مالی',
+    key: 'finance',
     items: [
       {
+        key: 'wallets',
         href: '/admin/wallets',
-        label: 'کیف پول و دفترکل',
-        description: 'موجودی و تراکنش‌ها',
-
         permission: 'wallets.read',
       },
       {
+        key: 'finance',
         href: '/admin/finance',
-        label: 'مالی مسابقه',
-        description: 'رزرو و بازپرداخت',
-
         permission: 'match_finance.read',
       },
       {
+        key: 'settlements',
         href: '/admin/settlements',
-        label: 'تسویه‌ها',
-        description: 'تسویه و تطبیق مالی',
-
         permission: 'match_settlements.read',
       },
     ],
   },
   {
-    label: 'ارتباطات و بازیابی',
+    key: 'communications',
     items: [
       {
+        key: 'notifications',
         href: '/admin/notifications',
-        label: 'اعلان‌ها',
-        description: 'Outbox و Dead-letter',
-
         permission: 'notifications.read',
       },
       {
+        key: 'support',
         href: '/admin/support',
-        label: 'عملیات پشتیبانی',
-        description: 'بازیابی کنترل‌شده',
-
         permission: 'support.manage',
       },
     ],
@@ -157,31 +125,67 @@ const isActiveRoute = (pathname: string, href: string) =>
   href === '/admin' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
 export function AdminOperationsShell({
+  locale,
   permissions,
   children,
 }: {
+  locale: AppLocale;
   permissions: AdminPermission[];
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const allowed = new Set(permissions);
+  const dictionary = adminDictionaries[locale];
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const visibleGroups = navigation
-    .map((group) => ({
-      ...group,
-      items: group.items.filter(
-        (item) => item.permission === undefined || allowed.has(item.permission),
-      ),
-    }))
-    .filter((group) => group.items.length > 0);
+  const visibleGroups = useMemo(() => {
+    const allowed = new Set(permissions);
+
+    return navigation
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (item) => item.permission === undefined || allowed.has(item.permission),
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [permissions]);
 
   const activeItem = visibleGroups
     .flatMap((group) => group.items)
     .find((item) => isActiveRoute(pathname, item.href));
 
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
+
   return (
     <div className="admin-console">
-      <aside className="admin-console-sidebar">
+      <button
+        aria-label={dictionary.closeMenu}
+        className={`admin-console-backdrop${menuOpen ? ' is-visible' : ''}`}
+        onClick={() => setMenuOpen(false)}
+        tabIndex={menuOpen ? 0 : -1}
+        type="button"
+      />
+
+      <aside
+        aria-hidden={!menuOpen ? undefined : false}
+        className={`admin-console-sidebar${menuOpen ? ' is-open' : ''}`}
+      >
         <div className="admin-console-brand">
           <span className="admin-console-brand-mark" aria-hidden="true">
             A
@@ -189,18 +193,28 @@ export function AdminOperationsShell({
 
           <div>
             <Link href="/admin">Arena Core</Link>
-            <small>مرکز عملیات</small>
+            <small>{dictionary.operationsCenter}</small>
           </div>
+
+          <button
+            aria-label={dictionary.closeMenu}
+            className="admin-console-sidebar-close"
+            onClick={() => setMenuOpen(false)}
+            type="button"
+          >
+            <X aria-hidden="true" />
+          </button>
         </div>
 
-        <nav className="admin-console-navigation" aria-label="ناوبری مدیریت">
+        <nav className="admin-console-navigation" aria-label={dictionary.adminNavigation}>
           {visibleGroups.map((group) => (
-            <section className="admin-console-nav-group" key={group.label}>
-              <h2>{group.label}</h2>
+            <section className="admin-console-nav-group" key={group.key}>
+              <h2>{dictionary.groups[group.key]?.label ?? group.key}</h2>
 
               <div>
                 {group.items.map((item) => {
                   const active = isActiveRoute(pathname, item.href);
+                  const text = dictionary.items[item.key];
 
                   return (
                     <Link
@@ -208,14 +222,15 @@ export function AdminOperationsShell({
                       className={active ? 'is-active' : undefined}
                       href={item.href}
                       key={item.href}
+                      onClick={() => setMenuOpen(false)}
                     >
                       <span className="admin-console-nav-symbol" aria-hidden="true">
                         <AdminNavIcon href={item.href} />
                       </span>
 
                       <span>
-                        <strong>{item.label}</strong>
-                        <small>{item.description}</small>
+                        <strong>{text?.label ?? item.key}</strong>
+                        <small>{text?.description ?? ''}</small>
                       </span>
                     </Link>
                   );
@@ -227,27 +242,43 @@ export function AdminOperationsShell({
 
         <div className="admin-console-sidebar-footer">
           <span className="admin-console-security-dot" aria-hidden="true" />
-          <span>دسترسی‌ها توسط سرور کنترل می‌شوند</span>
-          <Link href="/dashboard">بازگشت به برنامه</Link>
+          <span>{dictionary.securityControlled}</span>
+          <Link href="/dashboard">{dictionary.backToApplication}</Link>
         </div>
       </aside>
 
       <div className="admin-console-main">
         <header className="admin-console-topbar">
-          <div>
-            <span className="admin-console-eyebrow">Arena Operations</span>
-            <strong>{activeItem?.label ?? 'مدیریت'}</strong>
+          <div className="admin-console-topbar-title">
+            <button
+              aria-expanded={menuOpen}
+              aria-label={dictionary.openMenu}
+              className="admin-console-menu-toggle"
+              onClick={() => setMenuOpen(true)}
+              type="button"
+            >
+              <Menu aria-hidden="true" />
+            </button>
+
+            <div>
+              <span className="admin-console-eyebrow">Arena Operations</span>
+              <strong>
+                {activeItem ? dictionary.items[activeItem.key]?.label : dictionary.administration}
+              </strong>
+            </div>
           </div>
 
           <div className="admin-console-topbar-actions">
+            <LanguageToggle compact initialLocale={locale} />
             <ThemeToggle />
+
             <span className="admin-console-environment">
               <span aria-hidden="true" />
-              Production
+              {dictionary.production}
             </span>
 
-            <Link className="button secondary" href="/admin/search">
-              جستجوی سریع
+            <Link className="button secondary admin-console-quick-search" href="/admin/search">
+              {dictionary.quickSearch}
             </Link>
           </div>
         </header>
