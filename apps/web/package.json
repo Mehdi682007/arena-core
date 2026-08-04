@@ -15,6 +15,7 @@
     "@arena-core/config": "workspace:*",
     "@arena-core/contracts": "workspace:*",
     "@fontsource-variable/vazirmatn": "5.3.0",
+    "lucide-react": "^1.28.0",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

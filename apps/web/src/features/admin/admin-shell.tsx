@@ -6,11 +6,12 @@ import type { ReactNode } from 'react';
 import type { AdminPermission } from './types';
 import { ThemeToggle } from './theme-toggle';
 
+import { AdminNavIcon } from './admin-nav-icon';
 type AdminNavigationItem = {
   href: string;
   label: string;
   description: string;
-  symbol: string;
+
   permission?: AdminPermission;
 };
 
@@ -27,27 +28,33 @@ const navigation: readonly AdminNavigationGroup[] = [
         href: '/admin',
         label: 'نمای کلی',
         description: 'سلامت و دسترسی‌های مدیریتی',
-        symbol: '⌂',
       },
       {
         href: '/admin/search',
         label: 'جستجوی پشتیبانی',
         description: 'کاربر، مسابقه و حساب بازی',
-        symbol: '⌕',
+
         permission: 'support.read',
+      },
+      {
+        href: '/admin/users',
+        label: 'مدیریت کاربران',
+        description: 'وضعیت، نشست‌ها و نقش‌های کاربران',
+
+        permission: 'users.read',
       },
       {
         href: '/admin/diagnostics',
         label: 'وضعیت سرویس',
         description: 'نسخه، وابستگی‌ها و محیط',
-        symbol: '◉',
+
         permission: 'diagnostics.read',
       },
       {
         href: '/admin/audit',
         label: 'رویدادهای ممیزی',
         description: 'ردپای عملیات حساس',
-        symbol: '≣',
+
         permission: 'audit.read',
       },
     ],
@@ -59,42 +66,42 @@ const navigation: readonly AdminNavigationGroup[] = [
         href: '/admin/game-accounts',
         label: 'حساب‌های بازی',
         description: 'بررسی و تأیید حساب‌ها',
-        symbol: '◎',
+
         permission: 'game_accounts.read',
       },
       {
         href: '/admin/matches',
         label: 'مسابقه‌ها',
         description: 'وضعیت و جریان مسابقات',
-        symbol: '⚔',
+
         permission: 'matches.read',
       },
       {
         href: '/admin/results',
         label: 'تعارض نتیجه‌ها',
         description: 'نتایج نیازمند تصمیم',
-        symbol: '≠',
+
         permission: 'match_results.read',
       },
       {
         href: '/admin/disputes',
         label: 'اختلاف‌ها',
         description: 'صف بررسی اختلافات',
-        symbol: '⚖',
+
         permission: 'match_disputes.read',
       },
       {
         href: '/admin/matchmaking',
         label: 'همتایابی',
         description: 'درخواست‌ها و پیشنهادها',
-        symbol: '⇄',
+
         permission: 'matchmaking.read',
       },
       {
         href: '/admin/ratings',
         label: 'رتبه‌بندی',
         description: 'اعمال و بازبینی امتیازها',
-        symbol: '★',
+
         permission: 'ratings.read',
       },
     ],
@@ -106,21 +113,21 @@ const navigation: readonly AdminNavigationGroup[] = [
         href: '/admin/wallets',
         label: 'کیف پول و دفترکل',
         description: 'موجودی و تراکنش‌ها',
-        symbol: '◈',
+
         permission: 'wallets.read',
       },
       {
         href: '/admin/finance',
         label: 'مالی مسابقه',
         description: 'رزرو و بازپرداخت',
-        symbol: '▣',
+
         permission: 'match_finance.read',
       },
       {
         href: '/admin/settlements',
         label: 'تسویه‌ها',
         description: 'تسویه و تطبیق مالی',
-        symbol: '✓',
+
         permission: 'match_settlements.read',
       },
     ],
@@ -132,14 +139,14 @@ const navigation: readonly AdminNavigationGroup[] = [
         href: '/admin/notifications',
         label: 'اعلان‌ها',
         description: 'Outbox و Dead-letter',
-        symbol: '✦',
+
         permission: 'notifications.read',
       },
       {
         href: '/admin/support',
         label: 'عملیات پشتیبانی',
         description: 'بازیابی کنترل‌شده',
-        symbol: '⚙',
+
         permission: 'support.manage',
       },
     ],
@@ -203,7 +210,7 @@ export function AdminOperationsShell({
                       key={item.href}
                     >
                       <span className="admin-console-nav-symbol" aria-hidden="true">
-                        {item.symbol}
+                        <AdminNavIcon href={item.href} />
                       </span>
 
                       <span>

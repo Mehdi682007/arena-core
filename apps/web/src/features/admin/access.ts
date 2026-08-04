@@ -4,6 +4,7 @@ import { ApiError } from '@/lib/api/api-error';
 import { adminApi } from './api';
 import type { AdminPermission } from './types';
 
+import { isAdminUiPreviewEnabled } from './preview';
 export type AdminAccess =
   | { status: 'allowed'; permissions: AdminPermission[] }
   | { status: 'forbidden' }
@@ -25,6 +26,9 @@ export async function getAdminAccess(): Promise<AdminAccess> {
 }
 
 export async function requireAdminPermission(permission: AdminPermission): Promise<void> {
+  if (isAdminUiPreviewEnabled()) {
+    return;
+  }
   const access = await getAdminAccess();
   if (access.status !== 'allowed' || !access.permissions.includes(permission)) {
     redirect('/admin?permission=denied');
