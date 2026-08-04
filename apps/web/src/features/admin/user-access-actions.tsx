@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert } from '@/components/ui';
 import { browserApi } from '@/lib/api/browser-api-client';
+import { adminDictionaries } from '@/i18n/admin-dictionary';
+import type { AppLocale } from '@/i18n/config';
 import type { AdminPermission } from './types';
 import type { AdminRole, AdminUserDetail } from './user-access-types';
 
@@ -24,13 +26,16 @@ export function UserAccessActions({
   availableRoles,
   permissions,
   preview,
+  locale,
 }: {
   user: AdminUserDetail;
   availableRoles: AdminRole[];
   permissions: AdminPermission[];
   preview: boolean;
+  locale: AppLocale;
 }) {
   const router = useRouter();
+  const dictionary = adminDictionaries[locale];
   const statusDialog = useRef<HTMLDialogElement>(null);
   const emailDialog = useRef<HTMLDialogElement>(null);
   const deletionDialog = useRef<HTMLDialogElement>(null);
@@ -76,11 +81,13 @@ export function UserAccessActions({
     <section className="admin-user-actions">
       <div className="admin-section-heading">
         <div>
-          <span className="admin-console-eyebrow">Manual operations</span>
-          <h2>عملیات دستی مدیر</h2>
+          <span className="admin-console-eyebrow">{dictionary.users.title}</span>
+          <h2>{dictionary.users.manualOperations}</h2>
         </div>
 
-        <span className="admin-user-security-version">نسخه امنیتی {user.securityVersion}</span>
+        <span className="admin-user-security-version">
+          {dictionary.users.securityVersion} {user.securityVersion}
+        </span>
       </div>
 
       {message !== null ? <Alert error={state === 'error'}>{message}</Alert> : null}
@@ -92,7 +99,7 @@ export function UserAccessActions({
             type="button"
             onClick={() => statusDialog.current?.showModal()}
           >
-            تغییر وضعیت حساب
+            {dictionary.users.suspend}
           </button>
         ) : null}
 
@@ -105,7 +112,9 @@ export function UserAccessActions({
               emailDialog.current?.showModal();
             }}
           >
-            {user.emailVerifiedAt === null ? '????? ?????' : '????? ????? ??? ???'}
+            {user.emailVerifiedAt === null
+              ? dictionary.users.verifyEmail
+              : dictionary.users.emailAlreadyVerified}
           </button>
         ) : null}
 
@@ -118,7 +127,7 @@ export function UserAccessActions({
               deletionDialog.current?.showModal();
             }}
           >
-            {user.deletedAt === null ? '??? ????' : '????????? ????'}
+            {user.deletedAt === null ? dictionary.users.delete : dictionary.users.restore}
           </button>
         ) : null}
 
@@ -128,7 +137,7 @@ export function UserAccessActions({
             type="button"
             onClick={() => sessionDialog.current?.showModal()}
           >
-            بستن همه نشست‌ها
+            {dictionary.users.revokeSessions}
           </button>
         ) : null}
 
@@ -138,7 +147,7 @@ export function UserAccessActions({
             type="button"
             onClick={() => roleDialog.current?.showModal()}
           >
-            افزودن نقش
+            {dictionary.users.addRole}
           </button>
         ) : null}
       </div>
@@ -169,21 +178,21 @@ export function UserAccessActions({
                     ...(note.length > 0 ? { note } : {}),
                   },
                 }),
-              '????? ????? ?? ?????? ????? ??.',
+              dictionary.users.emailVerifiedSuccessfully,
             );
 
             emailDialog.current?.close();
           }}
         >
-          <h2 id="user-email-dialog-title">????? ???? ?????</h2>
+          <h2 id="user-email-dialog-title">{dictionary.users.verifyEmailTitle}</h2>
 
           <p>
-            ????? <strong>{user.email ?? '?'}</strong> ??????? ???? ????? ??????. ??? ?????? ??
-            ????????? ????? ??? ????? ??.
+            {dictionary.users.verifyEmailDescriptionBefore} <strong>{user.email ?? '?'}</strong>{' '}
+            {dictionary.users.verifyEmailDescriptionAfter}
           </p>
 
           <label>
-            ?? ????
+            {dictionary.users.reasonCode}
             <input
               name="reasonCode"
               defaultValue="ADMIN_EMAIL_VERIFIED"
@@ -194,13 +203,17 @@ export function UserAccessActions({
           </label>
 
           <label>
-            ????? ????
-            <textarea name="note" maxLength={500} placeholder="???? ????? ???? ?? ??? ????." />
+            {dictionary.users.administratorNote}
+            <textarea
+              name="note"
+              maxLength={500}
+              placeholder={dictionary.users.verifyEmailNotePlaceholder}
+            />
           </label>
 
           <div className="cluster">
             <button className="button" disabled={state === 'pending'}>
-              ????? ?????
+              {dictionary.users.verifyEmail}
             </button>
 
             <button
@@ -210,7 +223,7 @@ export function UserAccessActions({
                 emailDialog.current?.close();
               }}
             >
-              ??????
+              {dictionary.actions.cancel}
             </button>
           </div>
         </form>
@@ -240,24 +253,26 @@ export function UserAccessActions({
                     },
                   },
                 ),
-              restoring ? '???? ????? ?? ?????? ????????? ??.' : '???? ????? ??????? ??? ??? ??.',
+              restoring
+                ? dictionary.users.restoreSuccessfully
+                : dictionary.users.deleteSuccessfully,
             );
 
             deletionDialog.current?.close();
           }}
         >
           <h2 id="user-deletion-dialog-title">
-            {user.deletedAt === null ? '??? ???? ?????' : '????????? ???? ?????'}
+            {user.deletedAt === null ? dictionary.users.delete : dictionary.users.restore}
           </h2>
 
           <p>
             {user.deletedAt === null
-              ? '???? ??? ?????? ???????? ??? ???? ????? ????? ? ??? ???????? ???? ???? ?????? ??.'
-              : '???? ?? ???? ?? ????? ????? ????? ?? ???? ???? ?? ?? ?????? ????? ?????????? ??????.'}
+              ? dictionary.users.deleteDescription
+              : dictionary.users.restoreDescription}
           </p>
 
           <label>
-            ?? ????
+            {dictionary.users.reasonCode}
             <input
               name="reasonCode"
               defaultValue={user.deletedAt === null ? 'ADMIN_USER_DELETED' : 'ADMIN_USER_RESTORED'}
@@ -268,8 +283,12 @@ export function UserAccessActions({
           </label>
 
           <label>
-            ????? ????
-            <textarea name="note" maxLength={500} placeholder="???? ? ????? ?????? ?? ??? ????." />
+            {dictionary.users.administratorNote}
+            <textarea
+              name="note"
+              maxLength={500}
+              placeholder={dictionary.users.deletionNotePlaceholder}
+            />
           </label>
 
           <div className="cluster">
@@ -277,7 +296,7 @@ export function UserAccessActions({
               className={user.deletedAt === null ? 'button danger' : 'button'}
               disabled={state === 'pending'}
             >
-              {user.deletedAt === null ? '??? ??? ????' : '????????? ????'}
+              {user.deletedAt === null ? dictionary.users.delete : dictionary.users.restore}
             </button>
 
             <button
@@ -287,7 +306,7 @@ export function UserAccessActions({
                 deletionDialog.current?.close();
               }}
             >
-              ??????
+              {dictionary.actions.cancel}
             </button>
           </div>
         </form>

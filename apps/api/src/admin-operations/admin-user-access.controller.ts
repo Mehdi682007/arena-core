@@ -22,6 +22,7 @@ import {
   adminRoleIdSchema,
   adminSessionRevocationSchema,
   adminUserDeletionSchema,
+  adminUserRestoreSchema,
   adminUserIdSchema,
   adminUserListQuerySchema,
   adminUserStatusSchema,
@@ -29,6 +30,7 @@ import {
   type AdminRoleAssignmentInput,
   type AdminSessionRevocationInput,
   type AdminUserDeletionInput,
+  type AdminUserRestoreInput,
   type AdminUserListQuery,
   type AdminUserStatusInput,
 } from './admin-user-access.dto';
@@ -99,8 +101,8 @@ export class AdminUserAccessController {
     @CurrentPrincipal() actor: AuthenticatedPrincipal,
     @Param('userId', new ZodBodyPipe(adminUserIdSchema))
     userId: string,
-    @Body(new ZodBodyPipe(adminUserDeletionSchema))
-    body: AdminUserDeletionInput,
+    @Body(new ZodBodyPipe(adminUserRestoreSchema))
+    body: AdminUserRestoreInput,
   ) {
     return this.users.restoreUser(actor.userId, userId, body);
   }
