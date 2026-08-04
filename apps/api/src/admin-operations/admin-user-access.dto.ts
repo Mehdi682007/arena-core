@@ -69,6 +69,18 @@ export const adminEmailVerificationSchema = z
   })
   .strict();
 
+export const adminUserDeletionSchema = z
+  .object({
+    reasonCode: z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .regex(/^[A-Z0-9_]+$/),
+    note: z.string().trim().min(2).max(500).optional(),
+  })
+  .strict();
+
 export const adminSessionRevocationSchema = z
   .object({
     reasonCode: z
@@ -94,6 +106,8 @@ export type AdminUserListQuery = z.infer<typeof adminUserListQuerySchema>;
 export type AdminUserStatusInput = z.infer<typeof adminUserStatusSchema>;
 
 export type AdminEmailVerificationInput = z.infer<typeof adminEmailVerificationSchema>;
+
+export type AdminUserDeletionInput = z.infer<typeof adminUserDeletionSchema>;
 
 export type AdminSessionRevocationInput = z.infer<typeof adminSessionRevocationSchema>;
 

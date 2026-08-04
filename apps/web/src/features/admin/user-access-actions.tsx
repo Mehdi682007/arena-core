@@ -33,6 +33,7 @@ export function UserAccessActions({
   const router = useRouter();
   const statusDialog = useRef<HTMLDialogElement>(null);
   const emailDialog = useRef<HTMLDialogElement>(null);
+  const deletionDialog = useRef<HTMLDialogElement>(null);
   const sessionDialog = useRef<HTMLDialogElement>(null);
   const roleDialog = useRef<HTMLDialogElement>(null);
 
@@ -43,6 +44,8 @@ export function UserAccessActions({
   const canManageStatus = permissions.includes('users.manage_status');
 
   const canVerifyEmail = permissions.includes('users.verify_email');
+
+  const canManageDeletion = permissions.includes('users.manage_deletion');
 
   const canManageSessions = permissions.includes('users.manage_sessions');
 
@@ -106,6 +109,19 @@ export function UserAccessActions({
           </button>
         ) : null}
 
+        {canManageDeletion ? (
+          <button
+            className={user.deletedAt === null ? 'button danger' : 'button secondary'}
+            type="button"
+            disabled={state === 'pending'}
+            onClick={() => {
+              deletionDialog.current?.showModal();
+            }}
+          >
+            {user.deletedAt === null ? '??? ????' : '????????? ????'}
+          </button>
+        ) : null}
+
         {canManageSessions ? (
           <button
             className="button secondary"
@@ -127,7 +143,11 @@ export function UserAccessActions({
         ) : null}
       </div>
 
-      {!canManageStatus && !canVerifyEmail && !canManageSessions && !canAssignRoles ? (
+      {!canManageStatus &&
+      !canVerifyEmail &&
+      !canManageDeletion &&
+      !canManageSessions &&
+      !canAssignRoles ? (
         <p className="muted">این حساب برای شما فقط خواندنی است.</p>
       ) : null}
 
@@ -188,6 +208,83 @@ export function UserAccessActions({
               type="button"
               onClick={() => {
                 emailDialog.current?.close();
+              }}
+            >
+              ??????
+            </button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog ref={deletionDialog} aria-labelledby="user-deletion-dialog-title">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+
+            const data = new FormData(event.currentTarget);
+            const reasonCode = String(data.get('reasonCode')).trim();
+            const note = String(data.get('note') ?? '').trim();
+            const restoring = user.deletedAt !== null;
+
+            void execute(
+              () =>
+                browserApi(
+                  restoring
+                    ? `/admin/users/${encodeURIComponent(user.id)}/restore`
+                    : `/admin/users/${encodeURIComponent(user.id)}`,
+                  {
+                    method: restoring ? 'POST' : 'DELETE',
+                    body: {
+                      reasonCode,
+                      ...(note.length > 0 ? { note } : {}),
+                    },
+                  },
+                ),
+              restoring ? '???? ????? ?? ?????? ????????? ??.' : '???? ????? ??????? ??? ??? ??.',
+            );
+
+            deletionDialog.current?.close();
+          }}
+        >
+          <h2 id="user-deletion-dialog-title">
+            {user.deletedAt === null ? '??? ???? ?????' : '????????? ???? ?????'}
+          </h2>
+
+          <p>
+            {user.deletedAt === null
+              ? '???? ??? ?????? ???????? ??? ???? ????? ????? ? ??? ???????? ???? ???? ?????? ??.'
+              : '???? ?? ???? ?? ????? ????? ????? ?? ???? ???? ?? ?? ?????? ????? ?????????? ??????.'}
+          </p>
+
+          <label>
+            ?? ????
+            <input
+              name="reasonCode"
+              defaultValue={user.deletedAt === null ? 'ADMIN_USER_DELETED' : 'ADMIN_USER_RESTORED'}
+              pattern="[A-Z0-9_]+"
+              required
+              maxLength={64}
+            />
+          </label>
+
+          <label>
+            ????? ????
+            <textarea name="note" maxLength={500} placeholder="???? ? ????? ?????? ?? ??? ????." />
+          </label>
+
+          <div className="cluster">
+            <button
+              className={user.deletedAt === null ? 'button danger' : 'button'}
+              disabled={state === 'pending'}
+            >
+              {user.deletedAt === null ? '??? ??? ????' : '????????? ????'}
+            </button>
+
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => {
+                deletionDialog.current?.close();
               }}
             >
               ??????

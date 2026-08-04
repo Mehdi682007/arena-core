@@ -21,12 +21,14 @@ import {
   adminRoleAssignmentSchema,
   adminRoleIdSchema,
   adminSessionRevocationSchema,
+  adminUserDeletionSchema,
   adminUserIdSchema,
   adminUserListQuerySchema,
   adminUserStatusSchema,
   type AdminEmailVerificationInput,
   type AdminRoleAssignmentInput,
   type AdminSessionRevocationInput,
+  type AdminUserDeletionInput,
   type AdminUserListQuery,
   type AdminUserStatusInput,
 } from './admin-user-access.dto';
@@ -77,6 +79,30 @@ export class AdminUserAccessController {
     body: AdminEmailVerificationInput,
   ) {
     return this.users.verifyEmail(actor.userId, userId, body);
+  }
+
+  @Delete('users/:userId')
+  @RequireAdminOperationsPermission('users.manage_deletion')
+  public deleteUser(
+    @CurrentPrincipal() actor: AuthenticatedPrincipal,
+    @Param('userId', new ZodBodyPipe(adminUserIdSchema))
+    userId: string,
+    @Body(new ZodBodyPipe(adminUserDeletionSchema))
+    body: AdminUserDeletionInput,
+  ) {
+    return this.users.deleteUser(actor.userId, userId, body);
+  }
+
+  @Post('users/:userId/restore')
+  @RequireAdminOperationsPermission('users.manage_deletion')
+  public restoreUser(
+    @CurrentPrincipal() actor: AuthenticatedPrincipal,
+    @Param('userId', new ZodBodyPipe(adminUserIdSchema))
+    userId: string,
+    @Body(new ZodBodyPipe(adminUserDeletionSchema))
+    body: AdminUserDeletionInput,
+  ) {
+    return this.users.restoreUser(actor.userId, userId, body);
   }
 
   @Post('users/:userId/sessions/revoke')

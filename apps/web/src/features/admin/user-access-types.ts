@@ -12,6 +12,7 @@ export type AdminUserSummary = {
   countryCode: string | null;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
   lastAuthenticatedAt: string | null;
   statusChangedAt: string | null;
   suspendedUntil: string | null;
