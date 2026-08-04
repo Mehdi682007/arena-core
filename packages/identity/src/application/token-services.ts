@@ -100,11 +100,7 @@ export class PasswordResetService {
     const identity = await this.dependencies.transactions.transaction((repository) =>
       repository.findResetIdentity(email.normalizedEmail),
     );
-    if (
-      identity === null ||
-      identity.verifiedAt === null ||
-      !['ACTIVE', 'SUSPENDED'].includes(identity.status)
-    ) {
+    if (identity === null || identity.verifiedAt === null || identity.status !== 'ACTIVE') {
       return Object.freeze({ accepted: true });
     }
     const token = this.dependencies.tokenService.generateToken(
