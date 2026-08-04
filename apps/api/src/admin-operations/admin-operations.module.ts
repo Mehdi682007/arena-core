@@ -7,6 +7,8 @@ import type {
   SupportOperationService,
 } from '@arena-core/admin-operations';
 import { AdminOperationsController } from './admin-operations.controller';
+import { AdminUserAccessController } from './admin-user-access.controller';
+import { AdminUserAccessService } from './admin-user-access.service';
 import { AdminOperationsHttpFilter } from './admin-operations-http.filter';
 import { AdminOperationsPermissionGuard } from './admin-operations-permission.guard';
 import {
@@ -45,9 +47,10 @@ export class AdminOperationsModule {
     for (const [provide, useValue] of values) if (useValue) providers.push({ provide, useValue });
     return {
       module: AdminOperationsModule,
-      controllers: [AdminOperationsController],
+      controllers: [AdminOperationsController, AdminUserAccessController],
       providers: [
         ...providers,
+        AdminUserAccessService,
         AdminOperationsPermissionGuard,
         { provide: APP_FILTER, useClass: AdminOperationsHttpFilter },
       ],
