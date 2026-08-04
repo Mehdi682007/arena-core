@@ -117,13 +117,72 @@ describe('AdminUserAccessService', () => {
     expect(database.getClient).not.toHaveBeenCalled();
   });
 
+  it('rejects an unchanged user status before mutation', async () => {
+    const { service, transaction } = createService();
+
+    transaction.user.findUnique.mockResolvedValue({
+      id: targetUserId,
+      status: 'ACTIVE',
+      deletedAt: null,
+      suspendedUntil: null,
+      securityVersion: 4,
+      roleAssignments: [],
+    });
+
+    let thrown;
+
+    try {
+      await service.changeStatus(actorUserId, targetUserId, {
+        status: 'ACTIVE',
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(exceptionCode(thrown)).toBe('ADMIN_USER_STATUS_UNCHANGED');
+
+    expect(transaction.user.update).not.toHaveBeenCalled();
+
+    expect(transaction.adminAuditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('requires deleted users to use the dedicated restore operation', async () => {
+    const { service, transaction } = createService();
+
+    transaction.user.findUnique.mockResolvedValue({
+      id: targetUserId,
+      status: 'DELETED',
+      deletedAt: new Date(),
+      suspendedUntil: null,
+      securityVersion: 4,
+      roleAssignments: [],
+    });
+
+    let thrown;
+
+    try {
+      await service.changeStatus(actorUserId, targetUserId, {
+        status: 'ACTIVE',
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(exceptionCode(thrown)).toBe('ADMIN_DELETED_USER_STATUS_CHANGE_FORBIDDEN');
+
+    expect(transaction.user.update).not.toHaveBeenCalled();
+  });
+
   it('bans a user, revokes active sessions and records audit evidence', async () => {
     const { service, transaction } = createService();
 
     transaction.user.findUnique.mockResolvedValue({
       id: targetUserId,
       status: 'ACTIVE',
+      deletedAt: null,
+      suspendedUntil: null,
       securityVersion: 4,
+      roleAssignments: [],
     });
 
     transaction.user.update.mockResolvedValue({
@@ -208,7 +267,10 @@ describe('AdminUserAccessService', () => {
     transaction.user.findUnique.mockResolvedValue({
       id: targetUserId,
       status: 'SUSPENDED',
+      deletedAt: null,
+      suspendedUntil: new Date(Date.now() + 60_000),
       securityVersion: 8,
+      roleAssignments: [],
     });
 
     transaction.user.update.mockResolvedValue({

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { type ArenaPrismaClient, Prisma } from '@arena-core/database';
 import { DatabaseService } from '../database/database.service';
+import { assertAdminUserStatusTransition } from './admin-user-status-policy';
 import type {
   AdminEmailVerificationInput,
   AdminRoleAssignmentInput,
@@ -278,6 +279,8 @@ export class AdminUserAccessService {
         select: {
           id: true,
           status: true,
+          deletedAt: true,
+          suspendedUntil: true,
           securityVersion: true,
           roleAssignments: {
             where: {
@@ -315,6 +318,8 @@ export class AdminUserAccessService {
           message: 'User was not found.',
         });
       }
+
+      assertAdminUserStatusTransition(existing.status, input.status, existing.deletedAt);
 
       if (restricted && existing.status === 'ACTIVE') {
         for (const assignment of existing.roleAssignments) {
