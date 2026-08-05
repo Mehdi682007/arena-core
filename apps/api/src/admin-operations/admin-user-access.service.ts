@@ -194,6 +194,8 @@ export class AdminUserAccessService {
 
     const now = new Date();
 
+    const lifecycle = this.resolveLifecycleState(user, now);
+
     const effectivePermissions = [
       ...new Set(
         user.roleAssignments
@@ -206,6 +208,7 @@ export class AdminUserAccessService {
 
     return {
       ...this.mapUserSummary(user),
+      lifecycle,
       securityVersion: user.securityVersion,
       sessions: user.sessions,
       roles: user.roleAssignments.map((assignment) => ({
@@ -1185,6 +1188,34 @@ export class AdminUserAccessService {
         roleId,
       };
     });
+  }
+
+  private resolveLifecycleState(
+    user: {
+      status: string;
+      deletedAt: Date | null;
+      suspendedUntil: Date | null;
+    },
+    now: Date,
+  ) {
+    const suspensionExpired =
+      user.status === 'SUSPENDED' && user.suspendedUntil !== null && user.suspendedUntil <= now;
+
+    const deleted = user.deletedAt !== null || user.status === 'DELETED';
+
+    return {
+      canLogin: user.status === 'ACTIVE' || suspensionExpired,
+
+      suspensionExpired,
+
+      canRestore: deleted,
+
+      canSuspend: !deleted && user.status === 'ACTIVE',
+
+      canDelete: !deleted,
+
+      requiresReview: suspensionExpired,
+    };
   }
 
   private client(): ArenaPrismaClient {
