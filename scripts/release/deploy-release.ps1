@@ -8,114 +8,79 @@ param(
     [string]$User="arena"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference="Stop"
 
 
 if (!(Test-Path $ReleaseFile)) {
-    throw "Release file not found: $ReleaseFile"
+    throw "Release file not found"
 }
 
 
-$ReleaseFile = (Resolve-Path $ReleaseFile).Path
-$ReleaseName = Split-Path $ReleaseFile -Leaf
+$ReleaseFile=(Resolve-Path $ReleaseFile).Path
+
+$ArchiveName=Split-Path $ReleaseFile -Leaf
+
+
+$Version=$ArchiveName `
+    -replace "^arena-release-","" `
+    -replace "\.tar\.gz$",""
+
+
+$Hash=(Get-FileHash `
+    -Algorithm SHA256 `
+    $ReleaseFile).Hash.ToLower()
 
 
 Write-Host ""
 Write-Host "================================="
-Write-Host " Arena Core Release Deployment"
+Write-Host " Arena Core Production Deploy"
 Write-Host "================================="
 Write-Host ""
 
 Write-Host "Release:"
-Write-Host " $ReleaseName"
+Write-Host $ArchiveName
 
 Write-Host ""
-Write-Host "Target:"
-Write-Host " ${User}@${Server}"
-
-Write-Host ""
-Write-Host "Calculating SHA256..."
-
-$Hash = (
-    Get-FileHash `
-    -Algorithm SHA256 `
-    $ReleaseFile
-).Hash
-
+Write-Host "Version:"
+Write-Host $Version
 
 Write-Host ""
 Write-Host "SHA256:"
-Write-Host " $Hash"
+Write-Host $Hash
+
+
+$RemoteArchive="/home/${User}/${ArchiveName}"
 
 
 Write-Host ""
 Write-Host "Uploading release..."
 
+scp `
+    $ReleaseFile `
+    "${User}@${Server}:${RemoteArchive}"
 
-$RemotePath = "/home/${User}/${ReleaseName}"
+
+Write-Host ""
+Write-Host "Uploading deployment helper..."
 
 
 scp `
-    $ReleaseFile `
-    "${User}@${Server}:${RemotePath}"
+    "scripts/release/remote-deploy.sh" `
+    "${User}@${Server}:/tmp/remote-deploy.sh"
 
 
 Write-Host ""
-Write-Host "Upload completed."
+Write-Host "Executing deployment..."
 
 
-Write-Host ""
-Write-Host "Starting remote deployment..."
+ssh `
+"${User}@${Server}" `
+"chmod +x /tmp/remote-deploy.sh && bash /tmp/remote-deploy.sh '$RemoteArchive' '$Version' '$Hash'"
 
 
-$RemoteScript = @"
-set -euo pipefail
-
-
-RELEASE="/home/${User}/${ReleaseName}"
-
-
-echo "Checking release archive..."
-
-test -f "\$RELEASE"
-
-
-echo "Moving archive..."
-
-sudo mkdir -p /opt/arena/releases
-
-
-sudo mv \
-"\$RELEASE" \
-/opt/arena/releases/
-
-
-echo "Installing release..."
-
-
-sudo bash \
-/opt/arena/scripts/install-release.sh \
-/opt/arena/releases/${ReleaseName}
-
-
-echo "Running verification..."
-
-
-sudo bash \
-/opt/arena/scripts/verify.sh
-
-
-echo ""
-echo "Active release:"
-readlink -f /opt/arena/current
-
-
-echo ""
-echo "Deployment completed successfully."
-"@
-
-
-$RemoteScript | ssh "${User}@${Server}" "bash -s"
+if($LASTEXITCODE -ne 0){
+    throw "Remote deployment failed"
+}
 
 
 Write-Host ""
