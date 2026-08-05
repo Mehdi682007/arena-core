@@ -39,6 +39,8 @@ export interface IdentityRepository {
   ): Promise<void>;
   findUser(userId: string): Promise<UserSecurityRecord | null>;
   createSession(input: Omit<SessionRecord, 'id' | 'user' | 'revokedAt'>): Promise<{ id: string }>;
+
+  recoverExpiredSuspension(userId: string): Promise<void>;
   findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null>;
   revokeSession(sessionId: string, at: Date, reason: string): Promise<void>;
   revokeActiveSessions(

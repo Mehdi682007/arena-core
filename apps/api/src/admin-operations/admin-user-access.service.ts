@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { type ArenaPrismaClient, Prisma } from '@arena-core/database';
 import { DatabaseService } from '../database/database.service';
+import { assertAdminUserStatusTransition } from './admin-user-status-policy';
 import type {
   AdminEmailVerificationInput,
   AdminRoleAssignmentInput,
@@ -193,6 +194,8 @@ export class AdminUserAccessService {
 
     const now = new Date();
 
+    const lifecycle = this.resolveLifecycleState(user, now);
+
     const effectivePermissions = [
       ...new Set(
         user.roleAssignments
@@ -205,6 +208,7 @@ export class AdminUserAccessService {
 
     return {
       ...this.mapUserSummary(user),
+      lifecycle,
       securityVersion: user.securityVersion,
       sessions: user.sessions,
       roles: user.roleAssignments.map((assignment) => ({
@@ -278,7 +282,36 @@ export class AdminUserAccessService {
         select: {
           id: true,
           status: true,
+          deletedAt: true,
+          suspendedUntil: true,
           securityVersion: true,
+          roleAssignments: {
+            where: {
+              role: {
+                is: {
+                  isSystem: true,
+                },
+              },
+              OR: [
+                {
+                  expiresAt: null,
+                },
+                {
+                  expiresAt: {
+                    gt: now,
+                  },
+                },
+              ],
+            },
+            select: {
+              roleId: true,
+              role: {
+                select: {
+                  key: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -287,6 +320,41 @@ export class AdminUserAccessService {
           code: 'ADMIN_USER_NOT_FOUND',
           message: 'User was not found.',
         });
+      }
+
+      assertAdminUserStatusTransition(existing.status, input.status, existing.deletedAt);
+
+      if (restricted && existing.status === 'ACTIVE') {
+        for (const assignment of existing.roleAssignments) {
+          const activeHolderCount = await transaction.userRole.count({
+            where: {
+              roleId: assignment.roleId,
+              OR: [
+                {
+                  expiresAt: null,
+                },
+                {
+                  expiresAt: {
+                    gt: now,
+                  },
+                },
+              ],
+              user: {
+                is: {
+                  deletedAt: null,
+                  status: 'ACTIVE',
+                },
+              },
+            },
+          });
+
+          if (activeHolderCount <= 1) {
+            throw new ConflictException({
+              code: 'ADMIN_LAST_SYSTEM_ROLE_HOLDER',
+              message: `The final active holder of system role ${assignment.role.key} cannot be suspended or banned.`,
+            });
+          }
+        }
       }
 
       const updated = await transaction.user.update({
@@ -1120,6 +1188,34 @@ export class AdminUserAccessService {
         roleId,
       };
     });
+  }
+
+  private resolveLifecycleState(
+    user: {
+      status: string;
+      deletedAt: Date | null;
+      suspendedUntil: Date | null;
+    },
+    now: Date,
+  ) {
+    const suspensionExpired =
+      user.status === 'SUSPENDED' && user.suspendedUntil !== null && user.suspendedUntil <= now;
+
+    const deleted = user.deletedAt !== null || user.status === 'DELETED';
+
+    return {
+      canLogin: user.status === 'ACTIVE' || suspensionExpired,
+
+      suspensionExpired,
+
+      canRestore: deleted,
+
+      canSuspend: !deleted && user.status === 'ACTIVE',
+
+      canDelete: !deleted,
+
+      requiresReview: suspensionExpired,
+    };
   }
 
   private client(): ArenaPrismaClient {

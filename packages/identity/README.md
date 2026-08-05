@@ -48,3 +48,14 @@ Onboarding requires an active identity, verified primary email, valid profile, a
 Pending users may prepare profiles; suspended users may read but not write; disabled/deleted users
 cannot access profiles. Prisma remains behind a use-case-oriented repository. Username, avatar,
 public profiles, moderation, search, and game accounts remain outside scope.
+
+## User account access policy
+
+The identity package applies the following server-side rules:
+
+- Only `ACTIVE`, non-deleted users may authenticate or create and validate sessions.
+- Session validation rejects stale `securityVersion` values.
+- `PENDING_VERIFICATION` users may access the bounded profile and email-verification journey, but may not authenticate into the full application.
+- Password-reset tokens are issued only for verified `ACTIVE` users.
+- `SUSPENDED`, `BANNED`, `DISABLED`, and `DELETED` users cannot request new password-reset tokens.
+- Sensitive password changes increment `securityVersion` and revoke active sessions.

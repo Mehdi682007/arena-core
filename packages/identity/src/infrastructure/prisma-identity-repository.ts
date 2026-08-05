@@ -172,6 +172,22 @@ export class PrismaIdentityRepository implements IdentityRepository {
     });
   }
 
+  public async recoverExpiredSuspension(userId: string): Promise<void> {
+    await this.client.user.updateMany({
+      where: {
+        id: userId,
+        status: 'SUSPENDED',
+        suspendedUntil: {
+          lte: new Date(),
+        },
+      },
+      data: {
+        status: 'ACTIVE',
+        suspendedUntil: null,
+      },
+    });
+  }
+
   public async createSession(
     input: Omit<SessionRecord, 'id' | 'user' | 'revokedAt'>,
   ): Promise<{ id: string }> {

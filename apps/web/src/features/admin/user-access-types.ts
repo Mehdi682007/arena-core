@@ -36,7 +36,17 @@ export type AdminRole = {
   }[];
 };
 
+export type AdminUserLifecycle = {
+  canLogin: boolean;
+  suspensionExpired: boolean;
+  canRestore: boolean;
+  canSuspend: boolean;
+  canDelete: boolean;
+  requiresReview: boolean;
+};
+
 export type AdminUserDetail = AdminUserSummary & {
+  lifecycle: AdminUserLifecycle;
   securityVersion: number;
   effectivePermissions: string[];
   roles: AdminRole[];

@@ -97,9 +97,17 @@ export class IdentityService {
     passwordRehashed: boolean;
   }> {
     const email = normalizeEmail(input.email);
-    const identity = await this.dependencies.transactions.transaction((repository) =>
-      repository.findLoginIdentity(email.normalizedEmail),
-    );
+    const identity = await this.dependencies.transactions.transaction(async (repository) => {
+      const found = await repository.findLoginIdentity(email.normalizedEmail);
+
+      if (found) {
+        await repository.recoverExpiredSuspension(found.id);
+
+        return repository.findLoginIdentity(email.normalizedEmail);
+      }
+
+      return found;
+    });
     const hash = identity?.passwordHash ?? this.dependencies.dummyPasswordHash;
     const verified = await this.dependencies.passwordHasher.verify(input.password, hash);
     if (identity === null || !verified) {

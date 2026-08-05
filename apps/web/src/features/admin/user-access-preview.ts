@@ -95,9 +95,25 @@ export const ADMIN_USER_PREVIEW_ROLES: AdminRoleListResponse = {
 };
 
 export const ADMIN_USER_PREVIEW_DETAIL: AdminUserDetail = {
+  lifecycle: {
+    canLogin: true,
+    suspensionExpired: false,
+    canRestore: false,
+    canSuspend: true,
+    canDelete: true,
+    requiresReview: false,
+  },
   ...previewPrimaryUser,
   securityVersion: 4,
-  effectivePermissions: ['notifications.read', 'timeline.read'],
+  effectivePermissions: [
+    'notifications.read',
+    'timeline.read',
+    'users.manage_status',
+    'users.verify_email',
+    'users.manage_deletion',
+    'users.manage_sessions',
+    'roles.assign',
+  ],
   roles: [
     {
       ...previewSupportRole,

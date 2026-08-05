@@ -46,15 +46,24 @@ export function UserAccessActions({
 
   const [message, setMessage] = useState<string | null>(null);
 
-  const canManageStatus = permissions.includes('users.manage_status');
+  const effectivePermissions = [
+    ...(user.effectivePermissions ?? []),
+    ...permissions.map((permission) => String(permission)),
+  ];
 
-  const canVerifyEmail = permissions.includes('users.verify_email');
+  const normalizedPermissions = new Set(effectivePermissions);
 
-  const canManageDeletion = permissions.includes('users.manage_deletion');
+  const canManageStatus = normalizedPermissions.has('users.manage_status');
 
-  const canManageSessions = permissions.includes('users.manage_sessions');
+  const canVerifyEmail = normalizedPermissions.has('users.verify_email');
 
-  const canAssignRoles = permissions.includes('roles.assign');
+  const canManageDeletion = normalizedPermissions.has('users.manage_deletion');
+
+  const canManageSessions = normalizedPermissions.has('users.manage_sessions');
+
+  const canAssignRoles = normalizedPermissions.has('roles.assign');
+
+  const lifecycle = user.lifecycle;
 
   const execute = async (operation: () => Promise<unknown>, successMessage: string) => {
     if (preview) {
@@ -93,7 +102,7 @@ export function UserAccessActions({
       {message !== null ? <Alert error={state === 'error'}>{message}</Alert> : null}
 
       <div className="admin-user-action-grid">
-        {canManageStatus ? (
+        {canManageStatus && lifecycle.canSuspend ? (
           <button
             className="button"
             type="button"
@@ -118,7 +127,7 @@ export function UserAccessActions({
           </button>
         ) : null}
 
-        {canManageDeletion ? (
+        {canManageDeletion && (lifecycle.canDelete || lifecycle.canRestore) ? (
           <button
             className={user.deletedAt === null ? 'button danger' : 'button secondary'}
             type="button"
@@ -127,7 +136,7 @@ export function UserAccessActions({
               deletionDialog.current?.showModal();
             }}
           >
-            {user.deletedAt === null ? dictionary.users.delete : dictionary.users.restore}
+            {lifecycle.canRestore ? dictionary.users.restore : dictionary.users.delete}
           </button>
         ) : null}
 

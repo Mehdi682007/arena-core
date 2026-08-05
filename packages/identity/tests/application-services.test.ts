@@ -24,6 +24,7 @@ function harness(overrides: Partial<IdentityRepository> = {}) {
     recordAuthenticationSuccess: vi.fn(async () => undefined),
     findUser: vi.fn(async () => null),
     createSession: vi.fn(async () => ({ id: 'session-1' })),
+    recoverExpiredSuspension: vi.fn(async () => undefined),
     findSessionByTokenHash: vi.fn(async () => null),
     revokeSession: vi.fn(async () => undefined),
     revokeActiveSessions: vi.fn(async () => undefined),
@@ -96,6 +97,37 @@ describe('IdentityService', () => {
       }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
     expect(hasher.verify).toHaveBeenCalledWith('candidate-password', 'hash:dummy');
+  });
+
+  it('recovers expired suspension before authentication', async () => {
+    const { repository, dependencies, hasher } = harness();
+
+    repository.findLoginIdentity
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        email: 'player@example.com',
+        passwordHash: 'hash:password',
+        status: 'SUSPENDED',
+        suspendedUntil: new Date(now.getTime() - 60_000),
+      })
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        email: 'player@example.com',
+        passwordHash: 'hash:password',
+        status: 'ACTIVE',
+        suspendedUntil: null,
+      });
+
+    hasher.verify.mockResolvedValue(true);
+
+    await new IdentityService(dependencies).authenticateWithPassword({
+      email: 'player@example.com',
+      password: 'password',
+    });
+
+    expect(repository.recoverExpiredSuspension).toHaveBeenCalledWith('user-1');
+
+    expect(repository.findLoginIdentity).toHaveBeenCalledTimes(2);
   });
 
   it('records failures and locks at the configured threshold', async () => {
