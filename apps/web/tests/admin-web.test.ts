@@ -192,7 +192,7 @@ describe('admin manual email verification', () => {
     );
 
     expect(types).toContain("'users.verify_email'");
-    expect(actions).toContain("permissions.includes('users.verify_email')");
+    expect(actions).toContain("normalizedPermissions.has('users.verify_email')");
     expect(actions).toContain('user.emailVerifiedAt !== null');
     expect(actions).toContain('/email/verify');
     expect(actions).toContain('ADMIN_EMAIL_VERIFIED');
