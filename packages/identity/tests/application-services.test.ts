@@ -16,10 +16,13 @@ const authentication = createApiConfig(
 const now = new Date('2026-07-25T00:00:00.000Z');
 
 function harness(overrides: Partial<IdentityRepository> = {}) {
+  const findLoginIdentity = vi.fn<IdentityRepository['findLoginIdentity']>();
+  findLoginIdentity.mockResolvedValue(null);
+
   const repository = {
     emailExists: vi.fn(async () => false),
     createRegistration: vi.fn(async () => ({ userId: 'user-1', emailId: 'email-1' })),
-    findLoginIdentity: vi.fn(async () => null),
+    findLoginIdentity,
     recordAuthenticationFailure: vi.fn(async () => undefined),
     recordAuthenticationSuccess: vi.fn(async () => undefined),
     findUser: vi.fn(async () => null),
@@ -65,7 +68,7 @@ function harness(overrides: Partial<IdentityRepository> = {}) {
     transactions: { transaction: async (operation) => operation(repository) },
     dummyPasswordHash: 'hash:dummy',
   };
-  return { repository, hasher, dependencies };
+  return { repository, findLoginIdentity, hasher, dependencies };
 }
 
 describe('IdentityService', () => {
@@ -100,22 +103,30 @@ describe('IdentityService', () => {
   });
 
   it('recovers expired suspension before authentication', async () => {
-    const { repository, dependencies, hasher } = harness();
+    const { repository, findLoginIdentity, dependencies, hasher } = harness();
 
-    repository.findLoginIdentity
+    findLoginIdentity
       .mockResolvedValueOnce({
         id: 'user-1',
-        email: 'player@example.com',
+        emailId: 'email-1',
         passwordHash: 'hash:password',
+        passwordAlgorithm: 'argon2id',
         status: 'SUSPENDED',
-        suspendedUntil: new Date(now.getTime() - 60_000),
+        securityVersion: 1,
+        deletedAt: null,
+        failedAttemptCount: 0,
+        lockedUntil: null,
       })
       .mockResolvedValueOnce({
         id: 'user-1',
-        email: 'player@example.com',
+        emailId: 'email-1',
         passwordHash: 'hash:password',
+        passwordAlgorithm: 'argon2id',
         status: 'ACTIVE',
-        suspendedUntil: null,
+        securityVersion: 1,
+        deletedAt: null,
+        failedAttemptCount: 0,
+        lockedUntil: null,
       });
 
     hasher.verify.mockResolvedValue(true);
