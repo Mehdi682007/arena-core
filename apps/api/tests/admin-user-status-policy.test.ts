@@ -13,12 +13,7 @@ function exceptionCode(callback: () => void): string | undefined {
     if (error instanceof ConflictException) {
       const response = error.getResponse();
 
-      if (
-        typeof response === 'object' &&
-        response !== null &&
-        'code' in response &&
-        typeof response.code === 'string'
-      ) {
+      if (typeof response === 'object' && 'code' in response && typeof response.code === 'string') {
         return response.code;
       }
     }
@@ -37,7 +32,9 @@ describe('admin user status policy', () => {
     ['SUSPENDED', 'BANNED'],
     ['BANNED', 'ACTIVE'],
   ] as const)('allows %s to transition to %s', (currentStatus, nextStatus) => {
-    expect(() => assertAdminUserStatusTransition(currentStatus, nextStatus, null)).not.toThrow();
+    expect(() => {
+      assertAdminUserStatusTransition(currentStatus, nextStatus, null);
+    }).not.toThrow();
   });
 
   it.each([
@@ -46,7 +43,9 @@ describe('admin user status policy', () => {
     ['BANNED', 'BANNED'],
   ] as const)('rejects unchanged %s status', (currentStatus, nextStatus) => {
     expect(
-      exceptionCode(() => assertAdminUserStatusTransition(currentStatus, nextStatus, null)),
+      exceptionCode(() => {
+        assertAdminUserStatusTransition(currentStatus, nextStatus, null);
+      }),
     ).toBe('ADMIN_USER_STATUS_UNCHANGED');
   });
 
@@ -57,23 +56,27 @@ describe('admin user status policy', () => {
     ['ACTIVE', 'ACTIVE'],
     ['BANNED', 'SUSPENDED'],
   ] as const)('rejects invalid transition from %s to %s', (currentStatus, nextStatus) => {
-    const code = exceptionCode(() =>
-      assertAdminUserStatusTransition(currentStatus, nextStatus, null),
-    );
+    const code = exceptionCode(() => {
+      assertAdminUserStatusTransition(currentStatus, nextStatus, null);
+    });
 
     expect(['ADMIN_USER_STATUS_TRANSITION_INVALID', 'ADMIN_USER_STATUS_UNCHANGED']).toContain(code);
   });
 
   it('requires deleted users to use the restore operation', () => {
     expect(
-      exceptionCode(() => assertAdminUserStatusTransition('DELETED', 'ACTIVE', new Date())),
+      exceptionCode(() => {
+        assertAdminUserStatusTransition('DELETED', 'ACTIVE', new Date());
+      }),
     ).toBe('ADMIN_DELETED_USER_STATUS_CHANGE_FORBIDDEN');
   });
 
   it('rejects ordinary changes for disabled users', () => {
-    expect(exceptionCode(() => assertAdminUserStatusTransition('DISABLED', 'ACTIVE', null))).toBe(
-      'ADMIN_DISABLED_USER_STATUS_CHANGE_FORBIDDEN',
-    );
+    expect(
+      exceptionCode(() => {
+        assertAdminUserStatusTransition('DISABLED', 'ACTIVE', null);
+      }),
+    ).toBe('ADMIN_DISABLED_USER_STATUS_CHANGE_FORBIDDEN');
   });
 
   it('detects an expired temporary suspension', () => {
