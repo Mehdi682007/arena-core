@@ -29,9 +29,32 @@ load_inventory() {
   [[ "$SERVER_OPERATOR_USER" != "$SERVER_APP_USER" ]] || die "operator and runtime users must differ"
   valid_abs_path "$SERVER_APP_ROOT" || die "unsafe app root"
   valid_abs_path "$SERVER_BACKUP_ROOT" || die "unsafe backup root"
-  for key in ENABLE_TLS ENABLE_UFW ENABLE_FAIL2BAN ENABLE_UNATTENDED_UPDATES ENABLE_SWAP SSH_ALLOW_TCP_FORWARDING OPERATOR_DOCKER_GROUP; do
+
+  DEPLOY_BASELINE_SEED_ENABLED="${DEPLOY_BASELINE_SEED_ENABLED:-false}"
+  ALLOW_PRODUCTION_BASELINE_SEED="${ALLOW_PRODUCTION_BASELINE_SEED:-false}"
+
+  export DEPLOY_BASELINE_SEED_ENABLED
+  export ALLOW_PRODUCTION_BASELINE_SEED
+
+  for key in \
+    ENABLE_TLS \
+    ENABLE_UFW \
+    ENABLE_FAIL2BAN \
+    ENABLE_UNATTENDED_UPDATES \
+    ENABLE_SWAP \
+    SSH_ALLOW_TCP_FORWARDING \
+    OPERATOR_DOCKER_GROUP \
+    DEPLOY_BASELINE_SEED_ENABLED \
+    ALLOW_PRODUCTION_BASELINE_SEED; do
     valid_bool "${!key}" || die "$key must be true or false"
   done
+
+  if [[ "$ENVIRONMENT" == production &&
+        "$DEPLOY_BASELINE_SEED_ENABLED" == true &&
+        "$ALLOW_PRODUCTION_BASELINE_SEED" != true ]]; then
+    die "production baseline seed requires both deployment opt-ins"
+  fi
+
   [[ "${POSTGRES_MODE:-}" == container || "${POSTGRES_MODE:-}" == external ]] || die "invalid POSTGRES_MODE"
   [[ "$DEPLOY_MODE" == prebuilt || "$DEPLOY_MODE" == build-local ]] || die "invalid DEPLOY_MODE"
   INVENTORY_BUILD_SHA="${BUILD_SHA:-}"

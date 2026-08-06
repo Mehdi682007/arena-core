@@ -38,6 +38,16 @@ primary security boundary: authentication, authorization, CSRF validation, rate 
 logging, and secure sessions remain mandatory. MFA is recommended next. Dynamic admin paths are
 intentionally unsupported.
 
+Baseline Seed is disabled by default. Staging enables it with
+`DEPLOY_BASELINE_SEED_ENABLED=true`. Production requires both
+`DEPLOY_BASELINE_SEED_ENABLED=true` and `ALLOW_PRODUCTION_BASELINE_SEED=true`; enabling only one
+does not authorize Production Seed execution.
+
+When enabled, `deploy.sh` invokes the official `infra/scripts/seed.sh` after migration and before
+application activation. A Seed failure prevents readiness verification, `current` replacement, and
+deployment recording. Database rollback is not automatic; the system Seed remains idempotent and
+preserves custom permissions, roles, and relationships.
+
 Before deployment verify DNS, both certificate SANs, public health, public `/admin` = 404, admin
-root redirect, login, and the authenticated panel. On failure restore the previous immutable
-application and Nginx release. Database rollback is not automatic; the system seed is idempotent.
+root redirect, login, and the authenticated panel. On application failure restore the previous
+immutable application and Nginx release.

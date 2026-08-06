@@ -106,7 +106,18 @@ record_deployment() {
 
 if [[ "$DEPLOY_MODE" == build-local ]]; then
 
-  for service in arena-migrate arena-api arena-worker arena-web; do
+  build_services=(
+    arena-migrate
+    arena-api
+    arena-worker
+    arena-web
+  )
+
+  if [[ "$DEPLOY_BASELINE_SEED_ENABLED" == true ]]; then
+    build_services+=(arena-seed)
+  fi
+
+  for service in "${build_services[@]}"; do
 
     build_started_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
     build_started_epoch="$(date +%s)"
@@ -174,6 +185,12 @@ fi
 
 
 compose run --no-deps --rm arena-migrate
+
+
+if [[ "$DEPLOY_BASELINE_SEED_ENABLED" == true ]]; then
+  ARENA_LIFECYCLE_LOCK_HELD=true \
+    bash "$SCRIPT_DIR/seed.sh" "$inventory"
+fi
 
 
 activate_release "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"

@@ -75,7 +75,131 @@ test('inventory contracts distinguish users and permit domainless staging', asyn
   assert.match(production, /ADMIN_DOMAIN=\r?\n/);
   assert.match(staging, /^DEPLOY_MODE=prebuilt$/m);
   assert.match(production, /^DEPLOY_MODE=prebuilt$/m);
+
+  for (const inventory of [staging, production]) {
+    assert.match(inventory, /^DEPLOY_BASELINE_SEED_ENABLED=false$/m);
+    assert.match(inventory, /^ALLOW_PRODUCTION_BASELINE_SEED=false$/m);
+  }
+
   assert.doesNotMatch(`${staging}\n${production}`, /(PASSWORD|SECRET|TOKEN)=\S+/);
+});
+
+test('baseline Seed inventory policy is strict and environment-aware', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'arena-seed-policy-'));
+  const bash = process.platform === 'win32' ? 'C:\\Program Files\\Git\\bin\\bash.exe' : 'bash';
+  const bashPath = (value) => value.replaceAll('\\', '/');
+
+  const cases = [
+    {
+      name: 'production disabled without allow',
+      environment: 'production',
+      deploy: 'false',
+      allow: 'false',
+      expectedStatus: 0,
+    },
+    {
+      name: 'production allow alone does not fail',
+      environment: 'production',
+      deploy: 'false',
+      allow: 'true',
+      expectedStatus: 0,
+    },
+    {
+      name: 'production deploy without allow fails',
+      environment: 'production',
+      deploy: 'true',
+      allow: 'false',
+      expectedStatus: 1,
+    },
+    {
+      name: 'production dual opt-in passes',
+      environment: 'production',
+      deploy: 'true',
+      allow: 'true',
+      expectedStatus: 0,
+    },
+    {
+      name: 'staging disabled',
+      environment: 'staging',
+      deploy: 'false',
+      allow: 'false',
+      expectedStatus: 0,
+    },
+    {
+      name: 'staging deploy needs no production allow',
+      environment: 'staging',
+      deploy: 'true',
+      allow: 'false',
+      expectedStatus: 0,
+    },
+    {
+      name: 'invalid deploy boolean fails',
+      environment: 'staging',
+      deploy: 'yes',
+      allow: 'false',
+      expectedStatus: 1,
+    },
+    {
+      name: 'invalid allow boolean fails',
+      environment: 'staging',
+      deploy: 'false',
+      allow: '1',
+      expectedStatus: 1,
+    },
+  ];
+
+  try {
+    for (const policy of cases) {
+      const inventory = path.join(directory, `${policy.name.replaceAll(' ', '-')}.env`);
+      const production = policy.environment === 'production';
+
+      await writeFile(
+        inventory,
+        [
+          `ENVIRONMENT=${policy.environment}`,
+          'SERVER_SSH_PORT=22',
+          'SERVER_OPERATOR_USER=arena',
+          'SERVER_APP_USER=arenaapp',
+          'SERVER_APP_ROOT=/tmp/arena',
+          'SERVER_BACKUP_ROOT=/tmp/arena/backups',
+          `APP_DOMAIN=${production ? 'app.example.test' : ''}`,
+          `ADMIN_DOMAIN=${production ? 'admin.example.test' : ''}`,
+          `ENABLE_TLS=${production ? 'true' : 'false'}`,
+          'ENABLE_UFW=true',
+          'ENABLE_FAIL2BAN=true',
+          'ENABLE_UNATTENDED_UPDATES=true',
+          'ENABLE_SWAP=false',
+          'SSH_ALLOW_TCP_FORWARDING=false',
+          'OPERATOR_DOCKER_GROUP=false',
+          'POSTGRES_MODE=external',
+          'DEPLOY_MODE=prebuilt',
+          `DEPLOY_BASELINE_SEED_ENABLED=${policy.deploy}`,
+          `ALLOW_PRODUCTION_BASELINE_SEED=${policy.allow}`,
+          '',
+        ].join('\n'),
+      );
+
+      const result = spawnSync(
+        bash,
+        [
+          '-c',
+          'source "$1/lib/common.sh"; source "$1/lib/validation.sh"; load_inventory "$2"',
+          'bash',
+          bashPath(scripts),
+          bashPath(inventory),
+        ],
+        { encoding: 'utf8' },
+      );
+
+      assert.equal(
+        result.status,
+        policy.expectedStatus,
+        `${policy.name}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+      );
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test('runtime environment generator emits the complete canonical API contract', async () => {
@@ -282,11 +406,11 @@ test('Compose exposes only loopback Web/API and keeps database private', async (
   assert.match(compose, /arena-web:[\s\S]*?networks: \[ingress, app\]/);
   assert.match(compose, /arena-worker:[\s\S]*?image:/);
   assert.doesNotMatch(
-    compose.match(/arena-worker:[\s\S]*?(?=\n  arena-web:)/)?.[0] ?? '',
+    compose.match(/arena-worker:[\s\S]*?(?=\n {2}arena-web:)/)?.[0] ?? '',
     /ingress/,
   );
   assert.doesNotMatch(
-    compose.match(/postgres:[\s\S]*?(?=\n  arena-migrate:)/)?.[0] ?? '',
+    compose.match(/postgres:[\s\S]*?(?=\n {2}arena-migrate:)/)?.[0] ?? '',
     /ingress/,
   );
   assert.match(compose, /app: \{ internal: true \}/);
@@ -303,7 +427,7 @@ test('real deployment path enforces the exact Seed Compose runtime contract', as
   const composeLibrary = await readFile(path.join(scripts, 'lib/compose.sh'), 'utf8');
   const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
   const seed = await readFile(path.join(scripts, 'seed.sh'), 'utf8');
-  const service = compose.match(/  arena-seed:[\s\S]*?(?=\nnetworks:)/)?.[0] ?? '';
+  const service = compose.match(/ {2}arena-seed:[\s\S]*?(?=\nnetworks:)/)?.[0] ?? '';
   assert.match(service, /image: \$\{ARENA_SEED_IMAGE/);
   assert.match(service, /tmpfs: \['\/tmp:rw,noexec,nosuid,size=64m'\]/);
   assert.match(service, /networks: \[app, data, db_egress\]/);
@@ -317,6 +441,44 @@ test('real deployment path enforces the exact Seed Compose runtime contract', as
       deploy.indexOf('if [[ "$DRY_RUN" == true ]]'),
   );
   assert.ok(seed.indexOf('validate_seed_compose_contract') < seed.indexOf('acquire_lock'));
+});
+
+test('baseline Seed runs between migration and activation with hierarchical locks', async () => {
+  const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
+  const seed = await readFile(path.join(scripts, 'seed.sh'), 'utf8');
+
+  const migration = deploy.indexOf('compose run --no-deps --rm arena-migrate');
+  const seedCall = deploy.indexOf('bash "$SCRIPT_DIR/seed.sh" "$inventory"');
+  const activation = deploy.indexOf('activate_release "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"');
+
+  assert.ok(migration >= 0);
+  assert.ok(seedCall > migration);
+  assert.ok(activation > seedCall);
+
+  assert.match(
+    deploy,
+    /if \[\[ "\$DEPLOY_BASELINE_SEED_ENABLED" == true \]\]; then[\s\S]*ARENA_LIFECYCLE_LOCK_HELD=true[\s\S]*bash "\$SCRIPT_DIR\/seed\.sh" "\$inventory"[\s\S]*fi/,
+  );
+
+  const standaloneDeployLock = seed.indexOf('acquire_lock "$SERVER_APP_ROOT/run/deploy.lock"');
+  const seedLock = seed.indexOf('acquire_lock "$SERVER_APP_ROOT/run/seed.lock"');
+
+  assert.ok(standaloneDeployLock >= 0);
+  assert.ok(seedLock > standaloneDeployLock);
+
+  assert.match(
+    seed,
+    /if \[\[ "\$ARENA_LIFECYCLE_LOCK_HELD" != true \]\]; then[\s\S]*deploy\.lock[\s\S]*fi[\s\S]*seed\.lock/,
+  );
+
+  assert.match(seed, /cleanup\(\)[\s\S]*rm -f "\$log"[\s\S]*release_locks/);
+
+  const contractValidation = seed.indexOf('validate_seed_compose_contract');
+  const dryRunExit = seed.indexOf('if [[ "$DRY_RUN" == true ]]');
+  const firstLock = seed.indexOf('acquire_lock');
+
+  assert.ok(contractValidation >= 0 && contractValidation < dryRunExit);
+  assert.ok(dryRunExit >= 0 && dryRunExit < firstLock);
 });
 
 test('lifecycle operations are locked and destructive operations confirmed', async () => {
@@ -404,7 +566,15 @@ test('failed deployment and manual rollback restore and verify an application re
   const rollback = await readFile(path.join(scripts, 'rollback.sh'), 'utf8');
   assert.match(deploy, /rollback-after-failed-deploy/);
   assert.match(deploy, /previous release restored and verified/);
-  assert.match(deploy, /for service in arena-migrate arena-api arena-worker arena-web; do/);
+  assert.match(
+    deploy,
+    /build_services=\([\s\S]*arena-migrate[\s\S]*arena-api[\s\S]*arena-worker[\s\S]*arena-web[\s\S]*\)/,
+  );
+  assert.match(
+    deploy,
+    /if \[\[ "\$DEPLOY_BASELINE_SEED_ENABLED" == true \]\]; then[\s\S]*build_services\+=\(arena-seed\)/,
+  );
+  assert.match(deploy, /for service in "\$\{build_services\[@\]\}"; do/);
   assert.match(deploy, /if compose build "\$service"; then/);
   assert.match(rollback, /compose up -d arena-api arena-worker arena-web/);
   assert.match(rollback, /manual-rollback/);
@@ -516,7 +686,7 @@ test('external PostgreSQL clients retain the host-gateway contract', async () =>
     assert.match(block, /networks: \[[^\]]*db_egress[^\]]*\]/, service);
   }
 
-  const web = compose.match(/  arena-web:[\s\S]*?(?=\n  arena-seed:)/)?.[0] ?? '';
+  const web = compose.match(/ {2}arena-web:[\s\S]*?(?=\n {2}arena-seed:)/)?.[0] ?? '';
   assert.doesNotMatch(web, /extra_hosts/, 'arena-web does not connect to PostgreSQL');
   assert.doesNotMatch(web, /db_egress/, 'arena-web does not connect to PostgreSQL');
 

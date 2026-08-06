@@ -229,7 +229,15 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(seedValidator, /--network none/);
   assert.match(seedValidator, /pnpm \(install\|fetch\)/);
   assert.match(seedValidator, /dist\/seed-fc26-cli\.js/);
-  assert.match(seedValidator, /second_counts.*first_counts/s);
+  assert.match(seedValidator, /counts_with_custom_rows="\$\(seed_counts\)"/);
+  assert.match(seedValidator, /second_counts="\$\(seed_counts\)"/);
+  assert.match(seedValidator, /\[\[ "\$second_counts" == "\$counts_with_custom_rows" \]\]/);
+  assert.match(seedValidator, /arena\.test\.custom/);
+  assert.match(seedValidator, /custom_relationships/);
+  assert.match(seedValidator, /users\.verify_email/);
+  assert.match(seedValidator, /verify_email_memberships/);
+  assert.match(seedValidator, /Fc26SeedDriftError\|drift/);
+  assert.match(seedValidator, /drift_preserved/);
   assert.match(seedValidator, /player_ratings/);
   assert.match(seedValidator, /users/);
   assert.match(seedValidator, /matches/);

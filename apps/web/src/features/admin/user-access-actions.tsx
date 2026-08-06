@@ -46,10 +46,7 @@ export function UserAccessActions({
 
   const [message, setMessage] = useState<string | null>(null);
 
-  const effectivePermissions = [
-    ...(user.effectivePermissions ?? []),
-    ...permissions.map((permission) => String(permission)),
-  ];
+  const effectivePermissions = [...user.effectivePermissions, ...permissions];
 
   const normalizedPermissions = new Set(effectivePermissions);
 
