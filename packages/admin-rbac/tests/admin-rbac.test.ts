@@ -2,7 +2,12 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import type { ArenaPrismaClient } from '@arena-core/database';
 import { describe, expect, it } from 'vitest';
-import { ADMIN_PERMISSION_KEYS, bootstrapAdministrator, seedSystemRbac } from '../src';
+import {
+  ADMIN_PERMISSION_KEYS,
+  SUPER_ADMIN_ROLE,
+  bootstrapAdministrator,
+  seedSystemRbac,
+} from '../src';
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/require-await, @typescript-eslint/restrict-template-expressions -- deliberately small in-memory Prisma test double */
 
 function fakeClient(overrides: Record<string, unknown> = {}) {
@@ -110,21 +115,80 @@ describe('administrative RBAC', () => {
     expect(used.filter((key) => !ADMIN_PERMISSION_KEYS.includes(key as never))).toEqual([]);
   });
 
-  it('seeds twice without duplicates and preserves custom rows or assigning users', async () => {
+  it('seeds twice without duplicates and preserves custom rows without assigning users', async () => {
     const state = fakeClient();
-    state.permissions.set('custom.permission', { id: 'custom', description: 'Custom' });
+
+    state.permissions.set('custom.permission', {
+      id: 'custom-permission',
+      description: 'Custom',
+    });
+
     state.roles.set('custom', {
       id: 'custom-role',
       name: 'Custom',
       description: 'Custom',
       isSystem: false,
     });
+
+    state.rolePermissions.add('custom-role:custom-permission');
+
     await seedSystemRbac(state.client);
+
+    const superAdmin = state.roles.get(SUPER_ADMIN_ROLE.key);
+
+    expect(superAdmin).toBeDefined();
+
+    if (!superAdmin) {
+      throw new Error('super_admin was not seeded');
+    }
+
+    for (const key of ADMIN_PERMISSION_KEYS) {
+      const permission = state.permissions.get(key);
+
+      expect(permission).toBeDefined();
+
+      if (!permission) {
+        throw new Error(`permission was not seeded: ${key}`);
+      }
+
+      expect(state.rolePermissions.has(`${superAdmin.id}:${permission.id}`)).toBe(true);
+    }
+
+    const verifyEmailPermission = state.permissions.get('users.verify_email');
+
+    expect(verifyEmailPermission).toBeDefined();
+
+    if (!verifyEmailPermission) {
+      throw new Error('users.verify_email was not seeded');
+    }
+
+    expect(state.rolePermissions.has(`${superAdmin.id}:${verifyEmailPermission.id}`)).toBe(true);
+
+    expect(state.permissions.get('custom.permission')).toEqual({
+      id: 'custom-permission',
+      description: 'Custom',
+    });
+
+    expect(state.roles.get('custom')).toEqual({
+      id: 'custom-role',
+      name: 'Custom',
+      description: 'Custom',
+      isSystem: false,
+    });
+
+    expect(state.rolePermissions.has('custom-role:custom-permission')).toBe(true);
+    expect([...state.userRoles]).toEqual([]);
+
+    const permissionsAfterFirstSeed = new Map(state.permissions);
+    const rolesAfterFirstSeed = new Map(state.roles);
+    const rolePermissionsAfterFirstSeed = new Set(state.rolePermissions);
+
     await seedSystemRbac(state.client);
-    expect(state.permissions.size).toBe(46);
-    expect(state.roles.get('custom')).toBeDefined();
-    expect(state.rolePermissions.size).toBe(45);
-    expect(state.userRoles.size).toBe(0);
+
+    expect(state.permissions).toEqual(permissionsAfterFirstSeed);
+    expect(state.roles).toEqual(rolesAfterFirstSeed);
+    expect(state.rolePermissions).toEqual(rolePermissionsAfterFirstSeed);
+    expect([...state.userRoles]).toEqual([]);
   });
 
   it('requires verification and atomically activates, assigns, audits, and no-ops safely', async () => {
