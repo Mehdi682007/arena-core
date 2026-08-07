@@ -2,6 +2,9 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Field, Input, PasswordInput } from '@/components/ui';
+import type { AppLocale } from '@/i18n/config';
+import { persistClientLocale } from '@/i18n/client';
+import { messagesFor } from '@/i18n/messages';
 import { ApiError } from '@/lib/api/api-error';
 import { browserApi } from '@/lib/api/browser-api-client';
 import { safeReturnPath } from '@/lib/auth/redirect';
@@ -14,20 +17,29 @@ const endpoint: Record<Mode, string> = {
   reset: '/auth/password-reset/confirm',
   verify: '/auth/email-verification/confirm',
 };
+
+interface ProfileLocaleResponse {
+  readonly profile: { readonly locale: AppLocale };
+}
+
 export function AuthForm({
   mode,
+  locale,
   token,
   returnTo,
 }: {
   mode: Mode;
+  locale: AppLocale;
   token?: string;
   returnTo?: string;
 }) {
   const router = useRouter();
+  const messages = messagesFor(locale).auth;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ApiError>();
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
@@ -38,7 +50,7 @@ export function AuthForm({
     if (['register', 'reset'].includes(mode) && password !== confirmation) {
       setError(
         new ApiError('VALIDATION_FAILED', 422, undefined, {
-          confirmation: 'گذرواژه‌ها یکسان نیستند.',
+          confirmation: messages.passwordsMismatch,
         }),
       );
       setPending(false);
@@ -53,7 +65,7 @@ export function AuthForm({
               email,
               password,
               displayName: String(data.get('displayName') ?? ''),
-              locale: 'fa',
+              locale,
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             }
           : mode === 'forgot'
@@ -64,6 +76,12 @@ export function AuthForm({
     try {
       await browserApi(endpoint[mode], { method: 'POST', body });
       if (mode === 'login') {
+        try {
+          const profile = await browserApi<ProfileLocaleResponse>('/profile');
+          persistClientLocale(profile.profile.locale);
+        } catch {
+          persistClientLocale(locale);
+        }
         router.replace(safeReturnPath(returnTo));
         router.refresh();
         return;
@@ -79,16 +97,16 @@ export function AuthForm({
     return (
       <Alert>
         {mode === 'forgot'
-          ? 'اگر حسابی با این ایمیل وجود داشته باشد، راهنمای بازیابی ارسال می‌شود.'
+          ? messages.forgotSuccess
           : mode === 'register'
-            ? 'ثبت‌نام انجام شد. ایمیل خود را برای تأیید حساب بررسی کنید.'
-            : 'عملیات با موفقیت انجام شد.'}
+            ? messages.registerSuccess
+            : messages.genericSuccess}
       </Alert>
     );
   return (
     <form className="form" onSubmit={submit} noValidate>
       {['login', 'register', 'forgot'].includes(mode) ? (
-        <Field name="email" label="ایمیل" error={error?.fieldErrors?.email}>
+        <Field name="email" label={messages.email} error={error?.fieldErrors?.email}>
           <Input
             id="email"
             name="email"
@@ -101,14 +119,18 @@ export function AuthForm({
         </Field>
       ) : null}
       {mode === 'register' ? (
-        <Field name="displayName" label="نام نمایشی" error={error?.fieldErrors?.displayName}>
+        <Field
+          name="displayName"
+          label={messages.displayName}
+          error={error?.fieldErrors?.displayName}
+        >
           <Input id="displayName" name="displayName" autoComplete="nickname" required />
         </Field>
       ) : null}
       {['login', 'register', 'reset'].includes(mode) ? (
         <Field
           name="password"
-          label={mode === 'reset' ? 'گذرواژه جدید' : 'گذرواژه'}
+          label={mode === 'reset' ? messages.newPassword : messages.password}
           error={error?.fieldErrors?.password}
         >
           <PasswordInput
@@ -122,7 +144,11 @@ export function AuthForm({
         </Field>
       ) : null}
       {['register', 'reset'].includes(mode) ? (
-        <Field name="confirmation" label="تکرار گذرواژه" error={error?.fieldErrors?.confirmation}>
+        <Field
+          name="confirmation"
+          label={messages.confirmPassword}
+          error={error?.fieldErrors?.confirmation}
+        >
           <PasswordInput
             id="confirmation"
             name="confirmation"
@@ -139,27 +165,32 @@ export function AuthForm({
             checked={showPassword}
             onChange={(event) => setShowPassword(event.target.checked)}
           />{' '}
-          نمایش گذرواژه
+          {messages.showPassword}
         </label>
       ) : null}
       {error ? (
         <Alert error>
           {error.message}
-          {error.requestId ? <small className="ltr"> شناسه پیگیری: {error.requestId}</small> : null}
+          {error.requestId ? (
+            <small className="ltr">
+              {' '}
+              {messagesFor(locale).common.requestId}: {error.requestId}
+            </small>
+          ) : null}
         </Alert>
       ) : null}
       <Button type="submit" disabled={pending || (['reset', 'verify'].includes(mode) && !token)}>
         {pending
-          ? 'در حال ارسال…'
+          ? messages.submitting
           : mode === 'login'
-            ? 'ورود'
+            ? messages.loginButton
             : mode === 'register'
-              ? 'ساخت حساب'
+              ? messages.registerButton
               : mode === 'forgot'
-                ? 'ارسال راهنما'
+                ? messages.forgotButton
                 : mode === 'reset'
-                  ? 'تغییر گذرواژه'
-                  : 'تأیید ایمیل'}
+                  ? messages.resetButton
+                  : messages.verifyButton}
       </Button>
     </form>
   );
