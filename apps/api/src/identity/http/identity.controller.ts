@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Post,
   Req,
   Res,
@@ -20,6 +21,7 @@ import {
   loginSchema,
   registerSchema,
   resetConfirmSchema,
+  sessionIdSchema,
   tokenSchema,
   ZodBodyPipe,
   type ChangePasswordRequest,
@@ -127,6 +129,37 @@ export class IdentityController {
   ): Promise<void> {
     await this.services.sessions.revokeAllUserSessions(principal.userId);
     this.cookies.clear(response);
+  }
+
+  @Get('sessions')
+  public async sessions(@CurrentPrincipal() principal: AuthenticatedPrincipal): Promise<unknown> {
+    const sessions = await this.services.sessions.listUserSessions(
+      principal.userId,
+      principal.sessionId,
+    );
+    return {
+      sessions: sessions.map((session) => ({
+        id: session.id,
+        status: session.status,
+        current: session.current,
+        createdAt: session.createdAt.toISOString(),
+        lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+        expiresAt: session.expiresAt.toISOString(),
+        revokedAt: session.revokedAt?.toISOString() ?? null,
+        userAgent: session.userAgent,
+      })),
+    };
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('sessions/:sessionId/revoke')
+  public async revokeUserSession(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('sessionId', new ZodBodyPipe(sessionIdSchema)) sessionId: string,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<void> {
+    await this.services.sessions.revokeUserSession(principal.userId, sessionId);
+    if (sessionId === principal.sessionId) this.cookies.clear(response);
   }
 
   @Public()
