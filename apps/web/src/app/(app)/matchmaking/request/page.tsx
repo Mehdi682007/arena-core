@@ -1,5 +1,9 @@
 import { MatchmakingForm } from '@/features/competition/matchmaking-form';
-import type { CatalogGame, GameAccount } from '@/features/competition/types';
+import type {
+  CatalogGame,
+  CatalogGameSummary,
+  GameAccount,
+} from '@/features/competition/types';
 import { getSession } from '@/features/session/session';
 import { productMessagesFor } from '@/i18n/product-messages';
 import { serverApi } from '@/lib/api/server-api-client';
@@ -10,7 +14,7 @@ export default async function RequestPage() {
   const locale = session.user.locale;
   const messages = productMessagesFor(locale).matchmaking;
   const [catalog, accounts] = await Promise.all([
-    serverApi<{ games: CatalogGame[] }>('/catalog/games'),
+    serverApi<{ games: CatalogGameSummary[] }>('/catalog/games'),
     serverApi<GameAccount[]>('/game-accounts'),
   ]);
   const games = await Promise.all(
