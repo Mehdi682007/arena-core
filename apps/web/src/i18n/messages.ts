@@ -149,8 +149,7 @@ const fa: AppMessages = {
     submitting: 'در حال ارسال…',
     forgotLink: 'گذرواژه را فراموش کرده‌اید؟',
     haveAccount: 'حساب دارید؟ وارد شوید.',
-    registerHint:
-      'گذرواژه باید الزامات واقعی سرویس را رعایت کند؛ اعتبارسنجی نهایی با سرور است.',
+    registerHint: 'گذرواژه باید الزامات واقعی سرویس را رعایت کند؛ اعتبارسنجی نهایی با سرور است.',
     privacyHint: 'برای حفظ حریم خصوصی، پاسخ وجود یا نبود حساب را مشخص نمی‌کند.',
     resetLinkMissing: 'پیوند بازیابی کامل نیست.',
     verificationLinkMissing: 'پیوند تأیید کامل نیست.',
@@ -168,8 +167,7 @@ const fa: AppMessages = {
     securityTitle: 'امنیت',
     securityDescription: 'گذرواژه و کنترل‌های امنیتی حساب را مدیریت کنید.',
     sessionsTitle: 'نشست‌ها',
-    sessionsDescription:
-      'دستگاه‌های واردشده به حساب را ببینید و دسترسی‌های قدیمی را ببندید.',
+    sessionsDescription: 'دستگاه‌های واردشده به حساب را ببینید و دسترسی‌های قدیمی را ببندید.',
     notificationsTitle: 'ترجیحات اعلان',
     languageAndSecurity: 'زبان و امنیت',
     currentLanguage: 'زبان فعلی',
@@ -294,8 +292,7 @@ const en: AppMessages = {
       next: 'New password',
       confirm: 'Confirm new password',
       submit: 'Change password',
-      notice:
-        'Changing your password signs out active sessions. You will need to sign in again.',
+      notice: 'Changing your password signs out active sessions. You will need to sign in again.',
       mismatch: 'The new password and confirmation do not match.',
     },
     sessions: {
