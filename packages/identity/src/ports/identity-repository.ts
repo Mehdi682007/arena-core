@@ -3,6 +3,7 @@ import type {
   ResetTokenRecord,
   SessionRecord,
   UserSecurityRecord,
+  UserSessionSummaryRecord,
   VerificationTokenRecord,
 } from '../domain/identity-types';
 
@@ -42,7 +43,9 @@ export interface IdentityRepository {
 
   recoverExpiredSuspension(userId: string): Promise<void>;
   findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null>;
+  listUserSessions(userId: string): Promise<readonly UserSessionSummaryRecord[]>;
   revokeSession(sessionId: string, at: Date, reason: string): Promise<void>;
+  revokeOwnedSession(userId: string, sessionId: string, at: Date, reason: string): Promise<boolean>;
   revokeActiveSessions(
     userId: string,
     at: Date,
