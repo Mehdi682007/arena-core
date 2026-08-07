@@ -1,10 +1,12 @@
-export interface CatalogGame {
+export interface CatalogGameSummary {
   id: string;
   key: string;
   slug: string;
   name: string;
   shortName?: string | null;
   platforms: { id: string; name: string; key: string; slug?: string }[];
+}
+export interface CatalogGame extends CatalogGameSummary {
   modes: { id: string; key: string; slug: string; name: string }[];
 }
 export interface GameAccount {
