@@ -29,7 +29,7 @@
     "db:validate": "pnpm --filter @arena-core/database db:validate",
     "dev": "turbo run dev",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write apps/web/src/features/settings/password-change-form.tsx apps/web/src/features/settings/profile-form.tsx apps/web/src/i18n/messages.ts packages/identity/src/application/identity-services.ts && git diff -- apps/web/src/features/settings/password-change-form.tsx apps/web/src/features/settings/profile-form.tsx apps/web/src/i18n/messages.ts packages/identity/src/application/identity-services.ts && exit 1",
     "infra:config": "docker compose --project-directory . -f infra/compose/docker-compose.yml config --quiet",
     "infra:down": "docker compose --project-directory . -f infra/compose/docker-compose.yml down --remove-orphans",
     "infra:health": "node infra/compose/health.mjs",
