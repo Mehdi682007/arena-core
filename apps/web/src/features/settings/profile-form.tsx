@@ -32,9 +32,7 @@ export function ProfileForm({ initial }: { initial: EditableProfile }) {
 
     const data = new FormData(event.currentTarget);
     const nextLocale = String(data.get('locale') ?? initial.locale) as AppLocale;
-    const country = String(data.get('countryCode') ?? '')
-      .trim()
-      .toUpperCase();
+    const country = String(data.get('countryCode') ?? '').trim().toUpperCase();
 
     try {
       await browserApi('/profile', {
@@ -74,7 +72,11 @@ export function ProfileForm({ initial }: { initial: EditableProfile }) {
         />
       </Field>
 
-      <Field name="locale" label={messages.settings.profile.locale} error={error?.fieldErrors?.locale}>
+      <Field
+        name="locale"
+        label={messages.settings.profile.locale}
+        error={error?.fieldErrors?.locale}
+      >
         <Select
           id="locale"
           name="locale"
