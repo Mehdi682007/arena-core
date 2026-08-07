@@ -18,6 +18,14 @@ export interface ProductMessages {
     readonly proposalTitle: string;
     readonly deadline: string;
     readonly reviewProposal: string;
+    readonly noActiveProposal: string;
+    readonly yourAcceptance: string;
+    readonly opponentAcceptance: string;
+    readonly accepted: string;
+    readonly waiting: string;
+    readonly timeRemaining: string;
+    readonly accept: string;
+    readonly reject: string;
     readonly searchingTitle: string;
     readonly noFakeQueueEstimate: string;
     readonly cancelSearch: string;
@@ -88,6 +96,14 @@ const fa: ProductMessages = {
     proposalTitle: 'پیشنهاد مسابقه',
     deadline: 'مهلت',
     reviewProposal: 'بررسی پیشنهاد',
+    noActiveProposal: 'پیشنهاد فعالی وجود ندارد',
+    yourAcceptance: 'پذیرش شما',
+    opponentAcceptance: 'پذیرش طرف مقابل',
+    accepted: 'انجام شده',
+    waiting: 'منتظر',
+    timeRemaining: 'زمان باقی‌مانده',
+    accept: 'پذیرش',
+    reject: 'رد',
     searchingTitle: 'جستجو در جریان است',
     noFakeQueueEstimate: 'موقعیت صف و زمان تخمینی ساختگی نمایش داده نمی‌شود.',
     cancelSearch: 'لغو جستجو',
@@ -158,6 +174,14 @@ const en: ProductMessages = {
     proposalTitle: 'Match proposal',
     deadline: 'Deadline',
     reviewProposal: 'Review proposal',
+    noActiveProposal: 'There is no active proposal',
+    yourAcceptance: 'Your acceptance',
+    opponentAcceptance: "Opponent's acceptance",
+    accepted: 'Accepted',
+    waiting: 'Waiting',
+    timeRemaining: 'Time remaining',
+    accept: 'Accept',
+    reject: 'Reject',
     searchingTitle: 'Searching for an opponent',
     noFakeQueueEstimate:
       'Arena Core does not display fabricated queue positions or wait estimates.',
