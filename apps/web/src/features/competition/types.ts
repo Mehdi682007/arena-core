@@ -1,9 +1,11 @@
 export interface CatalogGame {
   id: string;
+  key: string;
   slug: string;
   name: string;
-  platforms: { id: string; name: string; key: string }[];
-  modes: { id: string; key: string; name: string }[];
+  shortName?: string | null;
+  platforms: { id: string; name: string; key: string; slug?: string }[];
+  modes: { id: string; key: string; slug: string; name: string }[];
 }
 export interface GameAccount {
   id: string;
