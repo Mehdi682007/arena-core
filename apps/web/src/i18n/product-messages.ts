@@ -129,7 +129,8 @@ const en: ProductMessages = {
     deadline: 'Deadline',
     reviewProposal: 'Review proposal',
     searchingTitle: 'Searching for an opponent',
-    noFakeQueueEstimate: 'Arena Core does not display fabricated queue positions or wait estimates.',
+    noFakeQueueEstimate:
+      'Arena Core does not display fabricated queue positions or wait estimates.',
     cancelSearch: 'Cancel search',
     refresh: 'Refresh',
     noActiveSearch: 'You have no active search',
