@@ -31,9 +31,11 @@ export default async function HomePage() {
           leaderboard: 'View leaderboards',
           features: 'Features',
           identityTitle: 'Secure identity',
-          identityBody: 'Secure cookie-based sign-in without storing authentication tokens in browser storage.',
+          identityBody:
+            'Secure cookie-based sign-in without storing authentication tokens in browser storage.',
           ratingTitle: 'Real ratings',
-          ratingBody: 'See actual platform data without fabricated statistics or financial promises.',
+          ratingBody:
+            'See actual platform data without fabricated statistics or financial promises.',
           notificationsTitle: 'Controllable notifications',
           notificationsBody: 'Review notifications and manage delivery preferences.',
         };
