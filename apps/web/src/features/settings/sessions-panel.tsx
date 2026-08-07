@@ -42,7 +42,11 @@ export function SessionsPanel({
   const [error, setError] = useState<ApiError>();
 
   const statusLabel = (status: UserSessionItem['status']) =>
-    status === 'ACTIVE' ? messages.active : status === 'REVOKED' ? messages.revoked : messages.expired;
+    status === 'ACTIVE'
+      ? messages.active
+      : status === 'REVOKED'
+        ? messages.revoked
+        : messages.expired;
 
   async function revoke(session: UserSessionItem) {
     setPendingId(session.id);
@@ -84,7 +88,12 @@ export function SessionsPanel({
       {error ? <Alert error>{error.message}</Alert> : null}
 
       <div>
-        <Button type="button" className="secondary" disabled={allPending} onClick={() => void revokeAll()}>
+        <Button
+          type="button"
+          className="secondary"
+          disabled={allPending}
+          onClick={() => void revokeAll()}
+        >
           {messages.revokeAll}
         </Button>
       </div>
