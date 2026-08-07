@@ -2,26 +2,9 @@
 
 import { Globe2 } from 'lucide-react';
 import { useState } from 'react';
-import {
-  defaultLocale,
-  localeCookieName,
-  localeDirection,
-  normalizeLocale,
-  type AppLocale,
-} from '@/i18n/config';
+import { defaultLocale, normalizeLocale, type AppLocale } from '@/i18n/config';
+import { persistClientLocale } from '@/i18n/client';
 import { browserApi } from '@/lib/api/browser-api-client';
-
-function persistLocaleCookie(locale: AppLocale): void {
-  document.cookie = [
-    `${localeCookieName}=${locale}`,
-    'Path=/',
-    'Max-Age=31536000',
-    'SameSite=Lax',
-    window.location.protocol === 'https:' ? 'Secure' : '',
-  ]
-    .filter(Boolean)
-    .join('; ');
-}
 
 export function LanguageToggle({
   initialLocale,
@@ -59,9 +42,7 @@ export function LanguageToggle({
       }
     }
 
-    persistLocaleCookie(nextLocale);
-    document.documentElement.lang = nextLocale;
-    document.documentElement.dir = localeDirection(nextLocale);
+    persistClientLocale(nextLocale);
     setLocale(nextLocale);
     window.location.reload();
   };
