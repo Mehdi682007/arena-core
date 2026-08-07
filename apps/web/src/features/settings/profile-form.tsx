@@ -32,7 +32,9 @@ export function ProfileForm({ initial }: { initial: EditableProfile }) {
 
     const data = new FormData(event.currentTarget);
     const nextLocale = String(data.get('locale') ?? initial.locale) as AppLocale;
-    const country = String(data.get('countryCode') ?? '').trim().toUpperCase();
+    const country = String(data.get('countryCode') ?? '')
+      .trim()
+      .toUpperCase();
 
     try {
       await browserApi('/profile', {
