@@ -2,8 +2,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Alert, Badge, Button, Card, EmptyState } from '@/components/ui';
-import { browserApi } from '@/lib/api/browser-api-client';
 import { notificationMatchHref } from '@/features/competition/presentation';
+import type { AppLocale } from '@/i18n/config';
+import { productMessagesFor } from '@/i18n/product-messages';
+import { browserApi } from '@/lib/api/browser-api-client';
+
 export interface NotificationItem {
   id: string;
   type: string;
@@ -15,16 +18,21 @@ export interface NotificationItem {
   archived: boolean;
   createdAt: string;
 }
+
 export function NotificationList({
   initialItems,
   nextCursor,
+  locale,
 }: {
   initialItems: readonly NotificationItem[];
   nextCursor: string | null;
+  locale: AppLocale;
 }) {
+  const messages = productMessagesFor(locale).notifications;
   const [items, setItems] = useState([...initialItems]);
   const [cursor, setCursor] = useState(nextCursor);
   const [error, setError] = useState(false);
+
   async function action(id: string, operation: 'read' | 'unread' | 'archive') {
     setError(false);
     try {
@@ -41,6 +49,7 @@ export function NotificationList({
       setError(true);
     }
   }
+
   async function more() {
     if (!cursor) return;
     try {
@@ -53,48 +62,50 @@ export function NotificationList({
       setError(true);
     }
   }
+
   if (items.length === 0)
     return (
-      <EmptyState title="اعلانی ندارید">
-        <p>اعلان‌های جدید اینجا نمایش داده می‌شوند.</p>
+      <EmptyState title={messages.empty}>
+        <p>{messages.emptyDescription}</p>
       </EmptyState>
     );
+
   return (
     <div className="stack">
-      {error ? <Alert error>به‌روزرسانی اعلان ممکن نشد.</Alert> : null}
-      {items.map((item) => (
-        <Card key={item.id}>
-          <div className="cluster">
-            {notificationMatchHref(item.type, item.data) ? (
-              <Link href={notificationMatchHref(item.type, item.data) ?? '/notifications'}>
-                مشاهده جریان مسابقه
-              </Link>
-            ) : null}
-            <h2>{item.subject}</h2>
-            {!item.read ? <Badge>جدید</Badge> : null}
-          </div>
-          <p>{item.body}</p>
-          <time dateTime={item.createdAt}>
-            {new Intl.DateTimeFormat('fa', { dateStyle: 'medium', timeStyle: 'short' }).format(
-              new Date(item.createdAt),
-            )}
-          </time>
-          <div className="cluster">
-            <Button
-              className="secondary"
-              onClick={() => action(item.id, item.read ? 'unread' : 'read')}
-            >
-              {item.read ? 'خوانده‌نشده' : 'خوانده شد'}
-            </Button>
-            <Button className="secondary" onClick={() => action(item.id, 'archive')}>
-              بایگانی
-            </Button>
-          </div>
-        </Card>
-      ))}
+      {error ? <Alert error>{messages.updateFailed}</Alert> : null}
+      {items.map((item) => {
+        const matchHref = notificationMatchHref(item.type, item.data);
+        return (
+          <Card key={item.id}>
+            <div className="cluster">
+              {matchHref ? <Link href={matchHref}>{messages.viewMatchFlow}</Link> : null}
+              <h2>{item.subject}</h2>
+              {!item.read ? <Badge>{messages.new}</Badge> : null}
+            </div>
+            <p>{item.body}</p>
+            <time dateTime={item.createdAt}>
+              {new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR' : 'en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(item.createdAt))}
+            </time>
+            <div className="cluster">
+              <Button
+                className="secondary"
+                onClick={() => action(item.id, item.read ? 'unread' : 'read')}
+              >
+                {item.read ? messages.markUnread : messages.markRead}
+              </Button>
+              <Button className="secondary" onClick={() => action(item.id, 'archive')}>
+                {messages.archive}
+              </Button>
+            </div>
+          </Card>
+        );
+      })}
       {cursor ? (
         <Button className="secondary" onClick={more}>
-          نمایش بیشتر
+          {messages.more}
         </Button>
       ) : null}
     </div>
