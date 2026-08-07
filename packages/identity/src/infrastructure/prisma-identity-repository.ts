@@ -4,6 +4,7 @@ import type {
   ResetTokenRecord,
   SessionRecord,
   UserSecurityRecord,
+  UserSessionSummaryRecord,
   VerificationTokenRecord,
 } from '../domain/identity-types';
 import type {
@@ -226,11 +227,41 @@ export class PrismaIdentityRepository implements IdentityRepository {
     return session;
   }
 
+  public async listUserSessions(userId: string): Promise<readonly UserSessionSummaryRecord[]> {
+    return this.client.userSession.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        lastSeenAt: true,
+        expiresAt: true,
+        revokedAt: true,
+        userAgent: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
   public async revokeSession(sessionId: string, at: Date, reason: string): Promise<void> {
     await this.client.userSession.updateMany({
       where: { id: sessionId, status: 'ACTIVE' },
       data: { status: 'REVOKED', revokedAt: at, revocationReason: reason },
     });
+  }
+
+  public async revokeOwnedSession(
+    userId: string,
+    sessionId: string,
+    at: Date,
+    reason: string,
+  ): Promise<boolean> {
+    const result = await this.client.userSession.updateMany({
+      where: { id: sessionId, userId, status: 'ACTIVE' },
+      data: { status: 'REVOKED', revokedAt: at, revocationReason: reason },
+    });
+    return result.count > 0;
   }
 
   public async revokeActiveSessions(
