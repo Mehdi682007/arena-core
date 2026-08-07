@@ -1,8 +1,20 @@
 'use client';
 import { useState, type FormEvent } from 'react';
-import { Alert, Button, Select, Textarea } from '@/components/ui';
+import { Alert, Button, Field, Select, Textarea } from '@/components/ui';
+import type { AppLocale } from '@/i18n/config';
 import { browserApi } from '@/lib/api/browser-api-client';
-export function DisputeForm({ matchId, disputeId }: { matchId: string; disputeId?: string }) {
+import { competitionMessagesFor } from './messages';
+
+export function DisputeForm({
+  matchId,
+  disputeId,
+  locale,
+}: {
+  matchId: string;
+  disputeId?: string;
+  locale: AppLocale;
+}) {
+  const messages = competitionMessagesFor(locale).dispute;
   const [message, setMessage] = useState('');
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,9 +38,9 @@ export function DisputeForm({ matchId, disputeId }: { matchId: string; disputeId
             },
           },
         });
-      setMessage('درخواست ثبت شد.');
+      setMessage(messages.submitted);
     } catch {
-      setMessage('ثبت درخواست ممکن نشد.');
+      setMessage(messages.failed);
     }
   }
   return (
@@ -36,22 +48,24 @@ export function DisputeForm({ matchId, disputeId }: { matchId: string; disputeId
       {!disputeId ? (
         <>
           <Select name="reasonCode">
-            <option value="SCORE_MISMATCH">عدم تطابق امتیاز</option>
-            <option value="WRONG_WINNER">برنده نادرست</option>
-            <option value="OPPONENT_NO_SHOW">عدم حضور حریف</option>
-            <option value="RULESET_VIOLATION">نقض قوانین</option>
-            <option value="OTHER">سایر</option>
+            <option value="SCORE_MISMATCH">{messages.scoreMismatch}</option>
+            <option value="WRONG_WINNER">{messages.wrongWinner}</option>
+            <option value="OPPONENT_NO_SHOW">{messages.opponentNoShow}</option>
+            <option value="RULESET_VIOLATION">{messages.rulesetViolation}</option>
+            <option value="OTHER">{messages.other}</option>
           </Select>
           <Select name="requestedOutcome">
-            <option value="KEEP_CURRENT_RESULT">حفظ نتیجه</option>
-            <option value="CORRECT_SCORE">اصلاح امتیاز</option>
-            <option value="VOID_MATCH">باطل‌کردن مسابقه</option>
+            <option value="KEEP_CURRENT_RESULT">{messages.keepResult}</option>
+            <option value="CORRECT_SCORE">{messages.correctScore}</option>
+            <option value="VOID_MATCH">{messages.voidMatch}</option>
           </Select>
         </>
       ) : null}
-      <Textarea name="statement" minLength={1} maxLength={2000} required />
+      <Field name="statement" label={messages.statement}>
+        <Textarea name="statement" minLength={1} maxLength={2000} required />
+      </Field>
       {message ? <Alert>{message}</Alert> : null}
-      <Button>{disputeId ? 'ارسال پاسخ' : 'بازکردن اعتراض'}</Button>
+      <Button>{disputeId ? messages.respond : messages.open}</Button>
     </form>
   );
 }
