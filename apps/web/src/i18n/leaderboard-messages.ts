@@ -1,6 +1,7 @@
 import type { AppLocale } from './config';
 
 export interface LeaderboardMessages {
+  readonly genericTitle: string;
   readonly title: (gameName: string) => string;
   readonly game: string;
   readonly mode: string;
@@ -18,6 +19,7 @@ export interface LeaderboardMessages {
 }
 
 const fa: LeaderboardMessages = {
+  genericTitle: 'رتبه‌بندی',
   title: (gameName) => `رتبه‌بندی ${gameName}`,
   game: 'بازی',
   mode: 'حالت بازی',
@@ -35,6 +37,7 @@ const fa: LeaderboardMessages = {
 };
 
 const en: LeaderboardMessages = {
+  genericTitle: 'Leaderboards',
   title: (gameName) => `${gameName} leaderboard`,
   game: 'Game',
   mode: 'Game mode',
