@@ -1,7 +1,14 @@
 import { MatchmakingForm } from '@/features/competition/matchmaking-form';
 import type { CatalogGame, GameAccount } from '@/features/competition/types';
+import { getSession } from '@/features/session/session';
+import { productMessagesFor } from '@/i18n/product-messages';
 import { serverApi } from '@/lib/api/server-api-client';
+
 export default async function RequestPage() {
+  const session = await getSession();
+  if (session.status !== 'authenticated') return null;
+  const locale = session.user.locale;
+  const messages = productMessagesFor(locale).matchmaking;
   const [catalog, accounts] = await Promise.all([
     serverApi<{ games: CatalogGame[] }>('/catalog/games'),
     serverApi<GameAccount[]>('/game-accounts'),
@@ -11,9 +18,9 @@ export default async function RequestPage() {
   );
   return (
     <div className="stack">
-      <h1>درخواست رقابت</h1>
-      <p className="muted">حریف، امتیاز و ورودی توسط سرور تعیین می‌شود.</p>
-      <MatchmakingForm games={games} accounts={accounts} />
+      <h1>{messages.requestTitle}</h1>
+      <p className="muted">{messages.serverDetermined}</p>
+      <MatchmakingForm games={games} accounts={accounts} locale={locale} />
     </div>
   );
 }
