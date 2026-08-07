@@ -1,5 +1,6 @@
 import type { AuthenticationConfig } from '@arena-core/config';
 import { IdentityError } from '../domain/identity-errors';
+import type { SessionStatus, UserSessionSummaryRecord, UserSessionView } from '../domain/identity-types';
 import {
   normalizeEmail,
   normalizeIp,
@@ -24,6 +25,18 @@ function addSeconds(date: Date, seconds: number): Date {
 
 function ensureActive(status: string, deletedAt: Date | null = null): void {
   if (status !== 'ACTIVE' || deletedAt !== null) throw new IdentityError('ACCOUNT_NOT_ACTIVE');
+}
+
+function effectiveSessionStatus(
+  session: UserSessionSummaryRecord,
+  now: Date,
+  idleTimeoutSeconds: number,
+): SessionStatus {
+  if (session.status !== 'ACTIVE') return session.status;
+  const idleBase = session.lastSeenAt ?? session.createdAt;
+  return session.expiresAt <= now || addSeconds(idleBase, idleTimeoutSeconds) <= now
+    ? 'EXPIRED'
+    : 'ACTIVE';
 }
 
 export class IdentityService {
@@ -260,11 +273,43 @@ export class SessionService {
     return Object.freeze({ valid: true, userId: session.userId, sessionId: session.id });
   }
 
+  public async listUserSessions(userId: string, currentSessionId: string): Promise<readonly UserSessionView[]> {
+    const sessions = await this.dependencies.transactions.transaction((repository) =>
+      repository.listUserSessions(userId),
+    );
+    const now = this.dependencies.clock.now();
+    return Object.freeze(
+      sessions.map((session) =>
+        Object.freeze({
+          ...session,
+          status: effectiveSessionStatus(
+            session,
+            now,
+            this.dependencies.config.session.idleTimeoutSeconds,
+          ),
+          current: session.id === currentSessionId,
+        }),
+      ),
+    );
+  }
+
   public async revokeSession(sessionId: string, reason = 'USER_REQUEST'): Promise<void> {
     if (!/^[A-Z0-9_]{1,64}$/.test(reason)) throw new IdentityError('IDENTITY_CONFLICT');
     await this.dependencies.transactions.transaction((repository) =>
       repository.revokeSession(sessionId, this.dependencies.clock.now(), reason),
     );
+  }
+
+  public async revokeUserSession(userId: string, sessionId: string): Promise<void> {
+    const revoked = await this.dependencies.transactions.transaction((repository) =>
+      repository.revokeOwnedSession(
+        userId,
+        sessionId,
+        this.dependencies.clock.now(),
+        'USER_REQUEST',
+      ),
+    );
+    if (!revoked) throw new IdentityError('SESSION_INVALID');
   }
 
   public async revokeAllUserSessions(userId: string, excludeSessionId?: string): Promise<void> {
