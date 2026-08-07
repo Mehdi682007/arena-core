@@ -1,14 +1,18 @@
 import { Inject, Injectable, type Provider } from '@nestjs/common';
 import {
   AdminGameAccountVerificationService,
+  GameAccountCatalogService,
   PlayerGameAccountService,
   PlayerIdentityError,
+  PrismaGameAccountCatalogRepository,
   PrismaPlayerGameAccountRepository,
+  type GameAccountCatalogRepository,
   type PlayerGameAccountRepository,
 } from '@arena-core/player-identity';
 import { DatabaseService } from '../database/database.service';
 
 export const PLAYER_GAME_ACCOUNT_SERVICE = Symbol('PLAYER_GAME_ACCOUNT_SERVICE');
+export const GAME_ACCOUNT_CATALOG_SERVICE = Symbol('GAME_ACCOUNT_CATALOG_SERVICE');
 export const ADMIN_GAME_ACCOUNT_SERVICE = Symbol('ADMIN_GAME_ACCOUNT_SERVICE');
 export const PLAYER_IDENTITY_AUTHORIZATION = Symbol('PLAYER_IDENTITY_AUTHORIZATION');
 export interface PlayerIdentityAuthorization {
@@ -21,6 +25,16 @@ class ApiPlayerGameAccountRepository {
     const client = this.database.getClient();
     if (!client) throw new PlayerIdentityError('PLAYER_IDENTITY_UNAVAILABLE');
     return new PrismaPlayerGameAccountRepository(client);
+  }
+}
+@Injectable()
+class ApiGameAccountCatalogRepository implements GameAccountCatalogRepository {
+  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
+
+  public listClaimableGamePlatforms() {
+    const client = this.database.getClient();
+    if (!client) throw new PlayerIdentityError('PLAYER_IDENTITY_UNAVAILABLE');
+    return new PrismaGameAccountCatalogRepository(client).listClaimableGamePlatforms();
   }
 }
 @Injectable()
@@ -53,11 +67,18 @@ function forwardingRepository(source: ApiPlayerGameAccountRepository): PlayerGam
 }
 export const playerIdentityProviders: Provider[] = [
   ApiPlayerGameAccountRepository,
+  ApiGameAccountCatalogRepository,
   {
     provide: PLAYER_GAME_ACCOUNT_SERVICE,
     inject: [ApiPlayerGameAccountRepository],
     useFactory: (repository: ApiPlayerGameAccountRepository) =>
       new PlayerGameAccountService(forwardingRepository(repository)),
+  },
+  {
+    provide: GAME_ACCOUNT_CATALOG_SERVICE,
+    inject: [ApiGameAccountCatalogRepository],
+    useFactory: (repository: ApiGameAccountCatalogRepository) =>
+      new GameAccountCatalogService(repository),
   },
   {
     provide: ADMIN_GAME_ACCOUNT_SERVICE,
