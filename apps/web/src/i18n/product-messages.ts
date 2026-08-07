@@ -24,6 +24,21 @@ export interface ProductMessages {
     readonly refresh: string;
     readonly noActiveSearch: string;
     readonly createRequest: string;
+    readonly requestTitle: string;
+    readonly serverDetermined: string;
+    readonly noVerifiedIdentity: string;
+    readonly noCompatibleIdentity: string;
+    readonly viewProfile: string;
+    readonly noGames: string;
+    readonly game: string;
+    readonly mode: string;
+    readonly gameIdentity: string;
+    readonly searchScope: string;
+    readonly crossplay: string;
+    readonly samePlatform: string;
+    readonly createFailed: string;
+    readonly creating: string;
+    readonly startSearch: string;
   };
   readonly matches: {
     readonly title: string;
@@ -79,6 +94,21 @@ const fa: ProductMessages = {
     refresh: 'تازه‌سازی دستی',
     noActiveSearch: 'جستجوی فعالی ندارید',
     createRequest: 'ساخت درخواست رقابت',
+    requestTitle: 'درخواست رقابت',
+    serverDetermined: 'حریف، امتیاز و ورودی توسط سرور تعیین می‌شود.',
+    noVerifiedIdentity: 'هویت بازی تأییدشده ندارید',
+    noCompatibleIdentity: 'برای این بازی هویت تأییدشده‌ای ندارید.',
+    viewProfile: 'مشاهده پروفایل',
+    noGames: 'در حال حاضر بازی فعالی برای رقابت وجود ندارد.',
+    game: 'بازی',
+    mode: 'حالت',
+    gameIdentity: 'هویت بازی',
+    searchScope: 'محدوده جستجو',
+    crossplay: 'کراس‌پلی سازگار',
+    samePlatform: 'همان پلتفرم',
+    createFailed: 'ایجاد درخواست ممکن نشد. حساب، حالت و قوانین را بررسی کنید.',
+    creating: 'در حال ایجاد…',
+    startSearch: 'شروع جستجو',
   },
   matches: {
     title: 'مسابقه‌ها',
@@ -135,6 +165,21 @@ const en: ProductMessages = {
     refresh: 'Refresh',
     noActiveSearch: 'You have no active search',
     createRequest: 'Create competition request',
+    requestTitle: 'Competition request',
+    serverDetermined: 'The server determines the opponent, rating rules, and entry requirements.',
+    noVerifiedIdentity: 'You do not have a verified game identity',
+    noCompatibleIdentity: 'You do not have a verified identity for this game.',
+    viewProfile: 'View profile',
+    noGames: 'There are currently no active games available for competition.',
+    game: 'Game',
+    mode: 'Mode',
+    gameIdentity: 'Game identity',
+    searchScope: 'Search scope',
+    crossplay: 'Compatible cross-play',
+    samePlatform: 'Same platform',
+    createFailed: 'Could not create the request. Check the account, mode, and ruleset.',
+    creating: 'Creating…',
+    startSearch: 'Start search',
   },
   matches: {
     title: 'Matches',
