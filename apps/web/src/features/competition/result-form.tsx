@@ -1,8 +1,12 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, Field, Input, Select, Textarea } from '@/components/ui';
+import type { AppLocale } from '@/i18n/config';
 import { browserApi } from '@/lib/api/browser-api-client';
-export function ResultForm({ matchId }: { matchId: string }) {
+import { competitionMessagesFor } from './messages';
+
+export function ResultForm({ matchId, locale }: { matchId: string; locale: AppLocale }) {
+  const messages = competitionMessagesFor(locale).result;
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -27,33 +31,35 @@ export function ResultForm({ matchId }: { matchId: string }) {
           },
         },
       });
-      setMessage('نتیجه ثبت شد. نتیجه نهایی فقط پس از تأیید سرور نمایش داده می‌شود.');
+      setMessage(messages.submitted);
     } catch {
-      setMessage('ثبت نتیجه ممکن نشد.');
+      setMessage(messages.submitFailed);
     } finally {
       setPending(false);
     }
   }
   return (
     <form className="form" onSubmit={submit}>
-      <Field name="ownSide" label="سمت شما">
+      <Field name="ownSide" label={messages.ownSide}>
         <Select id="ownSide" name="ownSide">
-          <option value="SIDE_A">سمت A</option>
-          <option value="SIDE_B">سمت B</option>
+          <option value="SIDE_A">{messages.sideA}</option>
+          <option value="SIDE_B">{messages.sideB}</option>
         </Select>
       </Field>
-      <Field name="ownScore" label="امتیاز شما">
+      <Field name="ownScore" label={messages.ownScore}>
         <Input id="ownScore" name="ownScore" type="number" min={0} max={99} required />
       </Field>
-      <Field name="opponentScore" label="امتیاز حریف">
+      <Field name="opponentScore" label={messages.opponentScore}>
         <Input id="opponentScore" name="opponentScore" type="number" min={0} max={99} required />
       </Field>
       {message ? <Alert>{message}</Alert> : null}
-      <Button disabled={pending}>{pending ? 'در حال ثبت…' : 'ثبت نتیجه'}</Button>
+      <Button disabled={pending}>{pending ? messages.submitting : messages.submit}</Button>
     </form>
   );
 }
-export function EvidenceForm({ matchId }: { matchId: string }) {
+
+export function EvidenceForm({ matchId, locale }: { matchId: string; locale: AppLocale }) {
+  const messages = competitionMessagesFor(locale).result;
   const [message, setMessage] = useState('');
   return (
     <form
@@ -71,21 +77,23 @@ export function EvidenceForm({ matchId }: { matchId: string }) {
             },
           },
         })
-          .then(() => setMessage('اظهار مدرک ثبت شد.'))
-          .catch(() => setMessage('ثبت اظهار مدرک ممکن نشد.'));
+          .then(() => setMessage(messages.evidenceSubmitted))
+          .catch(() => setMessage(messages.evidenceFailed));
       }}
     >
-      <h2>اظهار مدرک</h2>
-      <p className="muted">آپلود فایل انجام نمی‌شود؛ فقط وجود و توضیح مدرک اعلام می‌شود.</p>
+      <h2>{messages.evidenceTitle}</h2>
+      <p className="muted">{messages.evidenceNotice}</p>
       <Select name="type">
-        <option value="SCREENSHOT_DECLARATION">تصویر</option>
-        <option value="VIDEO_DECLARATION">ویدئو</option>
-        <option value="MATCH_SUMMARY_DECLARATION">خلاصه مسابقه</option>
-        <option value="TEXT_STATEMENT">اظهار متنی</option>
+        <option value="SCREENSHOT_DECLARATION">{messages.screenshot}</option>
+        <option value="VIDEO_DECLARATION">{messages.video}</option>
+        <option value="MATCH_SUMMARY_DECLARATION">{messages.matchSummary}</option>
+        <option value="TEXT_STATEMENT">{messages.textStatement}</option>
       </Select>
-      <Textarea name="description" maxLength={2000} required />
+      <Field name="description" label={messages.evidenceDescription}>
+        <Textarea name="description" maxLength={2000} required />
+      </Field>
       {message ? <Alert>{message}</Alert> : null}
-      <Button>ثبت اظهار</Button>
+      <Button>{messages.submitEvidence}</Button>
     </form>
   );
 }
