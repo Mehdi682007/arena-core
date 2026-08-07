@@ -4,6 +4,7 @@ import { LanguageToggle } from '@/components/language-toggle';
 import { NotificationPreferences } from '@/features/notifications/preferences';
 import { LogoutButton } from '@/features/session/logout-button';
 import type { AppLocale } from '@/i18n/config';
+import { gameAccountMessagesFor } from '@/i18n/game-account-messages';
 import { messagesFor } from '@/i18n/messages';
 import { serverApi } from '@/lib/api/server-api-client';
 
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
   ]);
   const locale = profile.profile.locale;
   const messages = messagesFor(locale).settings;
+  const gameAccountMessages = gameAccountMessagesFor(locale);
   return (
     <div className="stack">
       <div>
@@ -38,6 +40,9 @@ export default async function SettingsPage() {
           </Link>
           <Link className="button secondary" href="/settings/sessions">
             {messages.sessionsTitle}
+          </Link>
+          <Link className="button secondary" href="/settings/game-accounts">
+            {gameAccountMessages.title}
           </Link>
         </div>
       </Card>
