@@ -9,13 +9,28 @@ import {
   normalizeLocale,
   type AppLocale,
 } from '@/i18n/config';
+import { browserApi } from '@/lib/api/browser-api-client';
+
+function persistLocaleCookie(locale: AppLocale): void {
+  document.cookie = [
+    `${localeCookieName}=${locale}`,
+    'Path=/',
+    'Max-Age=31536000',
+    'SameSite=Lax',
+    window.location.protocol === 'https:' ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+}
 
 export function LanguageToggle({
   initialLocale,
   compact = false,
+  persistProfile = false,
 }: {
   initialLocale?: AppLocale;
   compact?: boolean;
+  persistProfile?: boolean;
 }) {
   const [locale, setLocale] = useState<AppLocale>(() => {
     if (initialLocale) {
@@ -28,25 +43,25 @@ export function LanguageToggle({
 
     return defaultLocale;
   });
+  const [pending, setPending] = useState(false);
 
-  const changeLocale = (nextLocale: AppLocale) => {
-    if (nextLocale === locale) {
+  const changeLocale = async (nextLocale: AppLocale) => {
+    if (nextLocale === locale || pending) {
       return;
     }
 
-    document.cookie = [
-      `${localeCookieName}=${nextLocale}`,
-      'Path=/',
-      'Max-Age=31536000',
-      'SameSite=Lax',
-      window.location.protocol === 'https:' ? 'Secure' : '',
-    ]
-      .filter(Boolean)
-      .join('; ');
+    setPending(true);
+    if (persistProfile) {
+      try {
+        await browserApi('/profile', { method: 'PATCH', body: { locale: nextLocale } });
+      } catch {
+        // The cookie remains a valid per-device preference even if account persistence is unavailable.
+      }
+    }
 
+    persistLocaleCookie(nextLocale);
     document.documentElement.lang = nextLocale;
     document.documentElement.dir = localeDirection(nextLocale);
-
     setLocale(nextLocale);
     window.location.reload();
   };
@@ -59,8 +74,9 @@ export function LanguageToggle({
         aria-label="تغییر زبان به فارسی"
         aria-pressed={locale === 'fa'}
         className={locale === 'fa' ? 'is-active' : undefined}
+        disabled={pending}
         onClick={() => {
-          changeLocale('fa');
+          void changeLocale('fa');
         }}
         type="button"
       >
@@ -73,8 +89,9 @@ export function LanguageToggle({
         aria-label="Switch language to English"
         aria-pressed={locale === 'en'}
         className={locale === 'en' ? 'is-active' : undefined}
+        disabled={pending}
         onClick={() => {
-          changeLocale('en');
+          void changeLocale('en');
         }}
         type="button"
       >
