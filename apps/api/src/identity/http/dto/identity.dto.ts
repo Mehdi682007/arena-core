@@ -23,7 +23,7 @@ export const registerSchema = z.strictObject({
 export const loginSchema = z.strictObject({ email, password });
 export const emailRequestSchema = z.strictObject({ email });
 export const tokenSchema = z.strictObject({ token });
-export const sessionIdSchema = z.string().uuid();
+export const sessionIdSchema = z.uuid();
 export const resetConfirmSchema = z.strictObject({ token, newPassword: password });
 export const changePasswordSchema = z.strictObject({
   currentPassword: password,
