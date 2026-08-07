@@ -4,7 +4,10 @@ type MatchStatusPresentation = Readonly<Record<string, { label: string; descript
 
 const fa: MatchStatusPresentation = {
   CREATED: { label: 'ایجاد شده', description: 'مسابقه در حال آماده‌سازی است.' },
-  AWAITING_READY: { label: 'منتظر آمادگی', description: 'شرکت‌کنندگان باید آمادگی را اعلام کنند.' },
+  AWAITING_READY: {
+    label: 'منتظر آمادگی',
+    description: 'شرکت‌کنندگان باید آمادگی را اعلام کنند.',
+  },
   READY: { label: 'آماده شروع', description: 'هر دو طرف آماده‌اند.' },
   IN_PROGRESS: { label: 'در حال بازی', description: 'مسابقه شروع شده است.' },
   AWAITING_RESULT: { label: 'منتظر نتیجه', description: 'نتیجه را ثبت کنید.' },
@@ -17,7 +20,10 @@ const fa: MatchStatusPresentation = {
 
 const en: MatchStatusPresentation = {
   CREATED: { label: 'Created', description: 'The match is being prepared.' },
-  AWAITING_READY: { label: 'Awaiting ready', description: 'Participants must confirm readiness.' },
+  AWAITING_READY: {
+    label: 'Awaiting ready',
+    description: 'Participants must confirm readiness.',
+  },
   READY: { label: 'Ready', description: 'Both participants are ready.' },
   IN_PROGRESS: { label: 'In progress', description: 'The match has started.' },
   AWAITING_RESULT: { label: 'Awaiting result', description: 'Submit the match result.' },
@@ -33,7 +39,10 @@ export function matchStatusFor(locale: AppLocale): MatchStatusPresentation {
 }
 
 export function statusLabel(status: string, locale: AppLocale = 'fa'): string {
-  return matchStatusFor(locale)[status]?.label ?? (locale === 'fa' ? 'وضعیت نامشخص' : 'Unknown status');
+  return (
+    matchStatusFor(locale)[status]?.label ??
+    (locale === 'fa' ? 'وضعیت نامشخص' : 'Unknown status')
+  );
 }
 
 export function notificationMatchHref(
