@@ -1,18 +1,23 @@
 ﻿import '@fontsource-variable/vazirmatn';
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
-import { localeCookieName, localeDirection, normalizeLocale } from '@/i18n/config';
+import { localeDirection } from '@/i18n/config';
+import { getServerLocale } from '@/i18n/server';
 import '../styles/globals.css';
 
-export const metadata: Metadata = {
-  title: { default: 'Arena Core', template: '%s | Arena Core' },
-  description: 'بستر رقابت آنلاین شفاف و غیرمالی',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  return {
+    title: { default: 'Arena Core', template: '%s | Arena Core' },
+    description:
+      locale === 'fa'
+        ? 'بستر رقابت آنلاین شفاف و غیرمالی'
+        : 'A transparent, non-financial platform for online competition',
+  };
+}
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const cookieStore = await cookies();
-  const locale = normalizeLocale(cookieStore.get(localeCookieName)?.value);
+  const locale = await getServerLocale();
 
   return (
     <html lang={locale} dir={localeDirection(locale)}>
