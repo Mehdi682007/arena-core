@@ -17,6 +17,7 @@ export interface GameAccountMessages {
   readonly primary: string;
   readonly setPrimary: string;
   readonly disconnect: string;
+  readonly confirmDisconnect: string;
   readonly resubmit: string;
   readonly actionFailed: string;
   readonly status: Readonly<Record<string, string>>;
@@ -39,6 +40,7 @@ const fa: GameAccountMessages = {
   primary: 'اصلی',
   setPrimary: 'انتخاب به‌عنوان اصلی',
   disconnect: 'قطع اتصال',
+  confirmDisconnect: 'این هویت بازی قطع شود؟ برای اتصال دوباره باید یک Claim جدید ثبت کنید.',
   resubmit: 'ارسال مجدد برای بررسی',
   actionFailed: 'انجام این عملیات ممکن نشد.',
   status: {
@@ -67,6 +69,7 @@ const en: GameAccountMessages = {
   primary: 'Primary',
   setPrimary: 'Set as primary',
   disconnect: 'Disconnect',
+  confirmDisconnect: 'Disconnect this game identity? Reconnecting later requires a new claim.',
   resubmit: 'Resubmit for review',
   actionFailed: 'Could not complete this action.',
   status: {
