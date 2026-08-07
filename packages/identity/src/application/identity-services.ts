@@ -185,29 +185,25 @@ export class IdentityService {
     ) {
       throw new IdentityError('INVALID_CREDENTIALS');
     }
-    if (
-      await this.dependencies.passwordHasher.verify(input.newPassword, credential.passwordHash)
-    ) {
+    if (await this.dependencies.passwordHasher.verify(input.newPassword, credential.passwordHash)) {
       throw new IdentityError('WEAK_PASSWORD');
     }
     const next = await this.dependencies.passwordHasher.hash(input.newPassword);
-    const securityVersion = await this.dependencies.transactions.transaction(
-      async (repository) => {
-        const current = await repository.findCredential(input.userId);
-        if (current?.passwordHash !== credential.passwordHash) {
-          throw new IdentityError('IDENTITY_CONFLICT');
-        }
-        return repository.changePassword({
-          userId: input.userId,
-          passwordHash: next.encodedHash,
-          passwordAlgorithm: next.algorithm,
-          at: this.dependencies.clock.now(),
-          ...(input.excludeSessionId === undefined
-            ? {}
-            : { excludeSessionId: input.excludeSessionId }),
-        });
-      },
-    );
+    const securityVersion = await this.dependencies.transactions.transaction(async (repository) => {
+      const current = await repository.findCredential(input.userId);
+      if (current?.passwordHash !== credential.passwordHash) {
+        throw new IdentityError('IDENTITY_CONFLICT');
+      }
+      return repository.changePassword({
+        userId: input.userId,
+        passwordHash: next.encodedHash,
+        passwordAlgorithm: next.algorithm,
+        at: this.dependencies.clock.now(),
+        ...(input.excludeSessionId === undefined
+          ? {}
+          : { excludeSessionId: input.excludeSessionId }),
+      });
+    });
     return Object.freeze({ securityVersion });
   }
 }
