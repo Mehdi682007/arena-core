@@ -13,7 +13,6 @@ export interface RulesetConfig {
 
 export interface PublicPlatform {
   readonly id: string;
-  readonly gamePlatformId: string;
   readonly key: string;
   readonly slug: string;
   readonly name: string;
