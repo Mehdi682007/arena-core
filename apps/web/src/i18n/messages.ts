@@ -149,7 +149,8 @@ const fa: AppMessages = {
     submitting: 'در حال ارسال…',
     forgotLink: 'گذرواژه را فراموش کرده‌اید؟',
     haveAccount: 'حساب دارید؟ وارد شوید.',
-    registerHint: 'گذرواژه باید الزامات واقعی سرویس را رعایت کند؛ اعتبارسنجی نهایی با سرور است.',
+    registerHint:
+      'گذرواژه باید الزامات واقعی سرویس را رعایت کند؛ اعتبارسنجی نهایی با سرور است.',
     privacyHint: 'برای حفظ حریم خصوصی، پاسخ وجود یا نبود حساب را مشخص نمی‌کند.',
     resetLinkMissing: 'پیوند بازیابی کامل نیست.',
     verificationLinkMissing: 'پیوند تأیید کامل نیست.',
@@ -167,11 +168,13 @@ const fa: AppMessages = {
     securityTitle: 'امنیت',
     securityDescription: 'گذرواژه و کنترل‌های امنیتی حساب را مدیریت کنید.',
     sessionsTitle: 'نشست‌ها',
-    sessionsDescription: 'دستگاه‌های واردشده به حساب را ببینید و دسترسی‌های قدیمی را ببندید.',
+    sessionsDescription:
+      'دستگاه‌های واردشده به حساب را ببینید و دسترسی‌های قدیمی را ببندید.',
     notificationsTitle: 'ترجیحات اعلان',
     languageAndSecurity: 'زبان و امنیت',
     currentLanguage: 'زبان فعلی',
-    sessionCookieNotice: 'نشست شما با کوکی HttpOnly مدیریت می‌شود؛ هیچ توکن ورود در مرورگر ذخیره نمی‌شود.',
+    sessionCookieNotice:
+      'نشست شما با کوکی HttpOnly مدیریت می‌شود؛ هیچ توکن ورود در مرورگر ذخیره نمی‌شود.',
     profile: {
       displayName: 'نام نمایشی',
       locale: 'زبان',
@@ -252,7 +255,8 @@ const en: AppMessages = {
     submitting: 'Submitting…',
     forgotLink: 'Forgot your password?',
     haveAccount: 'Already have an account? Sign in.',
-    registerHint: 'Your password must meet the service security requirements. Final validation happens on the server.',
+    registerHint:
+      'Your password must meet the service security requirements. Final validation happens on the server.',
     privacyHint: 'For privacy, the response does not reveal whether an account exists.',
     resetLinkMissing: 'The password reset link is incomplete.',
     verificationLinkMissing: 'The verification link is incomplete.',
@@ -274,7 +278,8 @@ const en: AppMessages = {
     notificationsTitle: 'Notification preferences',
     languageAndSecurity: 'Language & security',
     currentLanguage: 'Current language',
-    sessionCookieNotice: 'Your session is stored in an HttpOnly cookie. No sign-in token is stored in browser JavaScript storage.',
+    sessionCookieNotice:
+      'Your session is stored in an HttpOnly cookie. No sign-in token is stored in browser JavaScript storage.',
     profile: {
       displayName: 'Display name',
       locale: 'Language',
@@ -289,7 +294,8 @@ const en: AppMessages = {
       next: 'New password',
       confirm: 'Confirm new password',
       submit: 'Change password',
-      notice: 'Changing your password signs out active sessions. You will need to sign in again.',
+      notice:
+        'Changing your password signs out active sessions. You will need to sign in again.',
       mismatch: 'The new password and confirmation do not match.',
     },
     sessions: {
