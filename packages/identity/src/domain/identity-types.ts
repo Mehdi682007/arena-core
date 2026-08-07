@@ -33,6 +33,20 @@ export interface SessionRecord {
   readonly user: UserSecurityRecord;
 }
 
+export interface UserSessionSummaryRecord {
+  readonly id: string;
+  readonly status: SessionStatus;
+  readonly createdAt: Date;
+  readonly lastSeenAt: Date | null;
+  readonly expiresAt: Date;
+  readonly revokedAt: Date | null;
+  readonly userAgent: string | null;
+}
+
+export interface UserSessionView extends UserSessionSummaryRecord {
+  readonly current: boolean;
+}
+
 export interface VerificationTokenRecord {
   readonly id: string;
   readonly userEmailId: string;
