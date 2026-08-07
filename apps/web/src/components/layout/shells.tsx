@@ -3,18 +3,24 @@ import type { ReactNode } from 'react';
 import { LanguageToggle } from '@/components/language-toggle';
 import { Avatar, Badge } from '@/components/ui';
 import type { SessionUser } from '@/features/session/session';
+import type { AppLocale } from '@/i18n/config';
+import { messagesFor } from '@/i18n/messages';
 
-const navigation = [
-  ['/dashboard', 'داشبورد'],
-  ['/matchmaking', 'رقابت'],
-  ['/matches', 'مسابقه‌ها'],
-  ['/profile', 'پروفایل'],
-  ['/notifications', 'اعلان‌ها'],
-  ['/leaderboards', 'رتبه‌بندی'],
-  ['/settings', 'تنظیمات'],
-] as const;
+function navigation(locale: AppLocale) {
+  const labels = messagesFor(locale).shell.navigation;
+  return [
+    ['/dashboard', labels.dashboard],
+    ['/matchmaking', labels.matchmaking],
+    ['/matches', labels.matches],
+    ['/profile', labels.profile],
+    ['/notifications', labels.notifications],
+    ['/leaderboards', labels.leaderboards],
+    ['/settings', labels.settings],
+  ] as const;
+}
 
-export function PublicShell({ children }: { children: ReactNode }) {
+export function PublicShell({ children, locale }: { children: ReactNode; locale: AppLocale }) {
+  const messages = messagesFor(locale).shell;
   return (
     <>
       <header className="public-header">
@@ -23,11 +29,11 @@ export function PublicShell({ children }: { children: ReactNode }) {
             Arena Core
           </Link>
 
-          <nav aria-label="حساب کاربری" className="cluster">
-            <LanguageToggle compact />
-            <Link href="/login">ورود</Link>
+          <nav aria-label={messages.accountNavigation} className="cluster">
+            <LanguageToggle compact initialLocale={locale} />
+            <Link href="/login">{messages.login}</Link>
             <Link className="button" href="/register">
-              ثبت‌نام
+              {messages.register}
             </Link>
           </nav>
         </div>
@@ -36,16 +42,16 @@ export function PublicShell({ children }: { children: ReactNode }) {
       {children}
 
       <footer className="public-footer">
-        <div className="container">بستر رقابت شفاف و غیرمالی — نسخه پایه</div>
+        <div className="container">{messages.footer}</div>
       </footer>
     </>
   );
 }
 
-function Navigation() {
+function Navigation({ locale }: { locale: AppLocale }) {
   return (
     <>
-      {navigation.map(([href, label]) => (
+      {navigation(locale).map(([href, label]) => (
         <Link key={href} href={href}>
           {label}
         </Link>
@@ -63,6 +69,8 @@ export function AppShell({
   unreadCount: number;
   children: ReactNode;
 }) {
+  const locale = user.locale;
+  const messages = messagesFor(locale).shell;
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -70,8 +78,8 @@ export function AppShell({
           Arena Core
         </Link>
 
-        <nav aria-label="ناوبری اصلی" className="stack">
-          <Navigation />
+        <nav aria-label={messages.mainNavigation} className="stack">
+          <Navigation locale={locale} />
         </nav>
       </aside>
 
@@ -83,12 +91,14 @@ export function AppShell({
           </div>
 
           <div className="cluster">
-            <LanguageToggle compact />
+            <LanguageToggle compact initialLocale={locale} persistProfile />
 
-            <Link href="/notifications" aria-label={`${String(unreadCount)} اعلان خوانده‌نشده`}>
-              اعلان‌ها{' '}
+            <Link href="/notifications" aria-label={messages.unreadNotifications(unreadCount)}>
+              {messages.navigation.notifications}{' '}
               {unreadCount > 0 ? (
-                <Badge>{new Intl.NumberFormat('fa').format(unreadCount)}</Badge>
+                <Badge>
+                  {new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US').format(unreadCount)}
+                </Badge>
               ) : null}
             </Link>
           </div>
@@ -99,8 +109,8 @@ export function AppShell({
         </main>
       </div>
 
-      <nav className="mobile-nav" aria-label="ناوبری موبایل">
-        <Navigation />
+      <nav className="mobile-nav" aria-label={messages.mobileNavigation}>
+        <Navigation locale={locale} />
       </nav>
     </div>
   );
