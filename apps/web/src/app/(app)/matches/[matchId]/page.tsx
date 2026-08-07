@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Badge, Card } from '@/components/ui';
 import { CompetitionAction } from '@/features/competition/actions';
-import { matchStatus, statusLabel } from '@/features/competition/presentation';
+import { competitionMessagesFor } from '@/features/competition/messages';
+import { matchStatusFor, statusLabel } from '@/features/competition/presentation';
 import type {
   EntryView,
   MatchView,
@@ -9,8 +10,15 @@ import type {
   ResultView,
   SettlementView,
 } from '@/features/competition/types';
+import { getSession } from '@/features/session/session';
 import { serverApi } from '@/lib/api/server-api-client';
+
 export default async function MatchRoom({ params }: { params: Promise<{ matchId: string }> }) {
+  const session = await getSession();
+  if (session.status !== 'authenticated') return null;
+  const locale = session.user.locale;
+  const messages = competitionMessagesFor(locale).room;
+  const numberLocale = locale === 'fa' ? 'fa-IR' : 'en-US';
   const { matchId } = await params;
   const [match, result, entry, settlement, ratings] = await Promise.all([
     serverApi<MatchView>(`/matches/${matchId}`),
@@ -38,22 +46,23 @@ export default async function MatchRoom({ params }: { params: Promise<{ matchId:
     <div className="stack">
       <div className="cluster">
         <h1>{match.game.name}</h1>
-        <Badge>{statusLabel(match.status)}</Badge>
+        <Badge>{statusLabel(match.status, locale)}</Badge>
       </div>
-      <p>{matchStatus[match.status]?.description}</p>
+      <p>{matchStatusFor(locale)[match.status]?.description}</p>
       <Card>
-        <h2>شرکت‌کنندگان</h2>
+        <h2>{messages.participants}</h2>
         {match.participants.map((item) => (
           <p key={item.side}>
-            {item.isCurrentUser ? 'شما' : item.displayHandle} — {item.platform.name} —{' '}
-            {item.ready ? 'آماده' : 'منتظر'}
+            {item.isCurrentUser ? messages.you : item.displayHandle} — {item.platform.name} —{' '}
+            {item.ready ? messages.ready : messages.waiting}
           </p>
         ))}
       </Card>
       <Card>
-        <h2>قوانین</h2>
+        <h2>{messages.rules}</h2>
         <p>
-          {match.ruleset.name}، نسخه {new Intl.NumberFormat('fa').format(match.ruleset.version)}
+          {match.ruleset.name}, {messages.version}{' '}
+          {new Intl.NumberFormat(numberLocale).format(match.ruleset.version)}
         </p>
         <p>
           {match.mode.name} — {match.crossplay.name}
@@ -61,53 +70,53 @@ export default async function MatchRoom({ params }: { params: Promise<{ matchId:
       </Card>
       {entry ? (
         <Card>
-          <h2>ورودی غیرپولی</h2>
+          <h2>{messages.nonMonetaryEntry}</h2>
           <p>
             {entry.amount} ARENA_POINT — {entry.status}
           </p>
-          <small>غیرقابل برداشت و بدون ارزش پولی</small>
+          <small>{messages.nonWithdrawable}</small>
         </Card>
       ) : null}
       {match.status === 'AWAITING_READY' && !mine?.ready ? (
-        <CompetitionAction path={`/matches/${matchId}/ready`} label="آماده‌ام" />
+        <CompetitionAction path={`/matches/${matchId}/ready`} label={messages.imReady} />
       ) : null}
       {match.status === 'READY' ? (
-        <CompetitionAction path={`/matches/${matchId}/start`} label="شروع مسابقه" />
+        <CompetitionAction path={`/matches/${matchId}/start`} label={messages.startMatch} />
       ) : null}
       {['IN_PROGRESS', 'AWAITING_RESULT', 'RESULT_CONFLICT'].includes(match.status) ? (
         <Link className="button" href={`/matches/${matchId}/result`}>
-          نتیجه و مدارک
+          {messages.resultAndEvidence}
         </Link>
       ) : null}
       <Link className="button secondary" href={`/matches/${matchId}/dispute`}>
-        اعتراض
+        {messages.dispute}
       </Link>
       {result ? (
         <Card>
-          <h2>نتیجه</h2>
+          <h2>{messages.result}</h2>
           <p>{result.status}</p>
         </Card>
       ) : null}
       {settlement ? (
         <Card>
-          <h2>تسویه غیرپولی</h2>
+          <h2>{messages.nonMonetarySettlement}</h2>
           <p>
-            {settlement.status} — دریافتی شما: {settlement.receivedAmount} ARENA_POINT
+            {settlement.status} — {messages.received}: {settlement.receivedAmount} ARENA_POINT
           </p>
         </Card>
       ) : null}
       {currentRating ? (
         <Card>
-          <h2>رتبه فعلی</h2>
-          <p>{new Intl.NumberFormat('fa').format(currentRating.rating)}</p>
+          <h2>{messages.currentRating}</h2>
+          <p>{new Intl.NumberFormat(numberLocale).format(currentRating.rating)}</p>
           {matchRating ? (
             <p>
-              تغییر این مسابقه:{' '}
-              {new Intl.NumberFormat('fa', { signDisplay: 'always' }).format(
+              {messages.matchRatingChange}:{' '}
+              {new Intl.NumberFormat(numberLocale, { signDisplay: 'always' }).format(
                 matchRating.ratingDelta,
               )}{' '}
-              ({new Intl.NumberFormat('fa').format(matchRating.ratingBefore)} ←{' '}
-              {new Intl.NumberFormat('fa').format(matchRating.ratingAfter)})
+              ({new Intl.NumberFormat(numberLocale).format(matchRating.ratingBefore)} ←{' '}
+              {new Intl.NumberFormat(numberLocale).format(matchRating.ratingAfter)})
             </p>
           ) : null}
         </Card>
