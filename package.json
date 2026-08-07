@@ -29,7 +29,7 @@
     "db:validate": "pnpm --filter @arena-core/database db:validate",
     "dev": "turbo run dev",
     "format": "prettier --write .",
-    "format:check": "prettier --write apps/web/src/app/page.tsx && git diff -- apps/web/src/app/page.tsx && exit 1",
+    "format:check": "prettier --check .",
     "infra:config": "docker compose --project-directory . -f infra/compose/docker-compose.yml config --quiet",
     "infra:down": "docker compose --project-directory . -f infra/compose/docker-compose.yml down --remove-orphans",
     "infra:health": "node infra/compose/health.mjs",
