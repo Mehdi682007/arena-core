@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Alert, Button, Card } from '@/components/ui';
+import type { AppLocale } from '@/i18n/config';
 import { browserApi } from '@/lib/api/browser-api-client';
 interface Preference {
   type: string;
@@ -8,9 +9,31 @@ interface Preference {
   emailEnabled: boolean;
   requiredChannels: readonly ('IN_APP' | 'EMAIL')[];
 }
-export function NotificationPreferences({ initial }: { initial: readonly Preference[] }) {
+export function NotificationPreferences({
+  initial,
+  locale = 'fa',
+}: {
+  initial: readonly Preference[];
+  locale?: AppLocale;
+}) {
   const [items, setItems] = useState([...initial]);
   const [message, setMessage] = useState('');
+  const labels =
+    locale === 'fa'
+      ? {
+          saved: 'ترجیحات ذخیره شد.',
+          failed: 'ذخیره ترجیحات ممکن نشد.',
+          inApp: 'درون‌برنامه‌ای',
+          email: 'ایمیل',
+          save: 'ذخیره',
+        }
+      : {
+          saved: 'Preferences saved.',
+          failed: 'Could not save preferences.',
+          inApp: 'In-app',
+          email: 'Email',
+          save: 'Save',
+        };
   async function save(item: Preference) {
     setMessage('');
     try {
@@ -22,9 +45,9 @@ export function NotificationPreferences({ initial }: { initial: readonly Prefere
         },
       );
       setItems((all) => all.map((value) => (value.type === item.type ? updated : value)));
-      setMessage('ترجیحات ذخیره شد.');
+      setMessage(labels.saved);
     } catch {
-      setMessage('ذخیره ترجیحات ممکن نشد.');
+      setMessage(labels.failed);
     }
   }
   return (
@@ -48,7 +71,7 @@ export function NotificationPreferences({ initial }: { initial: readonly Prefere
                 )
               }
             />{' '}
-            درون‌برنامه‌ای
+            {labels.inApp}
           </label>
           <label className="cluster">
             <input
@@ -65,10 +88,10 @@ export function NotificationPreferences({ initial }: { initial: readonly Prefere
                 )
               }
             />{' '}
-            ایمیل
+            {labels.email}
           </label>
-          <Button className="secondary" onClick={() => save(item)}>
-            ذخیره
+          <Button className="secondary" onClick={() => void save(item)}>
+            {labels.save}
           </Button>
         </Card>
       ))}
