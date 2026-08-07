@@ -68,17 +68,8 @@ export function PasswordChangeForm({ locale }: { locale: AppLocale }) {
         <PasswordInput id="newPassword" name="newPassword" autoComplete="new-password" required />
       </Field>
 
-      <Field
-        name="confirmation"
-        label={messages.confirm}
-        error={error?.fieldErrors?.confirmation}
-      >
-        <PasswordInput
-          id="confirmation"
-          name="confirmation"
-          autoComplete="new-password"
-          required
-        />
+      <Field name="confirmation" label={messages.confirm} error={error?.fieldErrors?.confirmation}>
+        <PasswordInput id="confirmation" name="confirmation" autoComplete="new-password" required />
       </Field>
 
       {error ? <Alert error>{error.message}</Alert> : null}
