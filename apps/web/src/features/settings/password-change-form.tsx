@@ -56,7 +56,12 @@ export function PasswordChangeForm({ locale }: { locale: AppLocale }) {
         label={messages.current}
         error={error?.fieldErrors?.currentPassword}
       >
-        <PasswordInput id="currentPassword" name="currentPassword" autoComplete="current-password" required />
+        <PasswordInput
+          id="currentPassword"
+          name="currentPassword"
+          autoComplete="current-password"
+          required
+        />
       </Field>
 
       <Field name="newPassword" label={messages.next} error={error?.fieldErrors?.newPassword}>
@@ -68,7 +73,12 @@ export function PasswordChangeForm({ locale }: { locale: AppLocale }) {
         label={messages.confirm}
         error={error?.fieldErrors?.confirmation}
       >
-        <PasswordInput id="confirmation" name="confirmation" autoComplete="new-password" required />
+        <PasswordInput
+          id="confirmation"
+          name="confirmation"
+          autoComplete="new-password"
+          required
+        />
       </Field>
 
       {error ? <Alert error>{error.message}</Alert> : null}
