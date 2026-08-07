@@ -13,6 +13,9 @@ interface ProfileResponse {
 }
 export interface SessionUser {
   readonly displayName: string;
+  readonly locale: 'fa' | 'en';
+  readonly timezone: string | null;
+  readonly countryCode: string | null;
   readonly emailVerified: boolean;
   readonly onboardingCompleted: boolean;
   readonly roles?: readonly string[];
@@ -26,10 +29,14 @@ export async function getSession(): Promise<SessionState> {
   try {
     await serverApi('/auth/me');
     const profile = await serverApi<ProfileResponse>('/profile');
+    const locale = profile.profile.locale;
     return {
       status: 'authenticated',
       user: {
-        displayName: profile.profile.displayName ?? 'کاربر آرنا',
+        displayName: profile.profile.displayName ?? (locale === 'fa' ? 'کاربر آرنا' : 'Arena user'),
+        locale,
+        timezone: profile.profile.timezone,
+        countryCode: profile.profile.countryCode,
         emailVerified: !profile.onboarding.missingSteps.includes('VERIFY_EMAIL'),
         onboardingCompleted: profile.onboarding.completed,
       },
