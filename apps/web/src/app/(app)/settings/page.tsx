@@ -14,7 +14,9 @@ interface ProfileResponse {
 export default async function SettingsPage() {
   const [profile, preferences] = await Promise.all([
     serverApi<ProfileResponse>('/profile'),
-    serverApi<Parameters<typeof NotificationPreferences>[0]['initial']>('/notification-preferences'),
+    serverApi<Parameters<typeof NotificationPreferences>[0]['initial']>(
+      '/notification-preferences',
+    ),
   ]);
   const locale = profile.profile.locale;
   const messages = messagesFor(locale).settings;
