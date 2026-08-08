@@ -95,6 +95,56 @@ export class PrismaPlayerGameAccountRepository implements PlayerGameAccountRepos
     });
     return row && record(row);
   }
+  public async listClaimableGamePlatforms(): Promise<readonly ClaimableGamePlatform[]> {
+    const rows = await this.client.gamePlatform.findMany({
+      where: {
+        status: 'ACTIVE',
+        game: {
+          status: 'ACTIVE',
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        game: {
+          select: {
+            id: true,
+            key: true,
+            slug: true,
+            name: true,
+            status: true,
+          },
+        },
+        platform: {
+          select: {
+            id: true,
+            key: true,
+            slug: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          game: {
+            sortOrder: 'asc',
+          },
+        },
+        {
+          sortOrder: 'asc',
+        },
+      ],
+    });
+
+    return rows.map((row) => ({
+      game: row.game,
+      platform: row.platform,
+      gamePlatformId: row.id,
+      gameActive: row.game.status === 'ACTIVE',
+      gamePlatformActive: row.status === 'ACTIVE',
+    }));
+  }
+
   public async findGamePlatformForClaim(
     gameId: string,
     gamePlatformId: string,

@@ -64,6 +64,20 @@ beforeEach(async () => {
       })),
       revokeSession: vi.fn(async () => undefined),
       revokeAllUserSessions: vi.fn(async () => undefined),
+      listUserSessions: vi.fn(async () => [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          userId: 'user-1',
+          status: 'ACTIVE',
+          current: false,
+          createdAt: new Date('2026-08-01T10:00:00Z'),
+          lastSeenAt: new Date('2026-08-08T00:00:00Z'),
+          expiresAt: new Date('2026-09-01T10:00:00Z'),
+          revokedAt: null,
+          userAgent: 'Vitest Browser',
+        },
+      ]),
+      revokeUserSession: vi.fn(async () => true),
     },
     emailVerification: {
       requestEmailVerification: vi.fn(async () => ({
@@ -90,7 +104,15 @@ beforeEach(async () => {
     sendVerificationEmail: vi.fn(async () => undefined),
     sendPasswordResetEmail: vi.fn(async () => undefined),
   };
-  application = await createApiApplication(config, false, { services, dispatcher });
+  application = await createApiApplication(config, false, {
+    services,
+    dispatcher,
+    mfaService: {
+      beginLoginChallenge: vi.fn(async () => ({
+        required: false,
+      })),
+    },
+  });
   await application.listen(0, '127.0.0.1');
   const address = application.getHttpServer().address();
   baseUrl = `http://127.0.0.1:${address.port}/api/v1`;
@@ -175,6 +197,49 @@ describe('Identity HTTP integration with test adapter', () => {
       user: { id: 'user-1', status: 'ACTIVE' },
       session: { id: 'session-1' },
     });
+  });
+
+  it('lists and revokes only user-owned sessions', async () => {
+    const cookie = 'arena_session=opaque-session-token-value-123456789';
+
+    const listed = await globalThis.fetch(`${baseUrl}/auth/sessions`, {
+      headers: { cookie },
+    });
+
+    expect(listed.status).toBe(200);
+
+    expect(await listed.json()).toEqual({
+      items: [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          status: 'ACTIVE',
+          current: false,
+          createdAt: '2026-08-01T10:00:00.000Z',
+          lastSeenAt: '2026-08-08T00:00:00.000Z',
+          expiresAt: '2026-09-01T10:00:00.000Z',
+          userAgent: 'Vitest Browser',
+        },
+      ],
+    });
+
+    const revoked = await json(
+      '/auth/sessions/11111111-1111-4111-8111-111111111111/revoke',
+      {},
+      { cookie },
+    );
+
+    expect(revoked.status).toBe(204);
+
+    expect(services.sessions.revokeUserSession).toHaveBeenCalledWith(
+      'user-1',
+      '11111111-1111-4111-8111-111111111111',
+    );
+
+    const others = await json('/auth/sessions/revoke-others', {}, { cookie });
+
+    expect(others.status).toBe(204);
+
+    expect(services.sessions.revokeAllUserSessions).toHaveBeenCalledWith('user-1', 'session-1');
   });
 
   it('revokes current/all sessions and clears the matching cookie', async () => {

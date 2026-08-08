@@ -388,3 +388,16 @@ test('backup and restore tools are opt-in and restore is confirmed', async () =>
   assert.match(restore, /RESTORE_CONFIRM/);
   assert.match(restore, /--exit-on-error/);
 });
+
+test('release images expose RELEASE_VERSION as APP_VERSION', async () => {
+  const dockerfile = await read('docker/Dockerfile');
+  const builder = await read('scripts/release/build-prebuilt-images.sh');
+
+  assert.equal((dockerfile.match(/ENV APP_VERSION=\$RELEASE_VERSION/g) ?? []).length, 2);
+
+  assert.match(builder, /image_app_version=/);
+
+  assert.match(builder, /APP_VERSION mismatch for \$service/);
+
+  assert.match(builder, /--build-arg "RELEASE_VERSION=\$RELEASE_ID"/);
+});

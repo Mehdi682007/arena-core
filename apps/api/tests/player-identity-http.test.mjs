@@ -21,7 +21,12 @@ const config = createApiConfig(
 const identityServices = {
   identity: {},
   sessions: {
-    validateSession: vi.fn(async () => ({ valid: true, userId: 'user-1', sessionId: 'session-1' })),
+    validateSession: vi.fn(async () => ({
+      valid: true,
+      userId: 'user-1',
+      sessionId: 'session-1',
+      mfaVerifiedAt: new Date('2026-08-08T00:00:00Z'),
+    })),
   },
   emailVerification: {},
   passwordReset: {},
@@ -53,6 +58,23 @@ function request(path, options = {}) {
 beforeEach(async () => {
   playerService = {
     listMyGameAccounts: vi.fn(async () => [view]),
+    listClaimableGamePlatforms: vi.fn(async () => [
+      {
+        game: {
+          id: gameId,
+          key: 'fc26',
+          slug: 'fc-26',
+          name: 'FC 26',
+        },
+        platform: {
+          id: 'p1',
+          key: 'pc',
+          slug: 'pc',
+          name: 'PC',
+        },
+        gamePlatformId,
+      },
+    ]),
     getMyGameAccount: vi.fn(async () => view),
     createGameAccountClaim: vi.fn(async () => view),
     disconnectMyGameAccount: vi.fn(async () => undefined),
@@ -85,6 +107,30 @@ describe('private player identity HTTP', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
   });
+  it('exposes claimable game/platform pairs without internal state', async () => {
+    const response = await request('/game-accounts/claimable-platforms');
+
+    expect(response.status).toBe(200);
+
+    expect(await response.json()).toEqual([
+      {
+        game: {
+          id: gameId,
+          key: 'fc26',
+          slug: 'fc-26',
+          name: 'FC 26',
+        },
+        platform: {
+          id: 'p1',
+          key: 'pc',
+          slug: 'pc',
+          name: 'PC',
+        },
+        gamePlatformId,
+      },
+    ]);
+  });
+
   it('creates only a pending claim through strict JSON and CSRF', async () => {
     const response = await request('/game-accounts', {
       method: 'POST',

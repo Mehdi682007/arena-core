@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
 import { PublicShell } from '@/components/layout/shells';
-export default function PublicLayout({ children }: { children: ReactNode }) {
+import { getRequestLocale } from '@/i18n/server';
+
+export default async function PublicLayout({ children }: { children: ReactNode }) {
+  const locale = await getRequestLocale();
+
   return (
-    <PublicShell>
+    <PublicShell locale={locale}>
       <main id="main-content" className="container page">
         {children}
       </main>

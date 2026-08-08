@@ -2,16 +2,26 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AuthForm } from '@/features/auth/auth-form';
 import { getSession } from '@/features/session/session';
+import { messagesFor } from '@/i18n/messages';
+import { getRequestLocale } from '@/i18n/server';
+
 export default async function RegisterPage() {
-  if ((await getSession()).status === 'authenticated') redirect('/dashboard');
+  if ((await getSession()).status === 'authenticated') {
+    redirect('/dashboard');
+  }
+
+  const locale = await getRequestLocale();
+  const messages = messagesFor(locale).auth;
+
   return (
     <section className="stack">
-      <h1>ثبت‌نام</h1>
-      <p className="muted">
-        گذرواژه باید الزامات واقعی سرویس را رعایت کند؛ اعتبارسنجی نهایی با سرور است.
-      </p>
-      <AuthForm mode="register" />
-      <Link href="/login">حساب دارید؟ وارد شوید.</Link>
+      <h1>{messages.registerTitle}</h1>
+
+      <p className="muted">{messages.registerDescription}</p>
+
+      <AuthForm mode="register" locale={locale} />
+
+      <Link href="/login">{messages.alreadyHaveAccount}</Link>
     </section>
   );
 }

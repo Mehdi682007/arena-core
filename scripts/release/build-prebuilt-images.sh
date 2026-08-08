@@ -45,10 +45,19 @@ for service in migrate api worker web seed; do
   fi
   image_revision="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$tagged")"
   image_version="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$tagged")"
+  image_app_version="$(
+    docker image inspect \
+      --format '{{range .Config.Env}}{{println .}}{{end}}' \
+      "$tagged" |
+      sed -n 's/^APP_VERSION=//p' |
+      tail -n 1
+  )"
   [[ "$image_revision" == "$SOURCE_COMMIT" ]] ||
     { echo "source commit label mismatch for $service" >&2; exit 3; }
   [[ "$image_version" == "$RELEASE_ID" ]] ||
     { echo "release ID label mismatch for $service" >&2; exit 3; }
+  [[ "$image_app_version" == "$RELEASE_ID" ]] ||
+    { echo "APP_VERSION mismatch for $service" >&2; exit 3; }
   printf 'validated immutable labels for %s\n' "$service"
   docker push "$tagged"
   digest="$(docker buildx imagetools inspect "$tagged" --format '{{json .Manifest.Digest}}' | tr -d '"')"

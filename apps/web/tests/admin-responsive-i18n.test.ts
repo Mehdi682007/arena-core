@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -15,9 +15,11 @@ describe('responsive administration and locale foundation', () => {
     expect(config).toContain("supportedLocales = ['fa', 'en']");
     expect(config).toContain("localeCookieName = 'arena-locale'");
     expect(config).toContain("locale === 'fa' ? 'rtl' : 'ltr'");
+
     expect(rootLayout).toContain('await cookies()');
     expect(rootLayout).toContain('lang={locale}');
     expect(rootLayout).toContain('dir={localeDirection(locale)}');
+
     expect(toggle).toContain('document.cookie');
     expect(toggle).toContain('window.location.reload()');
   });
@@ -28,10 +30,13 @@ describe('responsive administration and locale foundation', () => {
     const styles = readFileSync(path.join(root, 'src/styles/globals.css'), 'utf8');
 
     expect(shell).toContain('const [menuOpen, setMenuOpen] = useState(false)');
+
     expect(shell).toContain('allowed.has(item.permission)');
     expect(shell).toContain('admin-console-backdrop');
     expect(shell).toContain('admin-console-menu-toggle');
+
     expect(shell).toContain('<LanguageToggle compact initialLocale={locale} />');
+
     expect(styles).toContain('ADMIN_RESPONSIVE_I18N_V1');
     expect(styles).toContain('.admin-console-sidebar.is-open');
     expect(styles).toContain('height: 100dvh');
@@ -41,6 +46,9 @@ describe('responsive administration and locale foundation', () => {
     const shells = readFileSync(path.join(root, 'src/components/layout/shells.tsx'), 'utf8');
 
     expect(shells).toContain("from '@/components/language-toggle'");
-    expect(shells.match(/<LanguageToggle compact \/>/g)?.length).toBe(2);
+
+    expect(shells.match(/<LanguageToggle\b/g)?.length).toBe(2);
+
+    expect(shells).toContain('initialLocale={locale}');
   });
 });

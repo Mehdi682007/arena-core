@@ -32,6 +32,7 @@ RUN pnpm --filter @arena-core/game-catalog deploy --legacy /output/seed
 FROM base AS runtime
 ARG BUILD_SHA=unknown
 ARG RELEASE_VERSION=0.0.0
+ENV APP_VERSION=$RELEASE_VERSION
 LABEL org.opencontainers.image.revision=$BUILD_SHA \
       org.opencontainers.image.version=$RELEASE_VERSION \
       org.opencontainers.image.source="Arena Core repository"
@@ -69,6 +70,7 @@ CMD ["node", "apps/web/server.js"]
 FROM base AS job-runtime
 ARG BUILD_SHA=unknown
 ARG RELEASE_VERSION=0.0.0
+ENV APP_VERSION=$RELEASE_VERSION
 LABEL org.opencontainers.image.revision=$BUILD_SHA \
       org.opencontainers.image.version=$RELEASE_VERSION \
       org.opencontainers.image.source="Arena Core repository"

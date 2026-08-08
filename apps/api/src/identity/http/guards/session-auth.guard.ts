@@ -37,6 +37,7 @@ export class SessionAuthGuard implements CanActivate {
       request.principal = Object.freeze({
         userId: validated.userId,
         sessionId: validated.sessionId,
+        mfaVerifiedAt: validated.mfaVerifiedAt,
       });
       return true;
     } catch {

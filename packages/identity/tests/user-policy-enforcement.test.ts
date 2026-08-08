@@ -23,6 +23,14 @@ describe('identity user policy enforcement', () => {
     expect(source).toContain('session.securityVersion !== session.user.securityVersion');
   });
 
+  it('scopes user-initiated session revocation to the owning user', () => {
+    const source = readSource('src/infrastructure/prisma-identity-repository.ts');
+
+    expect(source).toContain('id: sessionId');
+    expect(source).toContain('userId');
+    expect(source).toContain("status: 'ACTIVE'");
+  });
+
   it('allows profile access only for active or pending-verification accounts', () => {
     const source = readSource('src/application/profile-service.ts');
 

@@ -1,7 +1,8 @@
 export type UserStatus =
   'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'DISABLED' | 'DELETED';
 export type SessionStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
-export type TokenKind = 'session' | 'email-verification' | 'password-reset';
+export type TokenKind =
+  'session' | 'email-verification' | 'password-reset' | 'phone-otp' | 'mfa-challenge';
 
 export interface UserSecurityRecord {
   readonly id: string;
@@ -26,11 +27,24 @@ export interface SessionRecord {
   readonly status: SessionStatus;
   readonly createdAt: Date;
   readonly lastSeenAt: Date | null;
+  readonly mfaVerifiedAt?: Date | null;
   readonly expiresAt: Date;
   readonly revokedAt: Date | null;
   readonly ipHash?: string;
   readonly userAgent?: string;
   readonly user: UserSecurityRecord;
+}
+
+export interface UserSessionSummaryRecord {
+  readonly id: string;
+  readonly userId: string;
+  readonly status: SessionStatus;
+  readonly createdAt: Date;
+  readonly lastSeenAt: Date | null;
+  readonly mfaVerifiedAt?: Date | null;
+  readonly expiresAt: Date;
+  readonly revokedAt: Date | null;
+  readonly userAgent: string | null;
 }
 
 export interface VerificationTokenRecord {
