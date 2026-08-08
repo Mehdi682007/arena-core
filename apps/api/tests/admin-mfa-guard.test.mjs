@@ -45,21 +45,29 @@ describe('Admin MFA guard', () => {
     ).toBe(true);
   });
 
-  it('rejects a pre-MFA admin session', () => {
-    expect(() =>
+  it('rejects a pre-MFA admin session with a machine-readable code', () => {
+    try {
       guard.canActivate(
         context(AdminExampleController, {
           userId: 'user-1',
           sessionId: 'session-1',
           mfaVerifiedAt: null,
         }),
-      ),
-    ).toThrow(ForbiddenException);
+      );
+      throw new Error('expected guard to reject');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toMatchObject({ code: 'MFA_REQUIRED' });
+    }
   });
 
   it('rejects an admin request with no principal', () => {
-    expect(() => guard.canActivate(context(AdminExampleController, undefined))).toThrow(
-      ForbiddenException,
-    );
+    try {
+      guard.canActivate(context(AdminExampleController, undefined));
+      throw new Error('expected guard to reject');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toMatchObject({ code: 'MFA_REQUIRED' });
+    }
   });
 });
