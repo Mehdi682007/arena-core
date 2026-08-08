@@ -251,6 +251,28 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(composeRuntimeValidator, /immutable image reference mismatch/);
 });
 
+test('official release workflow binds images, archive and tag to one main SHA', async () => {
+  const workflow = await read('.github/workflows/publish-release.yml');
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /contents: write/);
+  assert.match(workflow, /packages: write/);
+  assert.match(workflow, /ref: \$\{\{ inputs\.source_sha \}\}/);
+  assert.match(workflow, /git rev-parse origin\/main/);
+  assert.match(workflow, /git ls-remote --exit-code --tags/);
+  assert.match(workflow, /ARENA_IMAGE_TAG: \$\{\{ inputs\.source_sha \}\}/);
+  assert.match(workflow, /SOURCE_COMMIT: \$\{\{ inputs\.source_sha \}\}/);
+  assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
+  assert.match(workflow, /validate-image-manifest\.py/);
+  assert.match(workflow, /generate-manifest\.mjs release\/manifest\.json/);
+  assert.match(workflow, /pnpm release:verify/);
+  assert.match(workflow, /arena-release-\$\{RELEASE_VERSION\}\.tar\.gz/);
+  assert.match(workflow, /sha256sum --check SHA256SUMS/);
+  assert.match(workflow, /gh release create "\$RELEASE_VERSION"/);
+  assert.match(workflow, /--target "\$SOURCE_SHA"/);
+  assert.match(workflow, /--prerelease/);
+  assert.doesNotMatch(workflow, /:latest|\bssh\b|scp|rsync/);
+});
+
 test('release verification exercises the tracked prebuilt backup path', async () => {
   const workflow = await read('.github/workflows/release-verify.yml');
   const validator = await read('scripts/release/validate-backup-runtime.sh');

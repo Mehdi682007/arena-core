@@ -1,0 +1,156 @@
+name: Publish immutable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Release version and Git tag (for example v0.1.0-rc.5)
+        required: true
+        type: string
+      source_sha:
+        description: Exact full SHA from main to publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: publish-${{ inputs.release_version }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_VERSION: ${{ inputs.release_version }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      DATABASE_DIRECT_URL: postgresql://build:build@127.0.0.1:5432/build
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+
+      - name: Bind release to current main and unused tag
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]]
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse origin/main)" == "$SOURCE_SHA" ]]
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "Release tag already exists: $RELEASE_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.9.0 --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+
+      - name: Verify source release gates
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm db:generate
+          pnpm format:check
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+          pnpm audit --prod
+          pnpm release:preflight
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish five immutable images
+        env:
+          ARENA_REGISTRY: ghcr.io/${{ github.repository_owner }}
+          ARENA_IMAGE_TAG: ${{ inputs.source_sha }}
+          RELEASE_ID: ${{ inputs.release_version }}
+          SOURCE_COMMIT: ${{ inputs.source_sha }}
+          IMAGE_MANIFEST_OUTPUT: release/deployment-images.json
+        run: |
+          mkdir -p release
+          rm -f release/deployment-images.json release/manifest.json
+          bash scripts/release/build-prebuilt-images.sh
+
+      - name: Generate and validate release manifests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export BUILD_SHA="$SOURCE_SHA"
+          export SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$SOURCE_SHA")"
+          python3 infra/scripts/validate-image-manifest.py \
+            release/deployment-images.json "$RELEASE_VERSION"
+          node scripts/release/generate-manifest.mjs release/manifest.json
+          pnpm release:verify
+
+      - name: Build and verify deterministic release archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="arena-release-${RELEASE_VERSION}.tar.gz"
+          epoch="$(git show -s --format=%ct "$SOURCE_SHA")"
+          tar --sort=name --mtime="@$epoch" --owner=0 --group=0 --numeric-owner \
+            --exclude=.git --exclude=node_modules \
+            -czf "$archive" \
+            release infra docker scripts package.json pnpm-lock.yaml pnpm-workspace.yaml
+          sha256sum "$archive" > SHA256SUMS
+          sha256sum --check SHA256SUMS
+          mkdir archive-check
+          tar -xzf "$archive" -C archive-check
+          cmp release/manifest.json archive-check/release/manifest.json
+          cmp release/deployment-images.json archive-check/release/deployment-images.json
+
+      - name: Upload verified release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-release-${{ inputs.release_version }}
+          path: |
+            arena-release-${{ inputs.release_version }}.tar.gz
+            SHA256SUMS
+            release/manifest.json
+            release/deployment-images.json
+          if-no-files-found: error
+
+      - name: Create immutable GitHub prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cat > release-notes.md <<'NOTES'
+          - RC4 UAT regression fixes
+          - Reliable logout and improved localization
+          - Profile validation UX and Admin MFA flow correction
+          - Local MFA QR enrollment and secure authenticator replacement
+          - Recovery-code recovery path
+          - Next.js writable runtime cache
+          - MFA authenticator rotation migration
+          NOTES
+          gh release create "$RELEASE_VERSION" \
+            --target "$SOURCE_SHA" \
+            --title "$RELEASE_VERSION" \
+            --notes-file release-notes.md \
+            --prerelease \
+            "arena-release-${RELEASE_VERSION}.tar.gz" \
+            SHA256SUMS \
+            release/manifest.json \
+            release/deployment-images.json
