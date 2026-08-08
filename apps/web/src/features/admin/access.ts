@@ -7,6 +7,7 @@ import type { AdminPermission } from './types';
 import { isAdminUiPreviewEnabled } from './preview';
 export type AdminAccess =
   | { status: 'allowed'; permissions: AdminPermission[] }
+  | { status: 'mfa-required' }
   | { status: 'forbidden' }
   | { status: 'unavailable'; requestId?: string };
 
@@ -17,7 +18,9 @@ export async function getAdminAccess(): Promise<AdminAccess> {
       ? { status: 'allowed', permissions: result.permissions }
       : { status: 'forbidden' };
   } catch (error) {
-    if (error instanceof ApiError && error.status === 403) return { status: 'forbidden' };
+    if (error instanceof ApiError && error.status === 403) {
+      return error.code === 'MFA_REQUIRED' ? { status: 'mfa-required' } : { status: 'forbidden' };
+    }
     return {
       status: 'unavailable',
       ...(error instanceof ApiError && error.requestId ? { requestId: error.requestId } : {}),
