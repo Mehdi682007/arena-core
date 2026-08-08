@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 
+// Bodyless writes still need JSON content type because the same-origin proxy enforces it.
 describe('RC4 browser write proxy contract', () => {
   it('normalizes bodyless writes to JSON bodies', () => {
     const source = readFileSync(path.join(root, 'src/lib/api/browser-api-client.ts'), 'utf8');
