@@ -25,7 +25,9 @@ describe('RC4 UAT regressions', () => {
     expect(logout).toContain("window.location.replace('/login')");
     expect(logout).not.toContain('finally');
     expect(shell).toContain("from '@/features/session/logout-button'");
-    expect(shell.indexOf('<LogoutButton locale={locale} />')).toBeGreaterThan(shell.indexOf('messages.settings'));
+    expect(shell.indexOf('<LogoutButton locale={locale} />')).toBeGreaterThan(
+      shell.indexOf('messages.settings'),
+    );
     expect(settings).not.toContain('LogoutButton');
   });
 
