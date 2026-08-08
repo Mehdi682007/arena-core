@@ -52,6 +52,13 @@ function repository(): MfaRepository {
     upsertPendingTotp: vi.fn(async () => undefined),
 
     enableTotp: vi.fn(async () => undefined),
+    hasRecentMfaAssurance: vi.fn(async () => true),
+    upsertPendingTotpRotation: vi.fn(async () => undefined),
+    findPendingTotpRotation: vi.fn(async () => null),
+    consumePendingTotpRotation: vi.fn(async () => true),
+    cancelPendingTotpRotation: vi.fn(async () => undefined),
+    replaceTotpAndRecoveryCodes: vi.fn(async () => undefined),
+    secureSessionsAfterMfaRotation: vi.fn(async () => undefined),
 
     createLoginChallenge: vi.fn(async () => ({
       id: challenge.id,

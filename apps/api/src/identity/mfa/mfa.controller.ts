@@ -99,6 +99,46 @@ export class MfaController {
     };
   }
 
+  @RateLimit('token')
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/rotate/start')
+  public async startRotation(
+    @Body(new ZodBodyPipe(mfaEnrollmentStartSchema))
+    input: MfaEnrollmentStartRequest,
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+  ) {
+    void input;
+    const result = await this.mfa.startTotpRotation(principal.userId, principal.sessionId);
+    return { ...result, expiresAt: result.expiresAt.toISOString() };
+  }
+
+  @RateLimit('token')
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/rotate/confirm')
+  public async confirmRotation(
+    @Body(new ZodBodyPipe(mfaEnrollmentConfirmSchema)) input: MfaEnrollmentConfirmRequest,
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+  ) {
+    const result = await this.mfa.confirmTotpRotation(
+      principal.userId,
+      principal.sessionId,
+      input.code,
+    );
+    return { enabled: true, recoveryCodes: result.recoveryCodes };
+  }
+
+  @RateLimit('token')
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/rotate/cancel')
+  public async cancelRotation(
+    @Body(new ZodBodyPipe(mfaEnrollmentStartSchema)) input: MfaEnrollmentStartRequest,
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+  ) {
+    void input;
+    await this.mfa.cancelTotpRotation(principal.userId, principal.sessionId);
+    return { canceled: true };
+  }
+
   @Public()
   @RateLimit('login')
   @HttpCode(HttpStatus.OK)

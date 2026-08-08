@@ -16,6 +16,7 @@ const expectedModels = [
   'UserPhone',
   'PhoneOtpChallenge',
   'UserMfaTotp',
+  'MfaTotpRotation',
   'MfaRecoveryCode',
   'MfaLoginChallenge',
   'PasswordCredential',
@@ -87,6 +88,17 @@ describe('identity Prisma schema', () => {
     expect(models.slice(0, expectedModels.length)).toEqual(expectedModels);
     expect(models).toEqual([...expectedModels, ...catalogModels]);
     expect(schema).not.toMatch(/\bTournament\b/);
+  });
+
+  it('stores pending TOTP rotation secrets only as sealed values', async () => {
+    const schema = await readFile(schemaPath, 'utf8');
+    expect(schema).toContain('model MfaTotpRotation');
+    expect(schema).toContain('candidateSecretCiphertext');
+    expect(schema).toContain('candidateSecretIv');
+    expect(schema).toContain('candidateSecretTag');
+    expect(schema).not.toMatch(
+      /model MfaTotpRotation[\s\S]*?\n}\s*[\s\S]*?candidateSecret\s+String/,
+    );
   });
 
   it('keeps raw passwords and raw tokens out of persistence', async () => {

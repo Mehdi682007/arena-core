@@ -471,6 +471,7 @@ model User {
   phones                  UserPhone[]
   phoneOtpChallenges      PhoneOtpChallenge[]
   mfaTotp                 UserMfaTotp?
+  mfaTotpRotations        MfaTotpRotation[]
   mfaLoginChallenges      MfaLoginChallenge[]
   passwordCredential      PasswordCredential?
   sessions                UserSession[]
@@ -593,9 +594,27 @@ model UserMfaTotp {
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_mfa_totp_user_id_fkey")
   recoveryCodes    MfaRecoveryCode[]
+  rotation         MfaTotpRotation?
 
   @@index([enabledAt], map: "user_mfa_totp_enabled_at_idx")
   @@map("user_mfa_totp")
+}
+
+model MfaTotpRotation {
+  id                        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                    String      @unique(map: "mfa_totp_rotations_user_id_key") @map("user_id") @db.Uuid
+  totpId                    String      @unique(map: "mfa_totp_rotations_totp_id_key") @map("totp_id") @db.Uuid
+  candidateSecretCiphertext String      @map("candidate_secret_ciphertext") @db.VarChar(1024)
+  candidateSecretIv         String      @map("candidate_secret_iv") @db.VarChar(64)
+  candidateSecretTag        String      @map("candidate_secret_tag") @db.VarChar(64)
+  createdAt                 DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  expiresAt                 DateTime    @map("expires_at") @db.Timestamptz(3)
+  user                      User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "mfa_totp_rotations_user_id_fkey")
+  totp                      UserMfaTotp @relation(fields: [totpId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "mfa_totp_rotations_totp_id_fkey")
+
+  @@index([expiresAt], map: "mfa_totp_rotations_expires_at_idx")
+  @@map("mfa_totp_rotations")
 }
 
 model MfaRecoveryCode {

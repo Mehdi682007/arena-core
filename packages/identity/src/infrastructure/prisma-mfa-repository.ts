@@ -1,6 +1,11 @@
 import { Prisma, type ArenaPrismaClient } from '@arena-core/database';
 import { IdentityError } from '../domain/identity-errors';
-import type { MfaLoginChallengeRecord, MfaTotpRecord, MfaUserRecord } from '../domain/mfa-types';
+import type {
+  MfaLoginChallengeRecord,
+  MfaTotpRecord,
+  MfaTotpRotationRecord,
+  MfaUserRecord,
+} from '../domain/mfa-types';
 import type { MfaRepository, MfaTransactionManager } from '../ports/mfa-repository';
 
 type MfaPrismaClient = ArenaPrismaClient | Prisma.TransactionClient;
@@ -196,6 +201,166 @@ export class PrismaMfaRepository implements MfaRepository {
     });
   }
 
+  public async hasRecentMfaAssurance(input: {
+    userId: string;
+    sessionId: string;
+    verifiedAfter: Date;
+    at: Date;
+  }): Promise<boolean> {
+    const count = await this.client.userSession.count({
+      where: {
+        id: input.sessionId,
+        userId: input.userId,
+        status: 'ACTIVE',
+        expiresAt: {
+          gt: input.at,
+        },
+        mfaVerifiedAt: {
+          gte: input.verifiedAfter,
+        },
+      },
+    });
+
+    return count === 1;
+  }
+
+  public async upsertPendingTotpRotation(input: {
+    userId: string;
+    totpId: string;
+    sealed: {
+      ciphertext: string;
+      iv: string;
+      tag: string;
+    };
+    at: Date;
+    expiresAt: Date;
+  }): Promise<void> {
+    await this.client.mfaTotpRotation.upsert({
+      where: {
+        userId: input.userId,
+      },
+      create: {
+        userId: input.userId,
+        totpId: input.totpId,
+        candidateSecretCiphertext: input.sealed.ciphertext,
+        candidateSecretIv: input.sealed.iv,
+        candidateSecretTag: input.sealed.tag,
+        createdAt: input.at,
+        updatedAt: input.at,
+        expiresAt: input.expiresAt,
+      },
+      update: {
+        totpId: input.totpId,
+        candidateSecretCiphertext: input.sealed.ciphertext,
+        candidateSecretIv: input.sealed.iv,
+        candidateSecretTag: input.sealed.tag,
+        updatedAt: input.at,
+        expiresAt: input.expiresAt,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  public findPendingTotpRotation(userId: string): Promise<MfaTotpRotationRecord | null> {
+    return this.client.mfaTotpRotation.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        totpId: true,
+        candidateSecretCiphertext: true,
+        candidateSecretIv: true,
+        candidateSecretTag: true,
+        createdAt: true,
+        updatedAt: true,
+        expiresAt: true,
+      },
+    });
+  }
+
+  public async consumePendingTotpRotation(rotationId: string, at: Date): Promise<boolean> {
+    const result = await this.client.mfaTotpRotation.deleteMany({
+      where: {
+        id: rotationId,
+        expiresAt: {
+          gt: at,
+        },
+      },
+    });
+
+    return result.count === 1;
+  }
+
+  public async cancelPendingTotpRotation(userId: string): Promise<void> {
+    await this.client.mfaTotpRotation.deleteMany({
+      where: {
+        userId,
+      },
+    });
+  }
+
+  public async replaceTotpAndRecoveryCodes(input: {
+    userId: string;
+    sealed: {
+      ciphertext: string;
+      iv: string;
+      tag: string;
+    };
+    at: Date;
+    recoveryCodeHashes: readonly string[];
+  }): Promise<void> {
+    const factor = await this.client.userMfaTotp.findUnique({
+      where: {
+        userId: input.userId,
+      },
+      select: {
+        id: true,
+        enabledAt: true,
+      },
+    });
+
+    if (factor === null || factor.enabledAt === null) {
+      throw new IdentityError('MFA_NOT_ENROLLED');
+    }
+
+    const updated = await this.client.userMfaTotp.updateMany({
+      where: {
+        id: factor.id,
+        enabledAt: {
+          not: null,
+        },
+      },
+      data: {
+        secretCiphertext: input.sealed.ciphertext,
+        secretIv: input.sealed.iv,
+        secretTag: input.sealed.tag,
+        updatedAt: input.at,
+      },
+    });
+
+    if (updated.count !== 1) {
+      throw new IdentityError('MFA_NOT_ENROLLED');
+    }
+
+    await this.client.mfaRecoveryCode.deleteMany({
+      where: {
+        totpId: factor.id,
+      },
+    });
+
+    await this.client.mfaRecoveryCode.createMany({
+      data: input.recoveryCodeHashes.map((codeHash) => ({
+        totpId: factor.id,
+        codeHash,
+        createdAt: input.at,
+      })),
+    });
+  }
+
   public createLoginChallenge(input: {
     userId: string;
     tokenHash: string;
@@ -330,6 +495,42 @@ export class PrismaMfaRepository implements MfaRepository {
         status: 'REVOKED',
         revokedAt: input.at,
         revocationReason: 'MFA_ENABLED',
+      },
+    });
+  }
+
+  public async secureSessionsAfterMfaRotation(input: {
+    userId: string;
+    currentSessionId: string;
+    at: Date;
+  }): Promise<void> {
+    const current = await this.client.userSession.updateMany({
+      where: {
+        id: input.currentSessionId,
+        userId: input.userId,
+        status: 'ACTIVE',
+      },
+      data: {
+        mfaVerifiedAt: input.at,
+      },
+    });
+
+    if (current.count !== 1) {
+      throw new IdentityError('SESSION_INVALID');
+    }
+
+    await this.client.userSession.updateMany({
+      where: {
+        userId: input.userId,
+        id: {
+          not: input.currentSessionId,
+        },
+        status: 'ACTIVE',
+      },
+      data: {
+        status: 'REVOKED',
+        revokedAt: input.at,
+        revocationReason: 'MFA_ROTATED',
       },
     });
   }
