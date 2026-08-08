@@ -72,6 +72,13 @@ beforeEach(async () => {
     confirmTotpEnrollment: vi.fn(async () => ({
       recoveryCodes: ['AAAA-BBBB-CCCC', 'DDDD-EEEE-FFFF'],
     })),
+    startTotpRotation: vi.fn(async () => ({
+      secret: 'NEWSECRET',
+      otpauthUri: 'otpauth://totp/Arena:test?secret=NEWSECRET',
+      expiresAt: new Date('2026-08-08T12:10:00Z'),
+    })),
+    confirmTotpRotation: vi.fn(async () => ({ recoveryCodes: ['NEW1', 'NEW2'] })),
+    cancelTotpRotation: vi.fn(async () => undefined),
   };
 
   application = await createApiApplication(config, false, {
@@ -89,6 +96,21 @@ afterEach(async () => {
 });
 
 describe('MFA HTTP', () => {
+  it('starts, confirms, and cancels a session-bound TOTP rotation', async () => {
+    const started = await request('/auth/mfa/totp/rotate/start', { method: 'POST', body: {} });
+    expect(started.status).toBe(200);
+    expect((await started.json()).expiresAt).toBe('2026-08-08T12:10:00.000Z');
+    const confirmed = await request('/auth/mfa/totp/rotate/confirm', {
+      method: 'POST',
+      body: { code: '123456' },
+    });
+    expect(confirmed.status).toBe(200);
+    expect(mfaService.confirmTotpRotation).toHaveBeenCalledWith('user-1', 'session-1', '123456');
+    const canceled = await request('/auth/mfa/totp/rotate/cancel', { method: 'POST', body: {} });
+    expect(canceled.status).toBe(200);
+    expect(mfaService.cancelTotpRotation).toHaveBeenCalledWith('user-1', 'session-1');
+  });
+
   it('returns authenticated MFA status', async () => {
     const response = await request('/auth/mfa');
 

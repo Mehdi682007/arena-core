@@ -23,6 +23,18 @@ export interface MfaTotpRecord {
   readonly updatedAt: Date;
 }
 
+export interface MfaTotpRotationRecord {
+  readonly id: string;
+  readonly userId: string;
+  readonly totpId: string;
+  readonly candidateSecretCiphertext: string;
+  readonly candidateSecretIv: string;
+  readonly candidateSecretTag: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly expiresAt: Date;
+}
+
 export interface MfaLoginChallengeRecord {
   readonly id: string;
   readonly userId: string;

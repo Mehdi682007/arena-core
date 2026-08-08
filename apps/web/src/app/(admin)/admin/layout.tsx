@@ -39,9 +39,38 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   const access = await getAdminAccess();
+  const publicBaseUrl = process.env.APP_BASE_URL?.trim().replace(/\/+$/, '') ?? '';
+
+  if (access.status === 'mfa-required') {
+    return (
+      <main className="container page stack">
+        <Alert error>
+          {locale === 'fa'
+            ? 'برای دسترسی به مدیریت، ابتدا احراز هویت دومرحله‌ای را فعال و تأیید کنید.'
+            : 'Enable and verify two-factor authentication before accessing administration.'}
+        </Alert>
+
+        <a className="button" href={`${publicBaseUrl}/settings/security/mfa`}>
+          {locale === 'fa' ? 'تنظیم احراز هویت دومرحله‌ای' : 'Set up two-factor authentication'}
+        </a>
+      </main>
+    );
+  }
 
   if (access.status === 'forbidden') {
-    redirect('/dashboard?admin=forbidden');
+    return (
+      <main className="container page stack">
+        <Alert error>
+          {locale === 'fa'
+            ? 'حساب شما اجازه دسترسی به بخش مدیریت را ندارد.'
+            : 'Your account does not have permission to access administration.'}
+        </Alert>
+
+        <a className="button secondary" href={publicBaseUrl || '/'}>
+          {locale === 'fa' ? 'بازگشت به برنامه' : 'Back to application'}
+        </a>
+      </main>
+    );
   }
 
   if (access.status !== 'allowed') {

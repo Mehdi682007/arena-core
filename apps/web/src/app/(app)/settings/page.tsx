@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { LanguageToggle } from '@/components/language-toggle';
 import { Card } from '@/components/ui';
 import { NotificationPreferences } from '@/features/notifications/preferences';
-import { LogoutButton } from '@/features/session/logout-button';
 import { getSession } from '@/features/session/session';
 import { messagesFor } from '@/i18n/messages';
 import { rc4MessagesFor } from '@/i18n/rc4-messages';
@@ -67,8 +66,6 @@ export default async function SettingsPage() {
         <LanguageToggle initialLocale={locale} persistProfile />
 
         <p>{messages.sessionNotice}</p>
-
-        <LogoutButton locale={locale} />
       </Card>
 
       <section>

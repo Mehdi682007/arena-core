@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import type { AppLocale } from '@/i18n/config';
 import { messagesFor } from '@/i18n/messages';
@@ -9,7 +8,6 @@ import { browserApi } from '@/lib/api/browser-api-client';
 
 export function LogoutButton({ locale = 'fa' }: { locale?: AppLocale }) {
   const [pending, setPending] = useState(false);
-  const router = useRouter();
   const messages = messagesFor(locale).security;
 
   async function logout(): Promise<void> {
@@ -19,9 +17,10 @@ export function LogoutButton({ locale = 'fa' }: { locale?: AppLocale }) {
       await browserApi('/auth/logout', {
         method: 'POST',
       });
-    } finally {
-      router.replace('/login');
-      router.refresh();
+
+      window.location.replace('/login');
+    } catch {
+      setPending(false);
     }
   }
 

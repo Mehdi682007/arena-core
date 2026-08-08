@@ -62,6 +62,10 @@ ENV PORT=3000
 COPY --from=builder --chown=10001:10001 /workspace/apps/web/.next/standalone ./
 COPY --from=builder --chown=10001:10001 /workspace/apps/web/.next/static ./apps/web/.next/static
 COPY --chown=10001:10001 docker/healthchecks /healthchecks
+USER root
+RUN mkdir -p /app/apps/web/.next/cache \
+  && chown -R 10001:10001 /app/apps/web/.next
+USER 10001:10001
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
   CMD ["node", "/healthchecks/http.mjs", "http://127.0.0.1:3000/health"]

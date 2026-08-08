@@ -37,15 +37,18 @@ export function ProfileForm({ profile }: { profile: ProfileView }) {
     const data = new FormData(event.currentTarget);
 
     const nextLocale = formString(data, 'locale') as AppLocale;
+    const displayName = formString(data, 'displayName').trim();
+    const timezone = formString(data, 'timezone').trim();
+    const countryCode = formString(data, 'countryCode').trim().toUpperCase();
 
     try {
       await browserApi('/profile', {
         method: 'PATCH',
         body: {
-          displayName: formString(data, 'displayName'),
+          displayName,
           locale: nextLocale,
-          timezone: formString(data, 'timezone'),
-          countryCode: formString(data, 'countryCode').trim().toUpperCase() || null,
+          timezone,
+          countryCode: countryCode || null,
         },
       });
 
@@ -97,14 +100,14 @@ export function ProfileForm({ profile }: { profile: ProfileView }) {
         />
       </Field>
 
-      <Field name="locale" label={messages.language}>
+      <Field name="locale" label={messages.language} error={error?.fieldErrors?.locale}>
         <Select id="locale" name="locale" defaultValue={profile.locale}>
           <option value="fa">فارسی</option>
           <option value="en">English</option>
         </Select>
       </Field>
 
-      <Field name="timezone" label={messages.timezone}>
+      <Field name="timezone" label={messages.timezone} error={error?.fieldErrors?.timezone}>
         <Input
           id="timezone"
           name="timezone"
@@ -115,13 +118,20 @@ export function ProfileForm({ profile }: { profile: ProfileView }) {
         />
       </Field>
 
-      <Field name="countryCode" label={messages.countryCode}>
+      <Field
+        name="countryCode"
+        label={messages.countryCode}
+        error={error?.fieldErrors?.countryCode}
+      >
         <Input
           id="countryCode"
           name="countryCode"
           dir="ltr"
           minLength={2}
           maxLength={2}
+          pattern="[A-Za-z]{2}"
+          placeholder="IR"
+          spellCheck={false}
           defaultValue={profile.countryCode ?? ''}
         />
       </Field>

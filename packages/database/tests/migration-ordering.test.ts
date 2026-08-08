@@ -24,7 +24,7 @@ describe('migration directory ordering', () => {
       expect(current > previous).toBe(true);
     }
 
-    expect(folders.at(-1)).toBe('20260808021000_mfa_login_challenge');
+    expect(folders.at(-1)).toBe('20260808120000_mfa_totp_rotation');
     expect(folders.indexOf(auditMigration)).toBeGreaterThan(folders.indexOf(notificationMigration));
   });
 

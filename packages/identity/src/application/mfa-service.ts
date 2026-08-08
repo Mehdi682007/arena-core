@@ -6,6 +6,8 @@ import type { MfaTransactionManager } from '../ports/mfa-repository';
 
 const loginChallengeTtlSeconds = 300;
 const loginChallengeMaxAttempts = 5;
+const totpRotationTtlSeconds = 600;
+const recentMfaAssuranceSeconds = 600;
 
 function addSeconds(date: Date, seconds: number): Date {
   return new Date(date.getTime() + seconds * 1_000);
@@ -146,6 +148,169 @@ export class MfaService {
       return Object.freeze({
         recoveryCodes,
       });
+    });
+  }
+
+  public async startTotpRotation(
+    userId: string,
+    currentSessionId: string,
+  ): Promise<{
+    secret: string;
+    otpauthUri: string;
+    expiresAt: Date;
+  }> {
+    const secret = this.dependencies.crypto.generateTotpSecret();
+    const sealed = this.dependencies.crypto.sealTotpSecret(secret);
+    const now = this.dependencies.clock.now();
+    const expiresAt = addSeconds(now, totpRotationTtlSeconds);
+
+    const accountName = await this.dependencies.transactions.transaction(async (repository) => {
+      const user = await repository.findUser(userId);
+
+      if (user === null) {
+        throw new IdentityError('ACCOUNT_NOT_ACTIVE');
+      }
+
+      ensureActive(user.status, user.deletedAt);
+
+      const factor = await repository.findTotp(userId);
+
+      if (factor === null || factor.enabledAt === null) {
+        throw new IdentityError('MFA_NOT_ENROLLED');
+      }
+
+      const assured = await repository.hasRecentMfaAssurance({
+        userId,
+        sessionId: currentSessionId,
+        verifiedAfter: addSeconds(now, -recentMfaAssuranceSeconds),
+        at: now,
+      });
+
+      if (!assured) {
+        throw new IdentityError('MFA_RECENT_VERIFICATION_REQUIRED');
+      }
+
+      await repository.upsertPendingTotpRotation({
+        userId,
+        totpId: factor.id,
+        sealed,
+        at: now,
+        expiresAt,
+      });
+
+      return user.accountName;
+    });
+
+    return Object.freeze({
+      secret,
+      otpauthUri: this.dependencies.crypto.buildTotpUri(accountName, secret),
+      expiresAt,
+    });
+  }
+
+  public async confirmTotpRotation(
+    userId: string,
+    currentSessionId: string,
+    code: string,
+  ): Promise<{ recoveryCodes: readonly string[] }> {
+    if (!/^[0-9]{6}$/.test(code)) {
+      throw new IdentityError('INVALID_MFA_CODE');
+    }
+
+    const now = this.dependencies.clock.now();
+
+    return this.dependencies.transactions.transaction(async (repository) => {
+      const factor = await repository.findTotp(userId);
+
+      if (factor === null || factor.enabledAt === null) {
+        throw new IdentityError('MFA_NOT_ENROLLED');
+      }
+
+      const assured = await repository.hasRecentMfaAssurance({
+        userId,
+        sessionId: currentSessionId,
+        verifiedAfter: addSeconds(now, -recentMfaAssuranceSeconds),
+        at: now,
+      });
+
+      if (!assured) {
+        throw new IdentityError('MFA_RECENT_VERIFICATION_REQUIRED');
+      }
+
+      const pending = await repository.findPendingTotpRotation(userId);
+
+      if (pending === null || pending.totpId !== factor.id) {
+        throw new IdentityError('MFA_ROTATION_NOT_PENDING');
+      }
+
+      if (pending.expiresAt <= now) {
+        throw new IdentityError('MFA_ROTATION_EXPIRED');
+      }
+
+      const secret = this.dependencies.crypto.openTotpSecret({
+        ciphertext: pending.candidateSecretCiphertext,
+        iv: pending.candidateSecretIv,
+        tag: pending.candidateSecretTag,
+      });
+
+      if (!this.dependencies.crypto.verifyTotp(secret, code, now)) {
+        throw new IdentityError('INVALID_MFA_CODE');
+      }
+
+      const recoveryCodes = this.dependencies.crypto.generateRecoveryCodes(10);
+      const recoveryCodeHashes = recoveryCodes.map((item) =>
+        this.dependencies.crypto.hashRecoveryCode(item),
+      );
+
+      const consumed = await repository.consumePendingTotpRotation(pending.id, now);
+
+      if (!consumed) {
+        throw new IdentityError('MFA_ROTATION_NOT_PENDING');
+      }
+
+      await repository.replaceTotpAndRecoveryCodes({
+        userId,
+        sealed: {
+          ciphertext: pending.candidateSecretCiphertext,
+          iv: pending.candidateSecretIv,
+          tag: pending.candidateSecretTag,
+        },
+        at: now,
+        recoveryCodeHashes,
+      });
+
+      await repository.secureSessionsAfterMfaRotation({
+        userId,
+        currentSessionId,
+        at: now,
+      });
+
+      return Object.freeze({ recoveryCodes });
+    });
+  }
+
+  public async cancelTotpRotation(userId: string, currentSessionId: string): Promise<void> {
+    const now = this.dependencies.clock.now();
+
+    await this.dependencies.transactions.transaction(async (repository) => {
+      const factor = await repository.findTotp(userId);
+
+      if (factor === null || factor.enabledAt === null) {
+        throw new IdentityError('MFA_NOT_ENROLLED');
+      }
+
+      const assured = await repository.hasRecentMfaAssurance({
+        userId,
+        sessionId: currentSessionId,
+        verifiedAfter: addSeconds(now, -recentMfaAssuranceSeconds),
+        at: now,
+      });
+
+      if (!assured) {
+        throw new IdentityError('MFA_RECENT_VERIFICATION_REQUIRED');
+      }
+
+      await repository.cancelPendingTotpRotation(userId);
     });
   }
 

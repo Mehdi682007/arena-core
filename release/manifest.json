@@ -74,6 +74,10 @@
     {
       "name": "20260808021000_mfa_login_challenge",
       "sha256": "A4214C743DF10AF48B809CD0A2481C163D35B972560B78DD89496084EE11B545"
+    },
+    {
+      "name": "20260808120000_mfa_totp_rotation",
+      "sha256": "B463C0477C784B722138FDB061A00E3F9A7F0D252F13363E518CE7657A71F472"
     }
   ],
   "images": {

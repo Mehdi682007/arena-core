@@ -1,6 +1,7 @@
 import type {
   MfaLoginChallengeRecord,
   MfaTotpRecord,
+  MfaTotpRotationRecord,
   MfaUserRecord,
   SealedMfaSecret,
 } from '../domain/mfa-types';
@@ -18,6 +19,40 @@ export interface MfaRepository {
     userId: string;
     at: Date;
     recoveryCodeHashes: readonly string[];
+  }): Promise<void>;
+
+  hasRecentMfaAssurance(input: {
+    userId: string;
+    sessionId: string;
+    verifiedAfter: Date;
+    at: Date;
+  }): Promise<boolean>;
+
+  upsertPendingTotpRotation(input: {
+    userId: string;
+    totpId: string;
+    sealed: SealedMfaSecret;
+    at: Date;
+    expiresAt: Date;
+  }): Promise<void>;
+
+  findPendingTotpRotation(userId: string): Promise<MfaTotpRotationRecord | null>;
+
+  consumePendingTotpRotation(rotationId: string, at: Date): Promise<boolean>;
+
+  cancelPendingTotpRotation(userId: string): Promise<void>;
+
+  replaceTotpAndRecoveryCodes(input: {
+    userId: string;
+    sealed: SealedMfaSecret;
+    at: Date;
+    recoveryCodeHashes: readonly string[];
+  }): Promise<void>;
+
+  secureSessionsAfterMfaRotation(input: {
+    userId: string;
+    currentSessionId: string;
+    at: Date;
   }): Promise<void>;
 
   createLoginChallenge(input: {

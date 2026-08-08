@@ -9,6 +9,12 @@ export interface FrontendApiError {
   readonly retryAfterSeconds?: number | undefined;
 }
 
+function currentLocale(): 'fa' | 'en' {
+  if (typeof document === 'undefined') return 'fa';
+
+  return document.documentElement.lang.toLowerCase().startsWith('en') ? 'en' : 'fa';
+}
+
 export class ApiError extends Error implements FrontendApiError {
   public override readonly name = 'ApiError';
   public constructor(
@@ -18,7 +24,7 @@ export class ApiError extends Error implements FrontendApiError {
     public readonly fieldErrors?: Readonly<Record<string, string>>,
     public readonly retryAfterSeconds?: number,
   ) {
-    super(messageForCode(code));
+    super(messageForCode(code, currentLocale()));
   }
 }
 

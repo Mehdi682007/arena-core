@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type SyntheticEvent } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Alert, Badge, Button, Card, Field, Input } from '@/components/ui';
 import type { AppLocale } from '@/i18n/config';
 import { ApiError } from '@/lib/api/api-error';
@@ -16,6 +17,8 @@ export interface MfaStatusView {
 interface Enrollment {
   readonly secret: string;
   readonly otpauthUri: string;
+  readonly expiresAt?: string;
+  readonly mode: 'enroll' | 'rotate';
 }
 
 function formString(data: FormData, name: string): string {
@@ -52,12 +55,13 @@ export function MfaEnrollmentManager({
     setError(undefined);
 
     try {
-      const result = await browserApi<Enrollment>('/auth/mfa/totp/enroll/start', {
+      const mode = status.enabled ? 'rotate' : 'enroll';
+      const result = await browserApi<Omit<Enrollment, 'mode'>>(`/auth/mfa/totp/${mode}/start`, {
         method: 'POST',
         body: {},
       });
 
-      setEnrollment(result);
+      setEnrollment({ ...result, mode });
       setRecoveryCodes(undefined);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught : new ApiError('INTERNAL_ERROR', 500));
@@ -82,7 +86,7 @@ export function MfaEnrollmentManager({
       const result = await browserApi<{
         enabled: true;
         recoveryCodes: readonly string[];
-      }>('/auth/mfa/totp/enroll/confirm', {
+      }>(`/auth/mfa/totp/${enrollment.mode}/confirm`, {
         method: 'POST',
         body: {
           code: formString(data, 'code'),
@@ -105,6 +109,38 @@ export function MfaEnrollmentManager({
     }
   }
 
+  async function cancel(): Promise<void> {
+    if (enrollment?.mode === 'rotate') {
+      setPending(true);
+      try {
+        await browserApi('/auth/mfa/totp/rotate/cancel', { method: 'POST', body: {} });
+      } catch (caught) {
+        setError(caught instanceof ApiError ? caught : new ApiError('INTERNAL_ERROR', 500));
+        setPending(false);
+        return;
+      }
+      setPending(false);
+    }
+    setEnrollment(undefined);
+    setError(undefined);
+  }
+
+  async function copy(value: string): Promise<void> {
+    await navigator.clipboard.writeText(value);
+  }
+
+  function downloadRecoveryCodes(): void {
+    if (!recoveryCodes) return;
+    const url = URL.createObjectURL(
+      new Blob([`${recoveryCodes.join('\n')}\n`], { type: 'text/plain' }),
+    );
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'arena-recovery-codes.txt';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (recoveryCodes) {
     return (
       <Card>
@@ -112,6 +148,7 @@ export function MfaEnrollmentManager({
           <h2>{messages.recoveryTitle}</h2>
 
           <Alert>{messages.recoveryWarning}</Alert>
+          <Alert error>{messages.recoveryEmergencyWarning}</Alert>
 
           <pre
             dir="ltr"
@@ -122,6 +159,19 @@ export function MfaEnrollmentManager({
           >
             {recoveryCodes.join('\n')}
           </pre>
+
+          <div className="cluster">
+            <Button
+              type="button"
+              className="secondary"
+              onClick={() => void copy(recoveryCodes.join('\n'))}
+            >
+              {messages.copyRecovery}
+            </Button>
+            <Button type="button" className="secondary" onClick={downloadRecoveryCodes}>
+              {messages.downloadRecovery}
+            </Button>
+          </div>
 
           <Button
             type="button"
@@ -143,6 +193,24 @@ export function MfaEnrollmentManager({
           <h2>{messages.setupTitle}</h2>
 
           <p className="muted">{messages.setupHint}</p>
+          <ol>
+            <li>{messages.instruction1}</li>
+            <li>{messages.instruction2}</li>
+            <li>{messages.instruction3}</li>
+          </ol>
+
+          <div style={{ background: '#fff', padding: 16, width: 'fit-content', maxWidth: '100%' }}>
+            <QRCodeSVG
+              value={enrollment.otpauthUri}
+              size={220}
+              bgColor="#ffffff"
+              fgColor="#111827"
+              level="M"
+              marginSize={4}
+              role="img"
+              aria-label={messages.qrLabel}
+            />
+          </div>
 
           <a className="button secondary" href={enrollment.otpauthUri}>
             {messages.openAuthenticator}
@@ -160,7 +228,16 @@ export function MfaEnrollmentManager({
             >
               {enrollment.secret}
             </pre>
+            <Button
+              type="button"
+              className="secondary"
+              onClick={() => void copy(enrollment.secret)}
+            >
+              {messages.copyKey}
+            </Button>
           </div>
+
+          <Alert>{messages.setupWarning}</Alert>
 
           <form
             className="form"
@@ -194,10 +271,7 @@ export function MfaEnrollmentManager({
             type="button"
             className="secondary"
             disabled={pending}
-            onClick={() => {
-              setEnrollment(undefined);
-              setError(undefined);
-            }}
+            onClick={() => void cancel()}
           >
             {messages.cancel}
           </Button>
@@ -237,6 +311,10 @@ export function MfaEnrollmentManager({
                 ).format(new Date(status.enabledAt))}
               </p>
             ) : null}
+            <Button type="button" disabled={pending} onClick={() => void start()}>
+              {pending ? messages.starting : messages.replace}
+            </Button>
+            <p className="muted">{messages.replaceDescription}</p>
           </>
         ) : (
           <Button

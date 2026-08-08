@@ -7,6 +7,9 @@ export type IdentityErrorCode =
   | 'INVALID_MFA_CODE'
   | 'MFA_ALREADY_ENABLED'
   | 'MFA_NOT_ENROLLED'
+  | 'MFA_RECENT_VERIFICATION_REQUIRED'
+  | 'MFA_ROTATION_NOT_PENDING'
+  | 'MFA_ROTATION_EXPIRED'
   | 'WEAK_PASSWORD'
   | 'EMAIL_ALREADY_REGISTERED'
   | 'ACCOUNT_NOT_ACTIVE'
@@ -30,6 +33,9 @@ const safeMessages: Record<IdentityErrorCode, string> = {
   INVALID_MFA_CODE: 'Multi-factor authentication code is invalid.',
   MFA_ALREADY_ENABLED: 'Multi-factor authentication is already enabled.',
   MFA_NOT_ENROLLED: 'Multi-factor authentication enrollment is not available.',
+  MFA_RECENT_VERIFICATION_REQUIRED: 'Recent multi-factor verification is required.',
+  MFA_ROTATION_NOT_PENDING: 'Authenticator replacement is not pending.',
+  MFA_ROTATION_EXPIRED: 'Authenticator replacement has expired.',
   WEAK_PASSWORD: 'Password does not satisfy the configured policy.',
   EMAIL_ALREADY_REGISTERED: 'Email is already registered.',
   ACCOUNT_NOT_ACTIVE: 'Account is not active.',
