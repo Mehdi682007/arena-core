@@ -46,7 +46,10 @@ describe('administrative web safety and routes', () => {
       expect(() => readFileSync(path.join(root, file), 'utf8')).not.toThrow();
     const layout = readFileSync(path.join(root, 'src/app/(admin)/admin/layout.tsx'), 'utf8');
     expect(layout).toContain("redirect('/login?returnTo=%2Fadmin')");
-    expect(layout).toContain("redirect('/dashboard?admin=forbidden')");
+    expect(layout).not.toContain("redirect('/dashboard?admin=forbidden')");
+    expect(layout).toContain("access.status === 'mfa-required'");
+    expect(layout).toContain("access.status === 'forbidden'");
+    expect(layout).toContain('/settings/security/mfa');
     expect(layout).toContain("dynamic = 'force-dynamic'");
   });
   it('provides a grouped operations console and a diagnostics-backed dashboard', () => {
@@ -136,7 +139,7 @@ describe('administrative web safety and routes', () => {
     expect(shell).toContain('<AdminNavIcon href={item.href} />');
 
     expect(shell).not.toContain('{item.symbol}');
-    expect(shell).not.toMatch(/symbol:\\s*['"]/);
+    expect(shell).not.toMatch(/symbol:\s*['"]/);
 
     expect(shell).toContain("href: '/admin/users'");
 
