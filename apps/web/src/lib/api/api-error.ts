@@ -1,3 +1,4 @@
+import { normalizeLocale } from '@/i18n/config';
 import { messageForCode } from '../errors/messages';
 
 export interface FrontendApiError {
@@ -9,6 +10,10 @@ export interface FrontendApiError {
   readonly retryAfterSeconds?: number | undefined;
 }
 
+function currentLocale() {
+  return typeof document === 'undefined' ? 'fa' : normalizeLocale(document.documentElement.lang);
+}
+
 export class ApiError extends Error implements FrontendApiError {
   public override readonly name = 'ApiError';
   public constructor(
@@ -18,7 +23,7 @@ export class ApiError extends Error implements FrontendApiError {
     public readonly fieldErrors?: Readonly<Record<string, string>>,
     public readonly retryAfterSeconds?: number,
   ) {
-    super(messageForCode(code));
+    super(messageForCode(code, currentLocale()));
   }
 }
 
