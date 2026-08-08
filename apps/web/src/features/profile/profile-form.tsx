@@ -118,7 +118,11 @@ export function ProfileForm({ profile }: { profile: ProfileView }) {
         />
       </Field>
 
-      <Field name="countryCode" label={messages.countryCode} error={error?.fieldErrors?.countryCode}>
+      <Field
+        name="countryCode"
+        label={messages.countryCode}
+        error={error?.fieldErrors?.countryCode}
+      >
         <Input
           id="countryCode"
           name="countryCode"
