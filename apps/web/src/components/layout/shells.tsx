@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { LanguageToggle } from '@/components/language-toggle';
 import { Avatar, Badge } from '@/components/ui';
+import { LogoutButton } from '@/features/session/logout-button';
 import type { SessionUser } from '@/features/session/session';
 import type { AppLocale } from '@/i18n/config';
 import { messagesFor } from '@/i18n/messages';
@@ -26,6 +27,8 @@ function Navigation({ locale }: { locale: AppLocale }) {
           {label}
         </Link>
       ))}
+
+      <LogoutButton locale={locale} />
     </>
   );
 }
