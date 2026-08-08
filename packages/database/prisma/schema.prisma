@@ -27,6 +27,15 @@ enum SessionStatus {
   @@map("session_status")
 }
 
+enum PhoneOtpPurpose {
+  SIGN_IN
+  VERIFY_PHONE
+  CHANGE_PHONE
+  RECOVERY
+
+  @@map("phone_otp_purpose")
+}
+
 enum GameStatus {
   DRAFT
   ACTIVE
@@ -459,6 +468,10 @@ model User {
   restrictionNote         String?                  @map("restriction_note") @db.VarChar(500)
   profile                 UserProfile?
   emails                  UserEmail[]
+  phones                  UserPhone[]
+  phoneOtpChallenges      PhoneOtpChallenge[]
+  mfaTotp                 UserMfaTotp?
+  mfaLoginChallenges      MfaLoginChallenge[]
   passwordCredential      PasswordCredential?
   sessions                UserSession[]
   passwordResetTokens     PasswordResetToken[]
@@ -530,6 +543,91 @@ model UserEmail {
   @@map("user_emails")
 }
 
+model UserPhone {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String              @map("user_id") @db.Uuid
+  phoneE164     String              @unique(map: "user_phones_phone_e164_key") @map("phone_e164") @db.VarChar(32)
+  isPrimary     Boolean             @default(false) @map("is_primary")
+  verifiedAt    DateTime?           @map("verified_at") @db.Timestamptz(3)
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_phones_user_id_fkey")
+  otpChallenges PhoneOtpChallenge[]
+
+  @@index([userId], map: "user_phones_user_id_idx")
+  @@index([userId, isPrimary], map: "user_phones_user_id_is_primary_idx")
+  @@index([verifiedAt], map: "user_phones_verified_at_idx")
+  @@map("user_phones")
+}
+
+model PhoneOtpChallenge {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String?         @map("user_id") @db.Uuid
+  userPhoneId     String?         @map("user_phone_id") @db.Uuid
+  phoneE164       String          @map("phone_e164") @db.VarChar(32)
+  purpose         PhoneOtpPurpose
+  codeHash        String          @map("code_hash") @db.VarChar(128)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt       DateTime        @map("expires_at") @db.Timestamptz(3)
+  consumedAt      DateTime?       @map("consumed_at") @db.Timestamptz(3)
+  attemptCount    Int             @default(0) @map("attempt_count")
+  maxAttempts     Int             @default(5) @map("max_attempts")
+  requestedIpHash String?         @map("requested_ip_hash") @db.VarChar(128)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "phone_otp_challenges_user_id_fkey")
+  userPhone       UserPhone?      @relation(fields: [userPhoneId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "phone_otp_challenges_user_phone_id_fkey")
+
+  @@index([userId, purpose, createdAt], map: "phone_otp_challenges_user_purpose_created_idx")
+  @@index([userPhoneId], map: "phone_otp_challenges_user_phone_id_idx")
+  @@index([expiresAt], map: "phone_otp_challenges_expires_at_idx")
+  @@map("phone_otp_challenges")
+}
+
+model UserMfaTotp {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String            @unique(map: "user_mfa_totp_user_id_key") @map("user_id") @db.Uuid
+  secretCiphertext String            @map("secret_ciphertext") @db.VarChar(1024)
+  secretIv         String            @map("secret_iv") @db.VarChar(64)
+  secretTag        String            @map("secret_tag") @db.VarChar(64)
+  enabledAt        DateTime?         @map("enabled_at") @db.Timestamptz(3)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "user_mfa_totp_user_id_fkey")
+  recoveryCodes    MfaRecoveryCode[]
+
+  @@index([enabledAt], map: "user_mfa_totp_enabled_at_idx")
+  @@map("user_mfa_totp")
+}
+
+model MfaRecoveryCode {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  totpId     String      @map("totp_id") @db.Uuid
+  codeHash   String      @map("code_hash") @db.VarChar(128)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  consumedAt DateTime?   @map("consumed_at") @db.Timestamptz(3)
+  totp       UserMfaTotp @relation(fields: [totpId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "mfa_recovery_codes_totp_id_fkey")
+
+  @@unique([totpId, codeHash], map: "mfa_recovery_codes_totp_id_code_hash_key")
+  @@index([totpId, consumedAt], map: "mfa_recovery_codes_totp_id_consumed_at_idx")
+  @@map("mfa_recovery_codes")
+}
+
+model MfaLoginChallenge {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  tokenHash       String    @unique(map: "mfa_login_challenges_token_hash_key") @map("token_hash") @db.VarChar(128)
+  securityVersion Int       @map("security_version")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz(3)
+  attemptCount    Int       @default(0) @map("attempt_count")
+  maxAttempts     Int       @default(5) @map("max_attempts")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "mfa_login_challenges_user_id_fkey")
+
+  @@index([userId, createdAt], map: "mfa_login_challenges_user_id_created_at_idx")
+  @@index([expiresAt], map: "mfa_login_challenges_expires_at_idx")
+  @@map("mfa_login_challenges")
+}
+
 model PasswordCredential {
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId             String    @unique(map: "password_credentials_user_id_key") @map("user_id") @db.Uuid
@@ -554,6 +652,7 @@ model UserSession {
   status           SessionStatus @default(ACTIVE)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   lastSeenAt       DateTime?     @map("last_seen_at") @db.Timestamptz(3)
+  mfaVerifiedAt    DateTime?     @map("mfa_verified_at") @db.Timestamptz(3)
   expiresAt        DateTime      @map("expires_at") @db.Timestamptz(3)
   revokedAt        DateTime?     @map("revoked_at") @db.Timestamptz(3)
   revocationReason String?       @map("revocation_reason") @db.VarChar(128)

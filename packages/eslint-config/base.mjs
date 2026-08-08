@@ -4,6 +4,10 @@ import { flatConfigs as importXConfigs } from 'eslint-plugin-import-x';
 import tseslint from 'typescript-eslint';
 
 const base = [
+  {
+    name: 'arena/generated-artifacts',
+    ignores: ['**/dist/**'],
+  },
   eslint.configs.recommended,
   importXConfigs.recommended,
   {

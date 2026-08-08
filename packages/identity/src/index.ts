@@ -14,3 +14,18 @@ export * from './infrastructure/prisma-user-profile-repository';
 export * from './ports/crypto';
 export * from './ports/identity-repository';
 export * from './ports/user-profile-repository';
+
+export * from './application/phone-otp-service';
+export * from './domain/phone-identity-policies';
+export * from './domain/phone-identity-types';
+export * from './infrastructure/node-phone-otp-code-generator';
+export * from './infrastructure/prisma-phone-identity-repository';
+export * from './ports/phone-identity-repository';
+export * from './ports/phone-otp-code-generator';
+
+export * from './application/mfa-service';
+export * from './domain/mfa-types';
+export * from './infrastructure/node-mfa-crypto';
+export * from './infrastructure/prisma-mfa-repository';
+export * from './ports/mfa-crypto';
+export * from './ports/mfa-repository';

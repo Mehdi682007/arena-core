@@ -13,6 +13,11 @@ const expectedModels = [
   'User',
   'UserProfile',
   'UserEmail',
+  'UserPhone',
+  'PhoneOtpChallenge',
+  'UserMfaTotp',
+  'MfaRecoveryCode',
+  'MfaLoginChallenge',
   'PasswordCredential',
   'UserSession',
   'EmailVerificationToken',
@@ -89,7 +94,7 @@ describe('identity Prisma schema', () => {
 
     expect(schema).not.toMatch(/^\s+(?:password|token)\s+/gm);
     expect(schema).toContain('passwordHash');
-    expect(schema.match(/\btokenHash\b/g)).toHaveLength(3);
+    expect(schema.match(/\btokenHash\b/g)).toHaveLength(4);
   });
 
   it('expresses schema-level uniqueness, mappings, indexes, and delete behavior', async () => {

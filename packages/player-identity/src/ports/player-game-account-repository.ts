@@ -19,6 +19,8 @@ export interface PlayerGameAccountRepository {
   listUserGameAccounts(userId: string): Promise<readonly UserGameAccountRecord[]>;
   findUserGameAccount(userId: string, accountId: string): Promise<UserGameAccountRecord | null>;
   findAccountForAdmin(accountId: string): Promise<UserGameAccountRecord | null>;
+  listClaimableGamePlatforms(): Promise<readonly ClaimableGamePlatform[]>;
+
   findGamePlatformForClaim(
     gameId: string,
     gamePlatformId: string,

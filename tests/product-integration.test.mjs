@@ -115,7 +115,7 @@ test('release candidate artifacts preserve migration and immutable-image policy'
   const manifest = JSON.parse(read('release/manifest.json'));
   const dockerfile = read('docker/Dockerfile');
   const production = read('infra/compose/compose.production.yml');
-  assert.equal(manifest.migrations.length, 14);
+  assert.equal(manifest.migrations.length, 17);
   assert.ok(includesAll(dockerfile, ['USER 10001:10001', 'node:24.14.0-bookworm-slim']));
   assert.doesNotMatch(production, /:latest\b|privileged:\s*true/);
 });

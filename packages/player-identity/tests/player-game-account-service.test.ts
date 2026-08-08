@@ -27,6 +27,15 @@ function repository(): PlayerGameAccountRepository {
   return {
     userCanClaim: vi.fn(async () => true),
     listUserGameAccounts: vi.fn(async () => [account]),
+    listClaimableGamePlatforms: vi.fn(async () => [
+      {
+        game: account.game,
+        platform: account.platform,
+        gamePlatformId: 'gp-1',
+        gameActive: true,
+        gamePlatformActive: true,
+      },
+    ]),
     findUserGameAccount: vi.fn(async () => account),
     findAccountForAdmin: vi.fn(async () => account),
     findGamePlatformForClaim: vi.fn(async () => ({
@@ -48,6 +57,22 @@ function repository(): PlayerGameAccountRepository {
   };
 }
 describe('player game account service', () => {
+  it('returns only the safe claimable platform projection', async () => {
+    const service = new PlayerGameAccountService(repository());
+
+    const result = await service.listClaimableGamePlatforms();
+
+    expect(result).toEqual([
+      {
+        game: account.game,
+        platform: account.platform,
+        gamePlatformId: 'gp-1',
+      },
+    ]);
+
+    expect(result[0]).not.toHaveProperty('gameActive');
+    expect(result[0]).not.toHaveProperty('gamePlatformActive');
+  });
   it('creates a normalized pending claim and returns a safe projection', async () => {
     const repo = repository();
     const service = new PlayerGameAccountService(repo);

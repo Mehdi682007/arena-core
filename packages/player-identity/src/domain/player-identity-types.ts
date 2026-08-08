@@ -15,6 +15,11 @@ export interface ClaimableGamePlatform {
   readonly gameActive: boolean;
   readonly gamePlatformActive: boolean;
 }
+
+export type ClaimableGamePlatformView = Pick<
+  ClaimableGamePlatform,
+  'game' | 'platform' | 'gamePlatformId'
+>;
 export interface UserGameAccountRecord {
   readonly id: string;
   readonly userId: string;

@@ -1,3 +1,4 @@
+import type { MfaService } from '@arena-core/identity';
 import {
   Body,
   Controller,
@@ -5,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Post,
   Req,
   Res,
@@ -19,6 +21,7 @@ import {
   emailRequestSchema,
   loginSchema,
   registerSchema,
+  sessionIdSchema,
   resetConfirmSchema,
   tokenSchema,
   ZodBodyPipe,
@@ -37,11 +40,14 @@ import {
 } from '../email/identity-email-dispatcher';
 import { EmailError } from '@arena-core/email';
 import { RateLimit } from './rate-limit.interceptor';
+import { MFA_SERVICE } from '../mfa/mfa.providers';
 
 @Controller('auth')
 export class IdentityController {
   public constructor(
     @Inject(IDENTITY_SERVICES) private readonly services: IdentityServiceCollection,
+    @Inject(MFA_SERVICE)
+    private readonly mfa: MfaService,
     @Inject(IDENTITY_MESSAGE_DISPATCHER)
     private readonly dispatcher: IdentityMessageDispatcher,
     private readonly cookies: IdentityCookieService,
@@ -88,24 +94,54 @@ export class IdentityController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   public async login(
-    @Body(new ZodBodyPipe(loginSchema)) input: LoginRequest,
+    @Body(new ZodBodyPipe(loginSchema))
+    input: LoginRequest,
     @Req() request: PrincipalRequest,
-    @Res({ passthrough: true }) response: HttpResponse,
+    @Res({ passthrough: true })
+    response: HttpResponse,
   ): Promise<unknown> {
     const authenticated = await this.services.identity.authenticateWithPassword(input);
+
+    const challenge = await this.mfa.beginLoginChallenge({
+      userId: authenticated.userId,
+      securityVersion: authenticated.securityVersion,
+    });
+
+    if (challenge.required) {
+      return {
+        mfaRequired: true,
+        challengeToken: challenge.challengeToken,
+        expiresAt: challenge.expiresAt.toISOString(),
+      };
+    }
+
     const clientIp = this.clientIp(request);
+
     const session = await this.services.sessions.createSession({
       userId: authenticated.userId,
       securityVersion: authenticated.securityVersion,
-      ...(clientIp === undefined ? {} : { ip: clientIp }),
+      ...(clientIp === undefined
+        ? {}
+        : {
+            ip: clientIp,
+          }),
       ...(typeof request.headers['user-agent'] === 'string'
-        ? { userAgent: request.headers['user-agent'] }
+        ? {
+            userAgent: request.headers['user-agent'],
+          }
         : {}),
     });
+
     this.cookies.set(response, session.token, session.expiresAt);
+
     return {
-      user: { id: authenticated.userId, status: 'ACTIVE' },
-      session: { expiresAt: session.expiresAt.toISOString() },
+      user: {
+        id: authenticated.userId,
+        status: 'ACTIVE',
+      },
+      session: {
+        expiresAt: session.expiresAt.toISOString(),
+      },
     };
   }
 
@@ -129,6 +165,56 @@ export class IdentityController {
     this.cookies.clear(response);
   }
 
+  @Get('sessions')
+  public async sessions(
+    @CurrentPrincipal()
+    principal: AuthenticatedPrincipal,
+  ): Promise<unknown> {
+    const sessions = await this.services.sessions.listUserSessions(
+      principal.userId,
+      principal.sessionId,
+    );
+
+    return {
+      items: sessions.map((session) => ({
+        id: session.id,
+        status: session.status,
+        current: session.current,
+        createdAt: session.createdAt.toISOString(),
+        lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+        expiresAt: session.expiresAt.toISOString(),
+        userAgent: session.userAgent,
+      })),
+    };
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('sessions/revoke-others')
+  public async revokeOtherUserSessions(
+    @CurrentPrincipal()
+    principal: AuthenticatedPrincipal,
+  ): Promise<void> {
+    await this.services.sessions.revokeAllUserSessions(principal.userId, principal.sessionId);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('sessions/:sessionId/revoke')
+  public async revokeUserSession(
+    @CurrentPrincipal()
+    principal: AuthenticatedPrincipal,
+
+    @Param('sessionId', new ZodBodyPipe(sessionIdSchema))
+    sessionId: string,
+
+    @Res({ passthrough: true })
+    response: HttpResponse,
+  ): Promise<void> {
+    await this.services.sessions.revokeUserSession(principal.userId, sessionId);
+
+    if (sessionId === principal.sessionId) {
+      this.cookies.clear(response);
+    }
+  }
   @Public()
   @RateLimit('token')
   @HttpCode(HttpStatus.ACCEPTED)

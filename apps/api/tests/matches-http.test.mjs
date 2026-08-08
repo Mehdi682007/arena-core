@@ -26,6 +26,7 @@ const identityServices = {
       valid: true,
       userId: 'user-1',
       sessionId: 'session-1',
+      mfaVerifiedAt: new Date('2026-08-08T00:00:00Z'),
     })),
   },
   emailVerification: {},

@@ -4,6 +4,7 @@ import type {
   ResetTokenRecord,
   SessionRecord,
   UserSecurityRecord,
+  UserSessionSummaryRecord,
   VerificationTokenRecord,
 } from '../domain/identity-types';
 import type {
@@ -199,6 +200,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
         status: input.status,
         createdAt: input.createdAt,
         lastSeenAt: input.lastSeenAt,
+        mfaVerifiedAt: input.mfaVerifiedAt ?? null,
         expiresAt: input.expiresAt,
         ...(input.ipHash === undefined ? {} : { ipHash: input.ipHash }),
         ...(input.userAgent === undefined ? {} : { userAgent: input.userAgent }),
@@ -218,12 +220,58 @@ export class PrismaIdentityRepository implements IdentityRepository {
         status: true,
         createdAt: true,
         lastSeenAt: true,
+        mfaVerifiedAt: true,
         expiresAt: true,
         revokedAt: true,
         user: { select: userSecuritySelect },
       },
     });
     return session;
+  }
+
+  public async listUserSessions(userId: string): Promise<readonly UserSessionSummaryRecord[]> {
+    return this.client.userSession.findMany({
+      where: {
+        userId,
+        status: 'ACTIVE',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        createdAt: true,
+        lastSeenAt: true,
+        mfaVerifiedAt: true,
+        expiresAt: true,
+        revokedAt: true,
+        userAgent: true,
+      },
+    });
+  }
+
+  public async revokeUserSession(
+    userId: string,
+    sessionId: string,
+    at: Date,
+    reason: string,
+  ): Promise<boolean> {
+    const result = await this.client.userSession.updateMany({
+      where: {
+        id: sessionId,
+        userId,
+        status: 'ACTIVE',
+      },
+      data: {
+        status: 'REVOKED',
+        revokedAt: at,
+        revocationReason: reason,
+      },
+    });
+
+    return result.count > 0;
   }
 
   public async revokeSession(sessionId: string, at: Date, reason: string): Promise<void> {

@@ -8,6 +8,7 @@ import {
 } from '../domain/identity-policies';
 import type { Clock, PasswordHasher, TokenService } from '../ports/crypto';
 import type { IdentityTransactionManager } from '../ports/identity-repository';
+import type { UserSessionSummaryRecord } from '../domain/identity-types';
 
 export interface IdentityDependencies {
   readonly config: AuthenticationConfig;
@@ -199,6 +200,7 @@ export class SessionService {
     securityVersion: number;
     ip?: string;
     userAgent?: string;
+    mfaVerifiedAt?: Date;
   }): Promise<{ sessionId: string; token: string; expiresAt: Date }> {
     const user = await this.dependencies.transactions.transaction((repository) =>
       repository.findUser(input.userId),
@@ -224,6 +226,7 @@ export class SessionService {
         status: 'ACTIVE',
         createdAt: now,
         lastSeenAt: null,
+        mfaVerifiedAt: input.mfaVerifiedAt ?? null,
         expiresAt,
         ...(normalizedIp === undefined
           ? {}
@@ -238,6 +241,7 @@ export class SessionService {
     valid: true;
     userId: string;
     sessionId: string;
+    mfaVerifiedAt: Date | null;
   }> {
     const hash = this.dependencies.tokenService.hashToken('session', token);
     const session = await this.dependencies.transactions.transaction((repository) =>
@@ -257,7 +261,45 @@ export class SessionService {
     if (addSeconds(idleBase, this.dependencies.config.session.idleTimeoutSeconds) <= now) {
       throw new IdentityError('SESSION_EXPIRED');
     }
-    return Object.freeze({ valid: true, userId: session.userId, sessionId: session.id });
+    return Object.freeze({
+      valid: true,
+      userId: session.userId,
+      sessionId: session.id,
+      mfaVerifiedAt: session.mfaVerifiedAt ?? null,
+    });
+  }
+
+  public async listUserSessions(
+    userId: string,
+    currentSessionId: string,
+  ): Promise<
+    readonly (UserSessionSummaryRecord & {
+      readonly current: boolean;
+    })[]
+  > {
+    const sessions = await this.dependencies.transactions.transaction((repository) =>
+      repository.listUserSessions(userId),
+    );
+
+    return Object.freeze(
+      sessions.map((session) =>
+        Object.freeze({
+          ...session,
+          current: session.id === currentSessionId,
+        }),
+      ),
+    );
+  }
+
+  public async revokeUserSession(userId: string, sessionId: string): Promise<boolean> {
+    return this.dependencies.transactions.transaction((repository) =>
+      repository.revokeUserSession(
+        userId,
+        sessionId,
+        this.dependencies.clock.now(),
+        'USER_REQUEST',
+      ),
+    );
   }
 
   public async revokeSession(sessionId: string, reason = 'USER_REQUEST'): Promise<void> {

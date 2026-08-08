@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Globe2 } from 'lucide-react';
 import { useState } from 'react';
@@ -9,13 +9,16 @@ import {
   normalizeLocale,
   type AppLocale,
 } from '@/i18n/config';
+import { browserApi } from '@/lib/api/browser-api-client';
 
 export function LanguageToggle({
   initialLocale,
   compact = false,
+  persistProfile = false,
 }: {
   initialLocale?: AppLocale;
   compact?: boolean;
+  persistProfile?: boolean;
 }) {
   const [locale, setLocale] = useState<AppLocale>(() => {
     if (initialLocale) {
@@ -29,9 +32,20 @@ export function LanguageToggle({
     return defaultLocale;
   });
 
-  const changeLocale = (nextLocale: AppLocale) => {
+  async function changeLocale(nextLocale: AppLocale): Promise<void> {
     if (nextLocale === locale) {
       return;
+    }
+
+    if (persistProfile) {
+      try {
+        await browserApi('/profile', {
+          method: 'PATCH',
+          body: { locale: nextLocale },
+        });
+      } catch {
+        return;
+      }
     }
 
     document.cookie = [
@@ -49,7 +63,7 @@ export function LanguageToggle({
 
     setLocale(nextLocale);
     window.location.reload();
-  };
+  }
 
   return (
     <div className="language-toggle" data-compact={compact ? 'true' : 'false'}>
@@ -60,7 +74,7 @@ export function LanguageToggle({
         aria-pressed={locale === 'fa'}
         className={locale === 'fa' ? 'is-active' : undefined}
         onClick={() => {
-          changeLocale('fa');
+          void changeLocale('fa');
         }}
         type="button"
       >
@@ -74,7 +88,7 @@ export function LanguageToggle({
         aria-pressed={locale === 'en'}
         className={locale === 'en' ? 'is-active' : undefined}
         onClick={() => {
-          changeLocale('en');
+          void changeLocale('en');
         }}
         type="button"
       >

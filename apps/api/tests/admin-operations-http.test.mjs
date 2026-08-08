@@ -16,7 +16,14 @@ const config = createApiConfig(
 );
 const identity = {
   identity: {},
-  sessions: { validateSession: vi.fn(async () => ({ valid: true, userId, sessionId: 's1' })) },
+  sessions: {
+    validateSession: vi.fn(async () => ({
+      valid: true,
+      userId,
+      sessionId: 's1',
+      mfaVerifiedAt: new Date('2026-08-08T00:00:00Z'),
+    })),
+  },
   emailVerification: {},
   passwordReset: {},
 };

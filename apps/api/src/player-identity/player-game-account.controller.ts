@@ -30,6 +30,11 @@ export class PlayerGameAccountController {
   ) {
     return this.service.createGameAccountClaim({ userId: principal.userId, ...body });
   }
+  @Get('claimable-platforms')
+  public claimablePlatforms() {
+    return this.service.listClaimableGamePlatforms();
+  }
+
   @Get(':accountId')
   public get(
     @CurrentPrincipal() principal: AuthenticatedPrincipal,
