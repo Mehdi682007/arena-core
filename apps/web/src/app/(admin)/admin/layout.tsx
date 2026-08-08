@@ -50,10 +50,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             : 'Enable and verify two-factor authentication before accessing administration.'}
         </Alert>
 
-        <a
-          className="button"
-          href={`${publicBaseUrl}/settings/security/mfa`}
-        >
+        <a className="button" href={`${publicBaseUrl}/settings/security/mfa`}>
           {locale === 'fa' ? 'تنظیم احراز هویت دومرحله‌ای' : 'Set up two-factor authentication'}
         </a>
       </main>
