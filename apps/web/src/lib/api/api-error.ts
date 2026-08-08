@@ -1,4 +1,3 @@
-import { normalizeLocale } from '@/i18n/config';
 import { messageForCode } from '../errors/messages';
 
 export interface FrontendApiError {
@@ -10,8 +9,10 @@ export interface FrontendApiError {
   readonly retryAfterSeconds?: number | undefined;
 }
 
-function currentLocale() {
-  return typeof document === 'undefined' ? 'fa' : normalizeLocale(document.documentElement.lang);
+function currentLocale(): 'fa' | 'en' {
+  if (typeof document === 'undefined') return 'fa';
+
+  return document.documentElement.lang.toLowerCase().startsWith('en') ? 'en' : 'fa';
 }
 
 export class ApiError extends Error implements FrontendApiError {
