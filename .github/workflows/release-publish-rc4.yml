@@ -168,3 +168,4 @@ jobs:
           git diff --cached --check
           git commit -m "release: publish RC4 prebuilt artifact"
           git push origin HEAD:release/rc4-publish
+# trigger: rc4 publish
