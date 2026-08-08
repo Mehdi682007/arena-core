@@ -126,6 +126,13 @@ const fa = {
       setupTitle: 'اتصال برنامه Authenticator',
       setupHint:
         'لینک زیر را با برنامه Authenticator باز کنید یا Secret را به‌صورت دستی وارد کنید.',
+      qrLabel: 'کد QR راه‌اندازی Authenticator',
+      instruction1: 'کد QR را با برنامه Authenticator اسکن کنید.',
+      instruction2: 'اگر اسکن ممکن نیست، کلید دستی را وارد کنید.',
+      instruction3: 'کد ۶ رقمی برنامه را برای تأیید وارد کنید.',
+      copyKey: 'کپی کلید دستی',
+      setupWarning:
+        'کد QR و کلید راه‌اندازی را با کسی به اشتراک نگذارید. تا پیش از تأیید، Authenticator فعلی و کدهای بازیابی شما تغییر نمی‌کنند.',
       openAuthenticator: 'باز کردن در Authenticator',
       secret: 'Secret',
       code: 'کد ۶ رقمی Authenticator',
@@ -136,6 +143,13 @@ const fa = {
       recoveryWarning:
         'این کدها فقط همین یک بار نمایش داده می‌شوند. آن‌ها را در محل امن ذخیره کنید. هر کد فقط یک بار قابل استفاده است.',
       recoveryDone: 'کدها را ذخیره کردم',
+      recoveryEmergencyWarning:
+        'این‌ها کد ورود اضطراری هستند، نه کلید راه‌اندازی Authenticator. کدهای قبلی پس از تعویض معتبر نیستند؛ این کدهای جدید را همین حالا در محل امن نگه دارید.',
+      copyRecovery: 'کپی کدها',
+      downloadRecovery: 'دانلود کدها',
+      replace: 'تعویض برنامه Authenticator',
+      replaceDescription:
+        'برای تعویض، باید اخیراً با MFA تأیید شده باشید. ورود با کد بازیابی نیز این تأیید را فراهم می‌کند.',
       genericError: 'عملیات MFA انجام نشد.',
     },
     featuresSettingsMfaEnrollmentManager02: 'fa-IR',
@@ -269,6 +283,13 @@ const en = {
       starting: 'Preparing…',
       setupTitle: 'Connect an authenticator app',
       setupHint: 'Open the link below with an authenticator app or enter the secret manually.',
+      qrLabel: 'Authenticator setup QR code',
+      instruction1: 'Scan the QR code with your authenticator app.',
+      instruction2: 'If scanning is unavailable, enter the manual key.',
+      instruction3: 'Enter the app’s 6-digit code to confirm.',
+      copyKey: 'Copy manual key',
+      setupWarning:
+        'Never share this QR code or setup key. Your current authenticator and recovery codes remain active until confirmation succeeds.',
       openAuthenticator: 'Open in authenticator',
       secret: 'Secret',
       code: '6-digit authenticator code',
@@ -279,6 +300,13 @@ const en = {
       recoveryWarning:
         'These codes are shown only once. Store them somewhere safe. Each code can be used only once.',
       recoveryDone: 'I saved the codes',
+      recoveryEmergencyWarning:
+        'These are emergency login codes, not authenticator setup keys. Previous codes are invalid after rotation; store these new codes securely now.',
+      copyRecovery: 'Copy codes',
+      downloadRecovery: 'Download codes',
+      replace: 'Replace authenticator app',
+      replaceDescription:
+        'Recent MFA verification is required. Signing in with a recovery code also provides this assurance.',
       genericError: 'The MFA operation could not be completed.',
     },
     featuresSettingsMfaEnrollmentManager02: 'en-US',

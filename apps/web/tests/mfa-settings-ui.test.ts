@@ -20,13 +20,23 @@ describe('MFA settings UI', () => {
   it('supports TOTP enrollment', () => {
     const manager = source('src/features/settings/mfa-enrollment-manager.tsx');
 
-    expect(manager).toContain("'/auth/mfa/totp/enroll/start'");
-
-    expect(manager).toContain("'/auth/mfa/totp/enroll/confirm'");
+    expect(manager).toContain('`/auth/mfa/totp/${mode}/start`');
+    expect(manager).toContain('`/auth/mfa/totp/${enrollment.mode}/confirm`');
 
     expect(manager).toContain('autoComplete="one-time-code"');
 
     expect(manager).toContain('enrollment.otpauthUri');
+    expect(manager).toContain('<QRCodeSVG');
+    expect(manager).toContain('value={enrollment.otpauthUri}');
+    expect(manager).not.toMatch(/api\.qr|chart\.google|quickchart/i);
+  });
+
+  it('supports safe authenticator rotation and local recovery-code export', () => {
+    const manager = source('src/features/settings/mfa-enrollment-manager.tsx');
+    expect(manager).toContain("mode = status.enabled ? 'rotate' : 'enroll'");
+    expect(manager).toContain("'/auth/mfa/totp/rotate/cancel'");
+    expect(manager).toContain('new Blob(');
+    expect(manager).toContain('navigator.clipboard.writeText');
   });
 
   it('shows recovery codes only from enrollment confirmation state', () => {
