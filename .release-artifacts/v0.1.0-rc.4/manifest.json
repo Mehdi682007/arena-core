@@ -77,10 +77,10 @@
     }
   ],
   "images": {
-    "migrate": "ghcr.io/mehdi682007/arena-migrate:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:9fcbf32b1544381129755c4ce2e8b8371b97eea3a64f90cba2fdad3869611e2b",
-    "api": "ghcr.io/mehdi682007/arena-api:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:6af91370aea2fa4d11a0f6128c75815ee804221ace0d5d0a68f7a82aa6defc4e",
-    "worker": "ghcr.io/mehdi682007/arena-worker:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:3d39a537d26ad5813e38ec4e08accf06bbb9385986dcc343b8675379941d1fb2",
-    "web": "ghcr.io/mehdi682007/arena-web:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:1a5b35881b73c1c07882ecf9d1e96f09ad78bc0921a5ddfeb2f4fff5d8f61a03",
-    "seed": "ghcr.io/mehdi682007/arena-seed:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:f35f870eebb91a6af94a20fcd6994e2545ed79409c7311cc8016db4cd5901ba7"
+    "migrate": "ghcr.io/mehdi682007/arena-migrate:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:e1a4d3c830611ad99067ed1a077cbaeab8fe4b4b6a1906b890950856cb785e9d",
+    "api": "ghcr.io/mehdi682007/arena-api:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:0312aaffd8899809cd687d9cddc40a5b277e8c869b340e38ab110fdf3f792ba4",
+    "worker": "ghcr.io/mehdi682007/arena-worker:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:ae7e2eaf52bb38cb8ec54df075205b6d332412bb088718544d1fb5d5a30aea04",
+    "web": "ghcr.io/mehdi682007/arena-web:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:822f6d1f44c44ad02feeda58618c8aaba56ca6a62b310169643876d8d03fb640",
+    "seed": "ghcr.io/mehdi682007/arena-seed:a14aede6e193093320bcfd41ebf11bb5129d1c3c@sha256:67d366b2dbc65fd3df253f64e38a54497cd2461688854449df26e8c51b7a6921"
   }
 }
