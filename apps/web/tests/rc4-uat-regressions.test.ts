@@ -10,12 +10,15 @@ function source(file: string): string {
 }
 
 describe('RC4 UAT regressions', () => {
-  it('sends JSON for bodyless browser writes so logout and session revocation pass the proxy', () => {
-    const browserApi = source('src/lib/api/browser-api-client.ts');
+  it(
+    'sends JSON for bodyless browser writes so logout and session revocation pass the proxy',
+    () => {
+      const browserApi = source('src/lib/api/browser-api-client.ts');
 
-    expect(browserApi).toContain("writeMethods.has(method) && options.body === undefined");
-    expect(browserApi).toContain('body: {}');
-  });
+      expect(browserApi).toContain("writeMethods.has(method) && options.body === undefined");
+      expect(browserApi).toContain('body: {}');
+    },
+  );
 
   it('only redirects after logout succeeds and places logout in application navigation', () => {
     const logout = source('src/features/session/logout-button.tsx');
