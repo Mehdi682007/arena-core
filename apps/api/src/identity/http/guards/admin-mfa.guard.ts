@@ -40,7 +40,10 @@ export class AdminMfaGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<PrincipalRequest>();
 
     if (!(request.principal?.mfaVerifiedAt instanceof Date)) {
-      throw new ForbiddenException('MFA_REQUIRED');
+      throw new ForbiddenException({
+        code: 'MFA_REQUIRED',
+        message: 'MFA verification is required for administrator access.',
+      });
     }
 
     return true;
