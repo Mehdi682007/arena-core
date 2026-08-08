@@ -1,0 +1,170 @@
+name: Publish RC4 prebuilt release
+
+on:
+  push:
+    branches:
+      - release/rc4-publish
+    paths:
+      - .github/workflows/release-publish-rc4.yml
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: publish-rc4-prebuilt
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_ID: v0.1.0-rc.4
+      SOURCE_SHA: a14aede6e193093320bcfd41ebf11bb5129d1c3c
+      ARTIFACT_DIR: .release-artifacts/v0.1.0-rc.4
+
+    steps:
+      - name: Checkout exact RC4 source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Validate source identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          actual="$(git rev-parse HEAD)"
+          [[ "$actual" == "$SOURCE_SHA" ]] || {
+            echo "Source SHA mismatch: $actual" >&2
+            exit 2
+          }
+          git fetch origin main
+          current_main="$(git rev-parse origin/main)"
+          [[ "$current_main" == "$SOURCE_SHA" ]] || {
+            echo "main moved after RC4 publish was prepared" >&2
+            echo "Expected: $SOURCE_SHA" >&2
+            echo "Actual:   $current_main" >&2
+            exit 3
+          }
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.0
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build validate and push immutable images
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          ARENA_REGISTRY="ghcr.io/$owner" \
+          ARENA_IMAGE_TAG="$SOURCE_SHA" \
+          RELEASE_ID="$RELEASE_ID" \
+          SOURCE_COMMIT="$SOURCE_SHA" \
+          IMAGE_MANIFEST_OUTPUT="release/deployment-images.json" \
+          bash scripts/release/build-prebuilt-images.sh
+
+      - name: Verify published image manifest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 infra/scripts/validate-image-manifest.py \
+            release/deployment-images.json \
+            "$RELEASE_ID" \
+            "$SOURCE_SHA"
+
+      - name: Generate final release manifest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          epoch="$(git show -s --format=%ct "$SOURCE_SHA")"
+          rm -f release/manifest.rc4.json
+          RELEASE_VERSION="$RELEASE_ID" \
+          BUILD_SHA="$SOURCE_SHA" \
+          SOURCE_DATE_EPOCH="$epoch" \
+          node scripts/release/generate-manifest.mjs release/manifest.rc4.json
+          node scripts/release/verify-artifacts.mjs release/manifest.rc4.json
+
+      - name: Build and validate release archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          stage="$(mktemp -d)"
+          archive="/tmp/arena-release-${RELEASE_ID}.tar.gz"
+          cleanup() { rm -rf "$stage"; }
+          trap cleanup EXIT
+
+          git archive --format=tar "$SOURCE_SHA" | tar -xf - -C "$stage"
+          install -m 0644 release/deployment-images.json "$stage/release/deployment-images.json"
+          install -m 0644 release/manifest.rc4.json "$stage/release/manifest.json"
+
+          if find "$stage" -type l -print -quit | grep -q .; then
+            echo "Release staging tree contains symlinks" >&2
+            exit 4
+          fi
+
+          (
+            cd "$stage"
+            find . -mindepth 1 -maxdepth 1 -printf '%P\0' \
+              | sort -z \
+              | tar --null -T - -czf "$archive"
+          )
+
+          archive_sha="$(sha256sum "$archive" | awk '{print $1}')"
+          python3 infra/scripts/validate-release-archive.py \
+            "$archive" \
+            "$RELEASE_ID" \
+            "$SOURCE_SHA" \
+            "$archive_sha"
+
+          mkdir -p /tmp/rc4-release-output
+          cp "$archive" /tmp/rc4-release-output/
+          cp release/deployment-images.json /tmp/rc4-release-output/
+          cp release/manifest.rc4.json /tmp/rc4-release-output/manifest.json
+          printf '%s  %s\n' "$archive_sha" "arena-release-${RELEASE_ID}.tar.gz" \
+            > /tmp/rc4-release-output/SHA256SUMS
+          cat > /tmp/rc4-release-output/release-ready.env <<EOF
+          RELEASE_VERSION=$RELEASE_ID
+          BUILD_SHA=$SOURCE_SHA
+          RELEASE_ARCHIVE=arena-release-${RELEASE_ID}.tar.gz
+          RELEASE_ARCHIVE_SHA256=$archive_sha
+          EOF
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-rc4-release
+          path: /tmp/rc4-release-output/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish release artifact to transport branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cp -a /tmp/rc4-release-output /tmp/rc4-release-output.saved
+
+          git fetch origin release/rc4-publish
+          git switch -C release/rc4-publish origin/release/rc4-publish
+
+          rm -rf "$ARTIFACT_DIR"
+          mkdir -p "$ARTIFACT_DIR"
+          cp -a /tmp/rc4-release-output.saved/. "$ARTIFACT_DIR/"
+
+          git config user.name "Arena Release Automation"
+          git config user.email "release@arena.local"
+          git add "$ARTIFACT_DIR"
+          git diff --cached --check
+          git commit -m "release: publish RC4 prebuilt artifact"
+          git push origin HEAD:release/rc4-publish
