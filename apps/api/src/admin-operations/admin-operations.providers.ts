@@ -60,31 +60,6 @@ function proxy<T extends object>(factory: () => T): T {
     },
   });
 }
-@Injectable()
-class DatabaseAuthorization implements AdminOperationsAuthorization {
-  public constructor(
-    @Inject(DatabaseAuthorizationService)
-    private readonly authorization: DatabaseAuthorizationService,
-    @Inject(DatabaseService) private readonly database: DatabaseService,
-  ) {}
-
-  public hasPermission(userId: string, permission: string) {
-    return this.authorization.hasPermission(userId, permission);
-  }
-  public async listPermissions(userId: string) {
-    const client = this.database.getClient();
-    if (!client) throw new AdminOperationError('ADMIN_OPERATIONS_UNAVAILABLE');
-    const rows = await client.userRole.findMany({
-      where: { userId, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
-      select: {
-        role: { select: { permissions: { select: { permission: { select: { key: true } } } } } },
-      },
-    });
-    return [
-      ...new Set(rows.flatMap((row) => row.role.permissions.map((entry) => entry.permission.key))),
-    ].sort();
-  }
-}
 const service = (
   token: symbol,
   pick: (runtime: ReturnType<Runtime['create']>) => object,
@@ -95,7 +70,7 @@ const service = (
 });
 export const adminOperationsProviders: Provider[] = [
   Runtime,
-  { provide: ADMIN_OPERATIONS_AUTHORIZATION, useClass: DatabaseAuthorization },
+  { provide: ADMIN_OPERATIONS_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
   service(AUDIT_QUERY_SERVICE, (runtime) => runtime.audit),
   service(ADMIN_SEARCH_SERVICE, (runtime) => runtime.search),
   service(ADMIN_TIMELINE_SERVICE, (runtime) => runtime.timeline),

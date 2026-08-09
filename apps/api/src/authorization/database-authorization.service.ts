@@ -20,4 +20,20 @@ export class DatabaseAuthorizationService {
       })) !== null
     );
   }
+
+  public async listPermissions(userId: string): Promise<readonly string[]> {
+    const client = this.database.getClient();
+    if (!client) return [];
+
+    const rows = await client.userRole.findMany({
+      where: { userId, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      select: {
+        role: { select: { permissions: { select: { permission: { select: { key: true } } } } } },
+      },
+    });
+
+    return [
+      ...new Set(rows.flatMap((row) => row.role.permissions.map((entry) => entry.permission.key))),
+    ].sort();
+  }
 }
