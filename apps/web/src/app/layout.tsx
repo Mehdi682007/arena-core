@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { localeDirection } from '@/i18n/config';
 import { LocaleProvider } from '@/i18n/ui-messages-client';
 import { serverApi } from '@/lib/api/server-api-client';
+import { resolveSiteAssetUrl } from '@/lib/site-asset-url';
 import '../styles/globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,14 +23,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = settings?.brand.siteName[locale] || 'Arena Core';
   const description =
     settings?.brand.description[locale] || ui.aTransparentNonMonetaryOnlineCompetitionPlatform;
+  const faviconUrl = resolveSiteAssetUrl(settings?.brand.faviconUrl);
+  const openGraphImageUrl = resolveSiteAssetUrl(settings?.brand.openGraphImageUrl);
+
   return {
     title: { default: name, template: `%s | ${name}` },
     description,
-    icons: settings?.brand.faviconUrl ? { icon: settings.brand.faviconUrl } : undefined,
+    icons: faviconUrl ? { icon: faviconUrl } : undefined,
     openGraph: {
       title: name,
       description,
-      ...(settings?.brand.openGraphImageUrl ? { images: [settings.brand.openGraphImageUrl] } : {}),
+      ...(openGraphImageUrl ? { images: [openGraphImageUrl] } : {}),
     },
   };
 }
