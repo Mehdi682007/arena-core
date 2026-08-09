@@ -9,6 +9,7 @@ import {
   WalletReconciliationService,
   type WalletRepository,
 } from '@arena-core/wallet';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 
 export const WALLET_QUERY_SERVICE = Symbol('WALLET_QUERY_SERVICE');
@@ -39,24 +40,6 @@ function forward(source: ApiWalletRepository): WalletRepository {
     },
   });
 }
-@Injectable()
-class DatabaseWalletAuthorization implements WalletAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const client = this.database.getClient();
-    if (!client) return false;
-    return (
-      (await client.userRole.findFirst({
-        where: {
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          role: { permissions: { some: { permission: { key: permission } } } },
-        },
-        select: { userId: true },
-      })) !== null
-    );
-  }
-}
 const clock = new SystemClock();
 export const walletProviders: Provider[] = [
   ApiWalletRepository,
@@ -79,5 +62,5 @@ export const walletProviders: Provider[] = [
     useFactory: (source: ApiWalletRepository) =>
       new WalletReconciliationService(forward(source), clock),
   },
-  { provide: WALLET_AUTHORIZATION, useClass: DatabaseWalletAuthorization },
+  { provide: WALLET_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
 ];

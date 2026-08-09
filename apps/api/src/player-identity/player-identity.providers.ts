@@ -6,6 +6,7 @@ import {
   PrismaPlayerGameAccountRepository,
   type PlayerGameAccountRepository,
 } from '@arena-core/player-identity';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 
 export const PLAYER_GAME_ACCOUNT_SERVICE = Symbol('PLAYER_GAME_ACCOUNT_SERVICE');
@@ -21,24 +22,6 @@ class ApiPlayerGameAccountRepository {
     const client = this.database.getClient();
     if (!client) throw new PlayerIdentityError('PLAYER_IDENTITY_UNAVAILABLE');
     return new PrismaPlayerGameAccountRepository(client);
-  }
-}
-@Injectable()
-class DatabasePlayerIdentityAuthorization implements PlayerIdentityAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const client = this.database.getClient();
-    if (!client) return false;
-    return (
-      (await client.userRole.findFirst({
-        where: {
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          role: { permissions: { some: { permission: { key: permission } } } },
-        },
-        select: { userId: true },
-      })) !== null
-    );
   }
 }
 function forwardingRepository(source: ApiPlayerGameAccountRepository): PlayerGameAccountRepository {
@@ -65,5 +48,5 @@ export const playerIdentityProviders: Provider[] = [
     useFactory: (repository: ApiPlayerGameAccountRepository) =>
       new AdminGameAccountVerificationService(forwardingRepository(repository)),
   },
-  { provide: PLAYER_IDENTITY_AUTHORIZATION, useClass: DatabasePlayerIdentityAuthorization },
+  { provide: PLAYER_IDENTITY_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
 ];

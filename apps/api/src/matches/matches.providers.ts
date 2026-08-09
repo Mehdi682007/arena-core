@@ -27,6 +27,7 @@ import {
 import { API_CONFIG } from '../config/config.module';
 import { PRODUCTION_NOTIFICATION_INTEGRATION } from '../notifications/notifications.providers';
 import type { ProductionNotificationIntegrationPort } from '../notifications/integration/production-notification.integration';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 import { MATCH_ENTRY_ELIGIBILITY } from '../match-finance/match-finance.providers';
 
@@ -110,24 +111,6 @@ function disputeRepository(source: ApiMatchRepository): MatchDisputeRepository {
       return typeof value === 'function' ? value.bind(repository) : value;
     },
   });
-}
-@Injectable()
-class DatabaseMatchesAuthorization implements MatchesAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const client = this.database.getClient();
-    if (!client) return false;
-    return (
-      (await client.userRole.findFirst({
-        where: {
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          role: { permissions: { some: { permission: { key: permission } } } },
-        },
-        select: { userId: true },
-      })) !== null
-    );
-  }
 }
 const clock = new SystemClock();
 export const matchesProviders: Provider[] = [
@@ -228,5 +211,5 @@ export const matchesProviders: Provider[] = [
     inject: [ApiMatchRepository],
     useFactory: (source: ApiMatchRepository) => new AdminMatchService(forward(source), clock),
   },
-  { provide: MATCHES_AUTHORIZATION, useClass: DatabaseMatchesAuthorization },
+  { provide: MATCHES_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
 ];

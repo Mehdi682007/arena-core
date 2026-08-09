@@ -15,6 +15,7 @@ import {
   UuidGenerator,
 } from '@arena-core/notifications';
 import { API_CONFIG } from '../config/config.module';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 import { EMAIL_SENDER } from '../email/email.tokens';
 
@@ -84,24 +85,6 @@ function proxy<T extends object>(factory: () => T): T {
     },
   });
 }
-@Injectable()
-class DatabaseNotificationsAuthorization implements NotificationsAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string) {
-    const client = this.database.getClient();
-    if (!client) return false;
-    return (
-      (await client.userRole.findFirst({
-        where: {
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          role: { permissions: { some: { permission: { key: permission } } } },
-        },
-        select: { userId: true },
-      })) !== null
-    );
-  }
-}
 const service = (
   token: symbol,
   pick: (r: ReturnType<NotificationsRuntime['create']>) => object,
@@ -113,7 +96,7 @@ const service = (
 });
 export const notificationsProviders: Provider[] = [
   NotificationsRuntime,
-  { provide: NOTIFICATIONS_AUTHORIZATION, useClass: DatabaseNotificationsAuthorization },
+  { provide: NOTIFICATIONS_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
   service(NOTIFICATION_SERVICE, (r) => r.notification),
   service(NOTIFICATION_PREFERENCE_SERVICE, (r) => r.preferences),
   service(NOTIFICATION_OUTBOX_SERVICE, (r) => r.outbox),

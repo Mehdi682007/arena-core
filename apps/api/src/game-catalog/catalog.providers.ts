@@ -9,6 +9,7 @@ import {
   type GameCatalogRepository,
   type GameCatalogTransactionManager,
 } from '@arena-core/game-catalog';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 
 export const PUBLIC_CATALOG_SERVICE = Symbol('PUBLIC_CATALOG_SERVICE');
@@ -100,23 +101,6 @@ class ApiCatalogTransactions implements GameCatalogTransactionManager {
   }
 }
 
-@Injectable()
-class DatabaseCatalogAuthorization implements CatalogAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const client = this.database.getClient();
-    if (client === undefined) return false;
-    const assignment = await client.userRole.findFirst({
-      where: {
-        userId,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        role: { permissions: { some: { permission: { key: permission } } } },
-      },
-      select: { userId: true },
-    });
-    return assignment !== null;
-  }
-}
 
 export const catalogProviders: Provider[] = [
   ApiCatalogRepository,
@@ -137,5 +121,5 @@ export const catalogProviders: Provider[] = [
     useFactory: (repository: ApiCatalogRepository, transactions: ApiCatalogTransactions) =>
       new GameRulesetService(repository, transactions),
   },
-  { provide: CATALOG_AUTHORIZATION, useClass: DatabaseCatalogAuthorization },
+  { provide: CATALOG_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
 ];

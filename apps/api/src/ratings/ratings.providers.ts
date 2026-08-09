@@ -12,6 +12,7 @@ import {
   UuidGenerator,
 } from '@arena-core/rating';
 import { API_CONFIG } from '../config/config.module';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 import { PRODUCTION_NOTIFICATION_INTEGRATION } from '../notifications/notifications.providers';
 import type { ProductionNotificationIntegrationPort } from '../notifications/integration/production-notification.integration';
@@ -80,28 +81,10 @@ function serviceProxy<T extends object>(factory: () => T): T {
   });
 }
 
-@Injectable()
-class DatabaseRatingsAuthorization implements RatingsAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const client = this.database.getClient();
-    if (!client) return false;
-    return (
-      (await client.userRole.findFirst({
-        where: {
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          role: { permissions: { some: { permission: { key: permission } } } },
-        },
-        select: { userId: true },
-      })) !== null
-    );
-  }
-}
 
 export const ratingsProviders: Provider[] = [
   RatingsRuntime,
-  { provide: RATINGS_AUTHORIZATION, useClass: DatabaseRatingsAuthorization },
+  { provide: RATINGS_AUTHORIZATION, useExisting: DatabaseAuthorizationService },
   {
     provide: RATING_SERVICE,
     inject: [RatingsRuntime, API_CONFIG],
