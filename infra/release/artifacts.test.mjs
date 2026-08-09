@@ -10,7 +10,6 @@ import { images, migrations, root } from '../../scripts/release/release-lib.mjs'
 const pythonCommand = process.platform === 'win32' ? 'py' : 'python3';
 const pythonArgs = process.platform === 'win32' ? ['-3'] : [];
 
-
 const read = (file) => readFile(path.join(root, file), 'utf8');
 
 async function validateImageManifest(mutator = () => undefined) {
@@ -22,12 +21,7 @@ async function validateImageManifest(mutator = () => undefined) {
   try {
     return spawnSync(
       pythonCommand,
-      [
-        ...pythonArgs,
-        'infra/scripts/validate-image-manifest.py',
-        manifestPath,
-        manifest.releaseId,
-],
+      [...pythonArgs, 'infra/scripts/validate-image-manifest.py', manifestPath, manifest.releaseId],
       { cwd: root, encoding: 'utf8' },
     );
   } finally {
