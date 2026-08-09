@@ -193,6 +193,8 @@ if [[ "$DEPLOY_BASELINE_SEED_ENABLED" == true ]]; then
 fi
 
 
+validate_site_assets_writable
+
 activate_release "$ARENA_RELEASE_DIR" "$RELEASE_VERSION"
 
 

@@ -277,6 +277,27 @@ test('Web runtime port and canonical variables remain consistent through deploym
   assert.match(dockerfile, /ENV PORT=3000[\s\S]*EXPOSE 3000/);
 });
 
+test('site-assets host directory is owned by the fixed container runtime uid:gid', async () => {
+  const directories = await readFile(path.join(scripts, 'prepare-directories.sh'), 'utf8');
+  const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  const validation = await readFile(path.join(scripts, 'lib/validation.sh'), 'utf8');
+  const deploy = await readFile(path.join(scripts, 'deploy.sh'), 'utf8');
+
+  assert.match(compose, /user: '10001:10001'/);
+  assert.match(
+    directories,
+    /ensure_dir "\$SERVER_APP_ROOT\/\$dir" 0770 10001/,
+    'site-assets must be chowned to the numeric container uid, not SERVER_APP_USER',
+  );
+  assert.match(validation, /validate_site_assets_writable/);
+  assert.match(validation, /10001:10001/);
+  assert.match(
+    deploy,
+    /validate_site_assets_writable\s*\n\s*\nactivate_release/,
+    'the writability check must run before the previous release is stopped',
+  );
+});
+
 test('site assets use one persistent production-safe runtime contract', async () => {
   const runtime = await readFile(path.join(scripts, 'prepare-runtime-env.sh'), 'utf8');
   const directories = await readFile(path.join(scripts, 'prepare-directories.sh'), 'utf8');

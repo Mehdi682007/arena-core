@@ -95,3 +95,24 @@ parse_common_args() {
     shift
   done
 }
+
+# Verifies the site-assets upload directory is owned by the fixed container
+# runtime uid:gid (10001:10001, see compose.base.yml `user:`) and writable,
+# so a host permission mismatch is caught before the previous release is
+# stopped rather than surfacing later as a broken logo/hero-image upload.
+validate_site_assets_writable() {
+  local dir="$SERVER_APP_ROOT/shared/uploads/site-assets"
+
+  [[ -d "$dir" ]] || die "site-assets directory missing: $dir (run prepare-directories.sh)"
+
+  local owner
+  owner="$(stat -c '%u:%g' "$dir")"
+  [[ "$owner" == "10001:10001" ]] ||
+    die "site-assets directory has wrong ownership ($owner, expected 10001:10001): $dir"
+
+  local probe="$dir/.deploy-write-check.$$"
+  if ! install -m 0600 -o 10001 -g 10001 /dev/null "$probe" 2>/dev/null; then
+    die "site-assets directory is not writable as uid 10001: $dir"
+  fi
+  rm -f -- "$probe"
+}
