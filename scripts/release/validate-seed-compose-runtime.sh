@@ -41,6 +41,7 @@ printf 'test-only\n' >"$work/POSTGRES_PASSWORD"
 chmod 0600 "$work/POSTGRES_PASSWORD"
 export ARENA_ENV_FILE="$work/runtime.env"
 export ARENA_SECRETS_DIR="$work"
+export SERVER_APP_ROOT="$work/arena"
 export POSTGRES_DB=arena_contract
 export POSTGRES_USER=arena
 export ARENA_MIGRATE_IMAGE="$immutable"

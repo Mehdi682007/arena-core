@@ -197,6 +197,7 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   const migrationValidator = await read('scripts/release/validate-migration-image.sh');
   const seedValidator = await read('scripts/release/validate-seed-image.sh');
   const composeRuntimeValidator = await read('scripts/release/validate-seed-compose-runtime.sh');
+  const ingressRuntimeValidator = await read('infra/scripts/validate-ingress-runtime.sh');
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /packages: write/);
   assert.match(workflow, /bash scripts\/release\/build-prebuilt-images\.sh/);
@@ -243,6 +244,8 @@ test('prebuilt workflow builds sequentially, pushes immutable images, and never 
   assert.match(seedValidator, /matches/);
   assert.match(composeRuntimeValidator, /compose\.base\.yml/);
   assert.match(composeRuntimeValidator, /compose\.automation\.staging\.yml/);
+  assert.match(composeRuntimeValidator, /export SERVER_APP_ROOT="\$work\/arena"/);
+  assert.match(ingressRuntimeValidator, /export SERVER_APP_ROOT="\$tmp_dir\/arena"/);
   assert.match(composeRuntimeValidator, /ReadonlyRootfs/);
   assert.match(composeRuntimeValidator, /HostConfig.*Tmpfs/s);
   assert.match(composeRuntimeValidator, /ps --all -q arena-seed/);
@@ -281,6 +284,7 @@ test('release verification exercises the tracked prebuilt backup path', async ()
   assert.match(validator, /bash infra\/scripts\/backup\.sh "\$inventory"/);
   assert.match(validator, /env[\s\S]*-u ARENA_MIGRATE_IMAGE[\s\S]*backup\.sh/);
   assert.match(validator, /pg_restore -l/);
+  assert.match(validator, /export SERVER_APP_ROOT="\$app_root"/);
   assert.match(
     validator,
     /missing-image mutable bad-digest wrong-release wrong-revision invalid-path/,
