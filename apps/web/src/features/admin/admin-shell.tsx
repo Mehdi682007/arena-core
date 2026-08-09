@@ -5,14 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LanguageToggle } from '@/components/language-toggle';
-import { adminDictionaries } from '@/i18n/admin-dictionary';
+import { adminDictionaries, type AdminItemKey } from '@/i18n/admin-dictionary';
 import type { AppLocale } from '@/i18n/config';
 import { AdminNavIcon } from './admin-nav-icon';
 import { ThemeToggle } from './theme-toggle';
 import type { AdminPermission } from './types';
 
 type AdminNavigationItem = {
-  key: string;
+  key: AdminItemKey;
   href: string;
   permission?: AdminPermission;
 };
@@ -117,6 +117,11 @@ const navigation: readonly AdminNavigationGroup[] = [
         href: '/admin/support',
         permission: 'support.manage',
       },
+      {
+        key: 'siteSettings',
+        href: '/admin/settings/site',
+        permission: 'site_settings.read',
+      },
     ],
   },
 ];
@@ -209,7 +214,7 @@ export function AdminOperationsShell({
         <nav className="admin-console-navigation" aria-label={dictionary.adminNavigation}>
           {visibleGroups.map((group) => (
             <section className="admin-console-nav-group" key={group.key}>
-              <h2>{dictionary.groups[group.key]?.label ?? group.key}</h2>
+              <h2>{dictionary.groups[group.key]?.label ?? dictionary.administration}</h2>
 
               <div>
                 {group.items.map((item) => {
@@ -229,8 +234,8 @@ export function AdminOperationsShell({
                       </span>
 
                       <span>
-                        <strong>{text?.label ?? item.key}</strong>
-                        <small>{text?.description ?? ''}</small>
+                        <strong>{text.label}</strong>
+                        <small>{text.description}</small>
                       </span>
                     </Link>
                   );
@@ -263,14 +268,14 @@ export function AdminOperationsShell({
             <div>
               <span className="admin-console-eyebrow">Arena Operations</span>
               <strong>
-                {activeItem ? dictionary.items[activeItem.key]?.label : dictionary.administration}
+                {activeItem ? dictionary.items[activeItem.key].label : dictionary.administration}
               </strong>
             </div>
           </div>
 
           <div className="admin-console-topbar-actions">
             <LanguageToggle compact initialLocale={locale} />
-            <ThemeToggle />
+            <ThemeToggle locale={locale} />
 
             <span className="admin-console-environment">
               <span aria-hidden="true" />

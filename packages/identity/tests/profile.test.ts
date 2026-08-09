@@ -130,6 +130,22 @@ describe('identity onboarding policy', () => {
 });
 
 describe('user profile application service', () => {
+  it('returns an explicit public allowlist and rejects non-active profiles', async () => {
+    const repository = new MemoryProfileRepository();
+    const service = new UserProfileService(repository);
+    await expect(service.getPublicProfile('user-1')).resolves.toEqual({
+      userId: 'user-1',
+      displayName: 'Mehdi',
+    });
+    expect(JSON.stringify(await service.getPublicProfile('user-1'))).not.toMatch(
+      /locale|timezone|country|email|session|security|onboarding/i,
+    );
+    repository.current = state({ status: 'SUSPENDED' });
+    await expect(service.getPublicProfile('user-1')).rejects.toMatchObject({
+      code: 'PROFILE_NOT_AVAILABLE',
+    });
+  });
+
   it('returns an existing safe profile and a base view for a missing profile', async () => {
     const repository = new MemoryProfileRepository();
     const service = new UserProfileService(repository);

@@ -16,7 +16,8 @@ describe('responsive administration and locale foundation', () => {
     expect(config).toContain("localeCookieName = 'arena-locale'");
     expect(config).toContain("locale === 'fa' ? 'rtl' : 'ltr'");
 
-    expect(rootLayout).toContain('await cookies()');
+    expect(rootLayout).toContain('await getRequestLocale()');
+    expect(rootLayout).toContain('<LocaleProvider locale={locale}>');
     expect(rootLayout).toContain('lang={locale}');
     expect(rootLayout).toContain('dir={localeDirection(locale)}');
 

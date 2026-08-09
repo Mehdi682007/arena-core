@@ -1,8 +1,10 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, Field, Input, Select, Textarea } from '@/components/ui';
 import { browserApi } from '@/lib/api/browser-api-client';
 export function ResultForm({ matchId }: { matchId: string }) {
+  const ui = useUiMessages();
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -27,33 +29,34 @@ export function ResultForm({ matchId }: { matchId: string }) {
           },
         },
       });
-      setMessage('نتیجه ثبت شد. نتیجه نهایی فقط پس از تأیید سرور نمایش داده می‌شود.');
+      setMessage(ui.resultSubmittedTheFinalResultAppearsOnly);
     } catch {
-      setMessage('ثبت نتیجه ممکن نشد.');
+      setMessage(ui.couldNotSubmitTheResult);
     } finally {
       setPending(false);
     }
   }
   return (
     <form className="form" onSubmit={submit}>
-      <Field name="ownSide" label="سمت شما">
+      <Field name="ownSide" label={ui.yourSide}>
         <Select id="ownSide" name="ownSide">
-          <option value="SIDE_A">سمت A</option>
-          <option value="SIDE_B">سمت B</option>
+          <option value="SIDE_A">{ui.sideA}</option>
+          <option value="SIDE_B">{ui.bSide}</option>
         </Select>
       </Field>
-      <Field name="ownScore" label="امتیاز شما">
+      <Field name="ownScore" label={ui.yourScore}>
         <Input id="ownScore" name="ownScore" type="number" min={0} max={99} required />
       </Field>
-      <Field name="opponentScore" label="امتیاز حریف">
+      <Field name="opponentScore" label={ui.opponentSScore}>
         <Input id="opponentScore" name="opponentScore" type="number" min={0} max={99} required />
       </Field>
       {message ? <Alert>{message}</Alert> : null}
-      <Button disabled={pending}>{pending ? 'در حال ثبت…' : 'ثبت نتیجه'}</Button>
+      <Button disabled={pending}>{ui.registering}</Button>
     </form>
   );
 }
 export function EvidenceForm({ matchId }: { matchId: string }) {
+  const ui = useUiMessages();
   const [message, setMessage] = useState('');
   return (
     <form
@@ -71,21 +74,21 @@ export function EvidenceForm({ matchId }: { matchId: string }) {
             },
           },
         })
-          .then(() => setMessage('اظهار مدرک ثبت شد.'))
-          .catch(() => setMessage('ثبت اظهار مدرک ممکن نشد.'));
+          .then(() => setMessage(ui.evidenceDeclarationSubmitted))
+          .catch(() => setMessage(ui.couldNotSubmitTheEvidenceDeclaration));
       }}
     >
-      <h2>اظهار مدرک</h2>
-      <p className="muted">آپلود فایل انجام نمی‌شود؛ فقط وجود و توضیح مدرک اعلام می‌شود.</p>
+      <h2>{ui.statementOfEvidence}</h2>
+      <p className="muted">{ui.fileUploadIsNotDoneOnlyThe}</p>
       <Select name="type">
-        <option value="SCREENSHOT_DECLARATION">تصویر</option>
-        <option value="VIDEO_DECLARATION">ویدئو</option>
-        <option value="MATCH_SUMMARY_DECLARATION">خلاصه مسابقه</option>
-        <option value="TEXT_STATEMENT">اظهار متنی</option>
+        <option value="SCREENSHOT_DECLARATION">{ui.image}</option>
+        <option value="VIDEO_DECLARATION">{ui.video}</option>
+        <option value="MATCH_SUMMARY_DECLARATION">{ui.summaryOfTheMatch}</option>
+        <option value="TEXT_STATEMENT">{ui.textStatement}</option>
       </Select>
       <Textarea name="description" maxLength={2000} required />
       {message ? <Alert>{message}</Alert> : null}
-      <Button>ثبت اظهار</Button>
+      <Button>{ui.recordStatement}</Button>
     </form>
   );
 }

@@ -16,6 +16,7 @@ admin_base="${ADMIN_DOMAIN:-admin.$base}"
   printf 'APP_BASE_URL=%s://%s\nWEB_BASE_URL=%s://%s\nAPI_BASE_URL=%s://%s/api/v1\n' "$scheme" "$base" "$scheme" "$base" "$scheme" "$base"
   printf 'ADMIN_ORIGIN=%s://%s\nADMIN_DOMAIN=%s\n' "$scheme" "$admin_base" "$admin_base"
   printf 'LOG_LEVEL=info\nHOST=0.0.0.0\nAPI_PORT=3001\nAPI_PREFIX=/api/v1\nCORS_ENABLED=false\nWORKER_SHUTDOWN_TIMEOUT_MS=10000\n'
+  printf 'ARENA_SITE_ASSET_ROOT=/app/var/site-assets\nARENA_SITE_ASSET_STAGED_RETENTION_SECONDS=86400\nARENA_SITE_ASSET_CLEANUP_ENABLED=true\nARENA_SITE_ASSET_CLEANUP_INTERVAL_SECONDS=3600\n'
   printf 'WEB_PORT=3000\nNEXT_PUBLIC_APP_NAME=Arena\\ Core\nNEXT_PUBLIC_DEFAULT_LOCALE=fa\n'
   printf 'AUTH_ALLOWED_ORIGINS=%s://%s,%s://%s\nIDENTITY_PUBLIC_BASE_URL=%s://%s\n' "$scheme" "$base" "$scheme" "$admin_base" "$scheme" "$base"
   printf 'DATABASE_ENABLED=true\n'

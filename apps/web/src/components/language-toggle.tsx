@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 
 import { Globe2 } from 'lucide-react';
 import { useState } from 'react';
@@ -20,6 +21,7 @@ export function LanguageToggle({
   compact?: boolean;
   persistProfile?: boolean;
 }) {
+  const ui = useUiMessages();
   const [locale, setLocale] = useState<AppLocale>(() => {
     if (initialLocale) {
       return initialLocale;
@@ -70,7 +72,7 @@ export function LanguageToggle({
       <Globe2 aria-hidden="true" />
 
       <button
-        aria-label="تغییر زبان به فارسی"
+        aria-label={ui.changeTheLanguageToFarsi}
         aria-pressed={locale === 'fa'}
         className={locale === 'fa' ? 'is-active' : undefined}
         onClick={() => {
@@ -78,7 +80,7 @@ export function LanguageToggle({
         }}
         type="button"
       >
-        فارسی
+        {ui.farsi}
       </button>
 
       <span aria-hidden="true">/</span>

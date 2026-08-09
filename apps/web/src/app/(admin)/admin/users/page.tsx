@@ -6,20 +6,26 @@ import { AdminTable } from '@/features/admin/components';
 import { ADMIN_USER_PREVIEW_LIST } from '@/features/admin/user-access-preview';
 import type { AdminUserListResponse, AdminUserStatus } from '@/features/admin/user-access-types';
 import { isAdminUiPreviewEnabled } from '@/features/admin/preview';
+import type { AppLocale } from '@/i18n/config';
+import { getRequestLocale } from '@/i18n/server';
+import { uiMessagesFor } from '@/i18n/ui-messages';
 
-const statusLabels: Record<AdminUserStatus, string> = {
-  PENDING_VERIFICATION: 'در انتظار تأیید',
-  ACTIVE: 'فعال',
-  SUSPENDED: 'معلق',
-  BANNED: 'مسدود',
-  DISABLED: 'غیرفعال',
-  DELETED: 'حذف‌شده',
+const statusLabelsFor = (locale: AppLocale): Record<AdminUserStatus, string> => {
+  const ui = uiMessagesFor(locale);
+  return {
+    PENDING_VERIFICATION: ui.pendingVerification,
+    ACTIVE: ui.active,
+    SUSPENDED: ui.suspended,
+    BANNED: ui.blocked,
+    DISABLED: ui.inactive,
+    DELETED: ui.deleted,
+  };
 };
 
-const date = (value: string | null) =>
+const date = (value: string | null, locale: AppLocale) =>
   value === null
     ? '—'
-    : new Intl.DateTimeFormat('fa', {
+    : new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR' : 'en-US', {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(new Date(value));
@@ -29,6 +35,9 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const locale = await getRequestLocale();
+  const ui = uiMessagesFor(locale);
+  const statusLabels = statusLabelsFor(locale);
   await requireAdminPermission('users.read');
 
   const params = await searchParams;
@@ -68,34 +77,35 @@ export default async function AdminUsersPage({
       <div className="admin-page-heading">
         <div>
           <span className="admin-console-eyebrow">Identity operations</span>
-          <h1>مدیریت کاربران</h1>
-          <p>جستجو، بررسی وضعیت و اجرای عملیات دستی روی حساب‌ها</p>
+          <h1>{ui.userManagement}</h1>
+          <p>{ui.searchCheckStatusAndPerformManualOperations}</p>
         </div>
 
         <span className="admin-result-count">
-          {new Intl.NumberFormat('fa').format(result.items.length)} نتیجه
+          {new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US').format(result.items.length)}{' '}
+          {ui.theResult}
         </span>
       </div>
 
-      {preview ? <Alert>داده‌های این صفحه در حالت پیش‌نمایش نمونه هستند.</Alert> : null}
+      {preview ? <Alert>{ui.theDataOnThisPageIsIn}</Alert> : null}
 
-      {unavailable ? <Alert error>دریافت فهرست کاربران از API ممکن نشد.</Alert> : null}
+      {unavailable ? <Alert error>{ui.failedToGetUserListFromApi}</Alert> : null}
 
       <form className="admin-filter" method="get">
-        <Field name="term" label="جستجو">
+        <Field name="term" label={ui.search}>
           <Input
             id="term"
             name="term"
             defaultValue={term}
             minLength={2}
             maxLength={128}
-            placeholder="ایمیل، نام نمایشی یا UUID"
+            placeholder={ui.emailDisplayNameOrUuid}
           />
         </Field>
 
-        <Field name="status" label="وضعیت">
+        <Field name="status" label={ui.status}>
           <Select id="status" name="status" defaultValue={status}>
-            <option value="">همه وضعیت‌ها</option>
+            <option value="">{ui.allSituations}</option>
             {Object.entries(statusLabels).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -104,19 +114,19 @@ export default async function AdminUsersPage({
           </Select>
         </Field>
 
-        <button className="button">اعمال فیلتر</button>
+        <button className="button">{ui.applyFilter}</button>
 
         <Link className="button secondary" href="/admin/users">
-          پاک‌کردن
+          {ui.erase}
         </Link>
       </form>
 
       <AdminTable
-        caption="فهرست کاربران"
-        headings={['کاربر', 'وضعیت', 'کشور', 'آخرین ورود', 'تاریخ عضویت', 'عملیات']}
+        caption={ui.listOfUsers}
+        headings={[ui.user, ui.status, ui.country, ui.lastEntry, ui.dateOfMembership, ui.action]}
         rows={result.items.map((user) => [
           <div className="admin-user-identity" key="identity">
-            <strong>{user.displayName ?? 'بدون نام نمایشی'}</strong>
+            <strong>{user.displayName ?? ui.noScreenName}</strong>
             <span>{user.email ?? user.id}</span>
           </div>,
           <span
@@ -127,13 +137,13 @@ export default async function AdminUsersPage({
           </span>,
           user.countryCode ?? '—',
           <time key="last" dateTime={user.lastAuthenticatedAt ?? undefined}>
-            {date(user.lastAuthenticatedAt)}
+            {date(user.lastAuthenticatedAt, locale)}
           </time>,
           <time key="created" dateTime={user.createdAt}>
-            {date(user.createdAt)}
+            {date(user.createdAt, locale)}
           </time>,
           <Link key="detail" href={`/admin/users/${encodeURIComponent(user.id)}`}>
-            مشاهده و مدیریت
+            {ui.viewAndManage}
           </Link>,
         ])}
       />

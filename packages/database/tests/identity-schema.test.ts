@@ -64,6 +64,8 @@ const catalogModels = [
   'NotificationOutboxMessage',
   'NotificationDeliveryAttempt',
   'AdminAuditEvent',
+  'SiteSettings',
+  'SiteSettingsRevision',
 ] as const;
 
 const expectedTables = [

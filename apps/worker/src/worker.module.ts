@@ -3,6 +3,7 @@ import type { WorkerServiceConfig } from '@arena-core/config';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { WorkerHealthService } from './health/worker-health.service';
+import { SiteAssetCleanupService } from './site-assets/site-asset-cleanup.service';
 
 @Module({})
 export class WorkerModule {
@@ -10,7 +11,7 @@ export class WorkerModule {
     return {
       module: WorkerModule,
       imports: [ConfigModule.register(config), DatabaseModule],
-      providers: [WorkerHealthService],
+      providers: [WorkerHealthService, SiteAssetCleanupService],
     };
   }
 }

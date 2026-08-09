@@ -83,8 +83,9 @@ describe('administrative web safety and routes', () => {
     const styles = readFileSync(path.join(root, 'src/styles/globals.css'), 'utf8');
     const rootLayout = readFileSync(path.join(root, 'src/app/layout.tsx'), 'utf8');
 
-    expect(shell).toContain('<ThemeToggle />');
-    expect(toggle).toContain('arena-admin-theme');
+    expect(shell).toContain('<ThemeToggle locale={locale} />');
+    expect(toggle).toContain('arena-theme');
+    expect(toggle).toContain("'light' | 'dark' | 'system'");
     expect(toggle).toContain('document.documentElement.dataset.theme');
     expect(toggle).toContain('prefers-color-scheme: dark');
     expect(styles).toContain("html[data-theme='dark']");

@@ -39,6 +39,8 @@ services:
     image: ${ARENA_API_IMAGE:?ARENA_API_IMAGE required}
     extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:3001:3001']
+    volumes:
+      - '${SERVER_APP_ROOT:?SERVER_APP_ROOT required}/shared/uploads/site-assets:/app/var/site-assets'
     networks: [ingress, app, data, db_egress]
     healthcheck:
       {
@@ -52,6 +54,8 @@ services:
     image: ${ARENA_WORKER_IMAGE:?ARENA_WORKER_IMAGE required}
     extra_hosts: ['host.docker.internal:host-gateway']
     networks: [app, data, db_egress]
+    volumes:
+      - '${SERVER_APP_ROOT:?SERVER_APP_ROOT required}/shared/uploads/site-assets:/app/var/site-assets'
   arena-web:
     <<: *app
     image: ${ARENA_WEB_IMAGE:?ARENA_WEB_IMAGE required}

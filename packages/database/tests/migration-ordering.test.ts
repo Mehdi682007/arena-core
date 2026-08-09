@@ -24,7 +24,7 @@ describe('migration directory ordering', () => {
       expect(current > previous).toBe(true);
     }
 
-    expect(folders.at(-1)).toBe('20260808120000_mfa_totp_rotation');
+    expect(folders.at(-1)).toBe('20260809090200_rc6_site_settings');
     expect(folders.indexOf(auditMigration)).toBeGreaterThan(folders.indexOf(notificationMigration));
   });
 

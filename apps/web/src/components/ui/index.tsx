@@ -1,3 +1,6 @@
+'use client';
+
+import { useUiFormatters, useUiMessages } from '../../i18n/ui-messages-client';
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -77,7 +80,8 @@ export function Alert({ children, error = false }: { children: ReactNode; error?
   );
 }
 export function Spinner() {
-  return <span className="spinner" role="status" aria-label="در حال بارگذاری" />;
+  const ui = useUiMessages();
+  return <span className="spinner" role="status" aria-label={ui.loading} />;
 }
 export function Skeleton() {
   return <span className="skeleton" aria-hidden="true" />;
@@ -91,16 +95,24 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
   );
 }
 export function ErrorState({ requestId }: { requestId?: string | undefined }) {
+  const ui = useUiMessages();
   return (
     <Alert error>
-      دریافت اطلاعات ممکن نشد.
-      {requestId ? <small className="ltr"> شناسه پیگیری: {requestId}</small> : null}
+      {ui.itWasNotPossibleToReceiveInformation}
+      {requestId ? (
+        <small className="ltr">
+          {' '}
+          {ui.trackingId}
+          {requestId}
+        </small>
+      ) : null}
     </Alert>
   );
 }
 export function Avatar({ name }: { name: string }) {
+  const format = useUiFormatters();
   return (
-    <span className="badge" aria-label={`نمایه ${name}`}>
+    <span className="badge" aria-label={format.avatarLabel(name)}>
       {name.trim().slice(0, 1) || 'A'}
     </span>
   );
@@ -109,8 +121,9 @@ export function Separator() {
   return <hr className="separator" />;
 }
 export function Tabs({ items }: { items: readonly { href: string; label: string }[] }) {
+  const ui = useUiMessages();
   return (
-    <nav aria-label="زبانه‌ها" className="cluster">
+    <nav aria-label={ui.tabs} className="cluster">
       {items.map((item) => (
         <a key={item.href} href={item.href}>
           {item.label}

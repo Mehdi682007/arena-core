@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Alert, Badge, Button, Card, EmptyState } from '@/components/ui';
@@ -22,6 +23,7 @@ export function NotificationList({
   initialItems: readonly NotificationItem[];
   nextCursor: string | null;
 }) {
+  const ui = useUiMessages();
   const [items, setItems] = useState([...initialItems]);
   const [cursor, setCursor] = useState(nextCursor);
   const [error, setError] = useState(false);
@@ -55,23 +57,23 @@ export function NotificationList({
   }
   if (items.length === 0)
     return (
-      <EmptyState title="اعلانی ندارید">
-        <p>اعلان‌های جدید اینجا نمایش داده می‌شوند.</p>
+      <EmptyState title={ui.youHaveNoNotification}>
+        <p>{ui.newNotificationsWillBeDisplayedHere}</p>
       </EmptyState>
     );
   return (
     <div className="stack">
-      {error ? <Alert error>به‌روزرسانی اعلان ممکن نشد.</Alert> : null}
+      {error ? <Alert error>{ui.couldNotUpdateNotification}</Alert> : null}
       {items.map((item) => (
         <Card key={item.id}>
           <div className="cluster">
             {notificationMatchHref(item.type, item.data) ? (
               <Link href={notificationMatchHref(item.type, item.data) ?? '/notifications'}>
-                مشاهده جریان مسابقه
+                {ui.viewTheRace}
               </Link>
             ) : null}
             <h2>{item.subject}</h2>
-            {!item.read ? <Badge>جدید</Badge> : null}
+            {!item.read ? <Badge>{ui.new}</Badge> : null}
           </div>
           <p>{item.body}</p>
           <time dateTime={item.createdAt}>
@@ -84,17 +86,17 @@ export function NotificationList({
               className="secondary"
               onClick={() => action(item.id, item.read ? 'unread' : 'read')}
             >
-              {item.read ? 'خوانده‌نشده' : 'خوانده شد'}
+              {ui.unread}
             </Button>
             <Button className="secondary" onClick={() => action(item.id, 'archive')}>
-              بایگانی
+              {ui.archive}
             </Button>
           </div>
         </Card>
       ))}
       {cursor ? (
         <Button className="secondary" onClick={more}>
-          نمایش بیشتر
+          {ui.showMore}
         </Button>
       ) : null}
     </div>

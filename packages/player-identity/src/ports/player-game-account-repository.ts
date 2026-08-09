@@ -1,5 +1,8 @@
 import type {
   AdminReviewInput,
+  AdminGameAccountPage,
+  AdminGameAccountQuery,
+  AdminGameAccountRecord,
   ClaimableGamePlatform,
   GameAccountReview,
   GameAccountStatus,
@@ -14,11 +17,22 @@ export interface CreateClaimRecord {
   readonly normalizedHandle: string;
   readonly displayHandle: string;
 }
+export interface UpdateClaimRecord {
+  readonly userId: string;
+  readonly accountId: string;
+  readonly gameId: string;
+  readonly gamePlatformId: string;
+  readonly handle: string;
+  readonly normalizedHandle: string;
+  readonly displayHandle: string;
+  readonly expectedVersion: number;
+  readonly nextStatus: 'DRAFT' | 'PENDING' | 'CHANGES_REQUESTED';
+}
 export interface PlayerGameAccountRepository {
   userCanClaim(userId: string): Promise<boolean>;
   listUserGameAccounts(userId: string): Promise<readonly UserGameAccountRecord[]>;
   findUserGameAccount(userId: string, accountId: string): Promise<UserGameAccountRecord | null>;
-  findAccountForAdmin(accountId: string): Promise<UserGameAccountRecord | null>;
+  findAccountForAdmin(accountId: string): Promise<AdminGameAccountRecord | null>;
   listClaimableGamePlatforms(): Promise<readonly ClaimableGamePlatform[]>;
 
   findGamePlatformForClaim(
@@ -28,6 +42,18 @@ export interface PlayerGameAccountRepository {
   hasActiveUserPlatformClaim(userId: string, gamePlatformId: string): Promise<boolean>;
   hasActiveHandleClaim(gamePlatformId: string, normalizedHandle: string): Promise<boolean>;
   createGameAccountClaim(input: CreateClaimRecord): Promise<UserGameAccountRecord>;
+  updateGameAccountClaim(input: UpdateClaimRecord): Promise<UserGameAccountRecord>;
+  submitGameAccount(
+    userId: string,
+    accountId: string,
+    expectedVersion: number,
+  ): Promise<UserGameAccountRecord>;
+  softDeleteGameAccount(userId: string, accountId: string, expectedVersion: number): Promise<void>;
+  restoreDeletedGameAccount(
+    userId: string,
+    accountId: string,
+    expectedVersion: number,
+  ): Promise<UserGameAccountRecord>;
   transitionUserAccount(
     userId: string,
     accountId: string,
@@ -39,7 +65,7 @@ export interface PlayerGameAccountRepository {
     accountId: string,
     handle?: CreateClaimRecord,
   ): Promise<UserGameAccountRecord>;
-  listAccountsForAdmin(status?: GameAccountStatus): Promise<readonly UserGameAccountRecord[]>;
+  listAccountsForAdmin(query: AdminGameAccountQuery): Promise<AdminGameAccountPage>;
   applyAdminReview(input: AdminReviewInput, status: GameAccountStatus): Promise<void>;
   listReviews(accountId: string): Promise<readonly GameAccountReview[]>;
 }

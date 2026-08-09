@@ -4,6 +4,9 @@ import { getAdminAccess } from '@/features/admin/access';
 import { adminApi } from '@/features/admin/api';
 import { ADMIN_PREVIEW_PERMISSIONS, isAdminUiPreviewEnabled } from '@/features/admin/preview';
 import type { AdminPermission, Diagnostics } from '@/features/admin/types';
+import type { AppLocale } from '@/i18n/config';
+import { getRequestLocale } from '@/i18n/server';
+import { uiMessagesFor } from '@/i18n/ui-messages';
 
 type DashboardLink = {
   permission: AdminPermission;
@@ -13,66 +16,65 @@ type DashboardLink = {
   symbol: string;
 };
 
-const shortcuts: readonly DashboardLink[] = [
-  {
-    permission: 'match_disputes.read',
-    href: '/admin/disputes',
-    title: 'صف اختلاف‌ها',
-    description: 'مواردی که به بررسی انسانی و تصمیم عملیاتی نیاز دارند.',
-    symbol: '⚖',
-  },
-  {
-    permission: 'match_results.read',
-    href: '/admin/results',
-    title: 'تعارض نتیجه‌ها',
-    description: 'ارسال‌های ناسازگار و شواهد مربوط به مسابقه‌ها.',
-    symbol: '≠',
-  },
-  {
-    permission: 'notifications.read',
-    href: '/admin/notifications/outbox',
-    title: 'صف اعلان‌ها',
-    description: 'وضعیت تحویل، تلاش مجدد و پیام‌های متوقف‌شده.',
-    symbol: '✦',
-  },
-  {
-    permission: 'audit.read',
-    href: '/admin/audit',
-    title: 'ممیزی عملیات',
-    description: 'ردپای تغییرات حساس و عملیات ثبت‌شده مدیران.',
-    symbol: '≣',
-  },
-  {
-    permission: 'matches.read',
-    href: '/admin/matches',
-    title: 'مسابقه‌ها',
-    description: 'وضعیت مسابقات، شرکت‌کنندگان و Timeline عملیاتی.',
-    symbol: '⚔',
-  },
-  {
-    permission: 'wallets.read',
-    href: '/admin/wallets',
-    title: 'کیف پول',
-    description: 'نمای عملیاتی موجودی‌ها و دفترکل مالی کاربران.',
-    symbol: '◈',
-  },
-];
+const shortcutsFor = (locale: AppLocale): readonly DashboardLink[] => {
+  const ui = uiMessagesFor(locale);
+  return [
+    {
+      permission: 'match_disputes.read',
+      href: '/admin/disputes',
+      title: ui.disputeQueue,
+      description: ui.casesRequiringHumanReviewAndAnOperational,
+      symbol: '⚖',
+    },
+    {
+      permission: 'match_results.read',
+      href: '/admin/results',
+      title: ui.resultConflicts,
+      description: ui.conflictingSubmissionsAndRelatedMatchEvidence,
+      symbol: '≠',
+    },
+    {
+      permission: 'notifications.read',
+      href: '/admin/notifications/outbox',
+      title: ui.notificationQueue,
+      description: ui.deliveryStatusRetriesAndStoppedMessages,
+      symbol: '✦',
+    },
+    {
+      permission: 'audit.read',
+      href: '/admin/audit',
+      title: ui.operationsAudit,
+      description: ui.aTrailOfSensitiveChangesAndRecorded,
+      symbol: '≣',
+    },
+    {
+      permission: 'matches.read',
+      href: '/admin/matches',
+      title: ui.competitions,
+      description: ui.matchStatusParticipantsAndOperationalTimeline,
+      symbol: '⚔',
+    },
+    {
+      permission: 'wallets.read',
+      href: '/admin/wallets',
+      title: ui.wallet,
+      description: ui.operationalViewOfUserBalancesAndLedger,
+      symbol: '◈',
+    },
+  ];
+};
 
-const formatUptime = (seconds: number) => {
+const formatUptime = (seconds: number, locale: AppLocale) => {
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor((seconds % 86_400) / 3_600);
   const minutes = Math.floor((seconds % 3_600) / 60);
-  const formatter = new Intl.NumberFormat('fa');
-
-  if (days > 0) {
-    return `${formatter.format(days)} روز`;
-  }
-
-  if (hours > 0) {
-    return `${formatter.format(hours)} ساعت`;
-  }
-
-  return `${formatter.format(minutes)} دقیقه`;
+  const value = days > 0 ? days : hours > 0 ? hours : minutes;
+  const unit = days > 0 ? 'day' : hours > 0 ? 'hour' : 'minute';
+  return new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', {
+    style: 'unit',
+    unit,
+    unitDisplay: 'long',
+  }).format(value);
 };
 
 async function loadDiagnostics(permissions: Set<AdminPermission>): Promise<Diagnostics | null> {
@@ -88,11 +90,14 @@ async function loadDiagnostics(permissions: Set<AdminPermission>): Promise<Diagn
 }
 
 export default async function AdminDashboard() {
+  const locale = await getRequestLocale();
+  const ui = uiMessagesFor(locale);
+  const shortcuts = shortcutsFor(locale);
   const preview = isAdminUiPreviewEnabled();
   const access = preview ? null : await getAdminAccess();
 
   if (!preview && access?.status !== 'allowed') {
-    return <Alert error>قابلیت‌های مدیریت در دسترس نیست.</Alert>;
+    return <Alert error>{ui.managementFeaturesAreNotAvailable}</Alert>;
   }
 
   const permissions =
@@ -110,22 +115,15 @@ export default async function AdminDashboard() {
 
   return (
     <div className="admin-dashboard stack">
-      {preview ? (
-        <Alert>
-          حالت پیش‌نمایش رابط مدیریت فعال است؛ داده‌های زنده API در این محیط بارگذاری نمی‌شوند.
-        </Alert>
-      ) : null}
+      {preview ? <Alert>{ui.thePreviewModeOfTheManagementInterface}</Alert> : null}
 
       <section className="admin-dashboard-hero">
         <div>
           <span className="admin-console-eyebrow">Operational command center</span>
 
-          <h1>مرکز عملیات Arena Core</h1>
+          <h1>{ui.arenaCoreOperationsCenter}</h1>
 
-          <p>
-            نمای متمرکز برای پایش سرویس، رسیدگی به صف‌های عملیاتی و دسترسی سریع به ابزارهای مدیریتی
-            مجوزسنجی‌شده.
-          </p>
+          <p>{ui.centralizedViewForServiceMonitoringHandlingOperational}</p>
         </div>
 
         <div className="admin-dashboard-hero-status">
@@ -134,36 +132,36 @@ export default async function AdminDashboard() {
           <div>
             <strong>
               {preview
-                ? 'حالت پیش‌نمایش توسعه'
+                ? ui.developmentPreviewMode
                 : diagnostics?.shuttingDown
-                  ? 'سرویس در حال توقف است'
+                  ? ui.theServiceIsStopping
                   : diagnostics
-                    ? 'سرویس فعال است'
-                    : 'وضعیت سرویس در دسترس نیست'}
+                    ? ui.theServiceIsActive
+                    : ui.serviceStatusIsUnavailable}
             </strong>
 
             <small>
               {preview
-                ? 'API محلی متصل نیست'
+                ? ui.theLocalApiIsNotConnected
                 : diagnostics
                   ? `${diagnostics.service} · ${diagnostics.environment}`
-                  : 'اطلاعات Diagnostics دریافت نشد'}
+                  : ui.diagnosticsInformationWasNotReceived}
             </small>
           </div>
         </div>
       </section>
 
-      <section className="admin-metric-grid" aria-label="شاخص‌های عملیاتی">
+      <section className="admin-metric-grid" aria-label={ui.operationalIndicators}>
         <article className="admin-metric-card">
-          <span>دسترسی‌های فعال</span>
+          <span>{ui.activeAccess}</span>
 
           <strong>{new Intl.NumberFormat('fa').format(permissions.length)}</strong>
 
-          <small>قابلیت مجاز برای حساب فعلی</small>
+          <small>{ui.enabledFeatureForCurrentAccount}</small>
         </article>
 
         <article className="admin-metric-card">
-          <span>سلامت وابستگی‌ها</span>
+          <span>{ui.theHealthOfDependencies}</span>
 
           <strong>
             {diagnostics
@@ -173,19 +171,19 @@ export default async function AdminDashboard() {
               : '—'}
           </strong>
 
-          <small>بر اساس Diagnostics سرویس API</small>
+          <small>{ui.basedOnTheDiagnosticsServiceApi}</small>
         </article>
 
         <article className="admin-metric-card">
-          <span>زمان فعالیت API</span>
+          <span>{ui.apiActivityTime}</span>
 
-          <strong>{diagnostics ? formatUptime(diagnostics.uptimeSeconds) : '—'}</strong>
+          <strong>{diagnostics ? formatUptime(diagnostics.uptimeSeconds, locale) : '—'}</strong>
 
-          <small>از آخرین راه‌اندازی سرویس</small>
+          <small>{ui.sinceTheLastLaunchOfTheService}</small>
         </article>
 
         <article className="admin-metric-card">
-          <span>نسخه عملیاتی</span>
+          <span>{ui.operationalVersion}</span>
 
           <strong className="ltr admin-metric-version">{diagnostics?.version ?? 'Preview'}</strong>
 
@@ -199,10 +197,10 @@ export default async function AdminDashboard() {
         <div className="admin-section-heading">
           <div>
             <span className="admin-console-eyebrow">Quick access</span>
-            <h2>صف‌ها و ابزارهای اصلی</h2>
+            <h2>{ui.mainQueuesAndTools}</h2>
           </div>
 
-          <Link href="/admin/search">جستجوی پیشرفته</Link>
+          <Link href="/admin/search">{ui.advancedSearch}</Link>
         </div>
 
         <div className="admin-shortcut-grid">
@@ -233,10 +231,12 @@ export default async function AdminDashboard() {
             <div>
               <span className="admin-console-eyebrow">Dependencies</span>
 
-              <h2>وابستگی‌های سرویس</h2>
+              <h2>{ui.serviceDependencies}</h2>
             </div>
 
-            {allowed.has('diagnostics.read') ? <Link href="/admin/diagnostics">جزئیات</Link> : null}
+            {allowed.has('diagnostics.read') ? (
+              <Link href="/admin/diagnostics">{ui.details}</Link>
+            ) : null}
           </div>
 
           {dependencyEntries.length > 0 ? (
@@ -256,8 +256,8 @@ export default async function AdminDashboard() {
           ) : (
             <p className="muted">
               {preview
-                ? 'داده زنده وابستگی‌ها در حالت پیش‌نمایش نمایش داده نمی‌شود.'
-                : 'اطلاعات وابستگی‌ها در این لحظه در دسترس نیست.'}
+                ? ui.dependenciesLiveDataIsNotDisplayedIn
+                : ui.dependenciesInformationIsNotAvailableAtThis}
             </p>
           )}
         </article>
@@ -266,20 +266,20 @@ export default async function AdminDashboard() {
           <div>
             <span className="admin-console-eyebrow">Security boundary</span>
 
-            <h2>کنترل عملیات حساس</h2>
+            <h2>{ui.controlSensitiveOperations}</h2>
           </div>
 
           <ul>
-            <li>تمام عملیات حساس دوباره در Backend مجوزسنجی می‌شوند.</li>
+            <li>{ui.allSensitiveOperationsAreReauthorizedInThe}</li>
 
-            <li>عملیات تغییر‌دهنده با ثبت ممیزی و تأیید صریح اجرا می‌شوند.</li>
+            <li>{ui.modifierOperationsAreExecutedWithAuditLogging}</li>
 
-            <li>حالت Preview فقط در محیط غیر Production و با فلگ صریح فعال می‌شود.</li>
+            <li>{ui.previewModeIsActivatedOnlyInNon}</li>
           </ul>
 
           {allowed.has('audit.read') ? (
             <Link className="button secondary" href="/admin/audit">
-              مشاهده رویدادهای ممیزی
+              {ui.viewAuditEvents}
             </Link>
           ) : null}
         </article>

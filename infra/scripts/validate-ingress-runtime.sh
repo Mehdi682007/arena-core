@@ -25,6 +25,7 @@ printf 'not-used-by-ingress-test\n' >"$tmp_dir/secrets/POSTGRES_PASSWORD"
 
 export ARENA_ENV_FILE="$tmp_dir/runtime.env"
 export ARENA_SECRETS_DIR="$tmp_dir/secrets"
+export SERVER_APP_ROOT="$tmp_dir/arena"
 export ARENA_API_IMAGE=alpine:3.23
 export ARENA_WORKER_IMAGE=alpine:3.23
 export ARENA_WEB_IMAGE=alpine:3.23

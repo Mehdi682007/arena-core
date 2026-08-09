@@ -44,4 +44,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   public getStatus(): 'disabled' | 'up' {
     return this.config.enabled ? 'up' : 'disabled';
   }
+
+  public getClient(): ArenaPrismaClient | undefined {
+    return this.client;
+  }
 }

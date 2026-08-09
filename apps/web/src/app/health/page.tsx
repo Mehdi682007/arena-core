@@ -1,9 +1,12 @@
 import { getWebConfig } from '../../config';
 import { buildWebHealth } from '../../service-health';
+import { getRequestLocale } from '@/i18n/server';
+import { presentStatus } from '@/i18n/presentation';
 
 export const dynamic = 'force-dynamic';
 
-export default function HealthPage() {
+export default async function HealthPage() {
+  const locale = await getRequestLocale();
   const health = buildWebHealth(getWebConfig().runtime);
 
   return (
@@ -13,7 +16,7 @@ export default function HealthPage() {
         <dt>Service name</dt>
         <dd>{health.service}</dd>
         <dt>Status</dt>
-        <dd>{health.status}</dd>
+        <dd>{presentStatus(health.status, locale)}</dd>
         <dt>Environment</dt>
         <dd>{health.environment}</dd>
         <dt>Version</dt>

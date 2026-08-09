@@ -9,6 +9,25 @@ type AdminNavigationGroupText = {
   label: string;
 };
 
+export type AdminItemKey =
+  | 'overview'
+  | 'search'
+  | 'users'
+  | 'diagnostics'
+  | 'audit'
+  | 'gameAccounts'
+  | 'siteSettings'
+  | 'matches'
+  | 'results'
+  | 'disputes'
+  | 'matchmaking'
+  | 'ratings'
+  | 'wallets'
+  | 'finance'
+  | 'settlements'
+  | 'notifications'
+  | 'support';
+
 export type AdminDictionary = {
   operationsCenter: string;
   adminNavigation: string;
@@ -75,10 +94,20 @@ export type AdminDictionary = {
     loading: string;
     empty: string;
     search: string;
+    authorizedApiNotice: string;
+    noDisplayData: string;
+    walletGuidance: string;
+    financeGuidance: string;
+    outbox: string;
+    deadLetter: string;
+    recovery: string;
+    viewMessages: string;
+    stoppedMessages: string;
+    recoveryOperations: string;
   };
 
   groups: Record<string, AdminNavigationGroupText>;
-  items: Record<string, AdminNavigationItemText>;
+  items: Record<AdminItemKey, AdminNavigationItemText>;
 };
 
 const fa: AdminDictionary = {
@@ -147,6 +176,19 @@ const fa: AdminDictionary = {
     loading: 'در حال بارگذاری...',
     empty: 'موردی یافت نشد',
     search: 'جستجو',
+    authorizedApiNotice:
+      'نمایش فقط از API مدیریتی مجوزسنجی‌شده انجام می‌شود؛ داده حساس پیش از نمایش پالایش می‌شود.',
+    noDisplayData: 'داده‌ای برای نمایش وجود ندارد',
+    walletGuidance:
+      'کاربر را از جستجوی پشتیبانی انتخاب کنید. تغییر موجودی مستقیم وجود ندارد؛ صدور، تعدیل، برگشت و تطبیق فقط با دلیل و کلید تکرارناپذیری مجاز است.',
+    financeGuidance:
+      'برای مشاهده رزرو و تطبیق، شناسه مسابقه را از صفحه مسابقه انتخاب کنید. تمام عملیات مالی از سرویس دامنه و با کلید تکرارناپذیری انجام می‌شود.',
+    outbox: 'صندوق خروجی',
+    deadLetter: 'پیام‌های متوقف‌شده',
+    recovery: 'بازیابی',
+    viewMessages: 'مشاهده پیام‌ها',
+    stoppedMessages: 'پیام‌های متوقف‌شده',
+    recoveryOperations: 'عملیات بازیابی',
   },
   groups: {
     operations: {
@@ -186,6 +228,10 @@ const fa: AdminDictionary = {
     gameAccounts: {
       label: 'حساب‌های بازی',
       description: 'بررسی و تأیید حساب‌ها',
+    },
+    siteSettings: {
+      label: 'تنظیمات سایت',
+      description: 'برند، صفحه اول و اعلان عمومی',
     },
     matches: {
       label: 'مسابقه‌ها',
@@ -297,6 +343,19 @@ const en: AdminDictionary = {
     loading: 'Loading...',
     empty: 'No data found',
     search: 'Search',
+    authorizedApiNotice:
+      'Data is shown only through the permission-checked administration API and is sanitized before display.',
+    noDisplayData: 'There is no data to display',
+    walletGuidance:
+      'Select a user through support search. Direct balance mutation is unavailable; issuance, adjustment, reversal, and reconciliation require a reason and idempotency key.',
+    financeGuidance:
+      'Select a match ID from the match page to inspect reservations and reconciliation. Every financial operation uses the domain service and an idempotency key.',
+    outbox: 'Outbox',
+    deadLetter: 'Dead-letter',
+    recovery: 'Recovery',
+    viewMessages: 'View messages',
+    stoppedMessages: 'Stopped messages',
+    recoveryOperations: 'Recovery operations',
   },
   groups: {
     operations: {
@@ -336,6 +395,10 @@ const en: AdminDictionary = {
     gameAccounts: {
       label: 'Game accounts',
       description: 'Review and verify accounts',
+    },
+    siteSettings: {
+      label: 'Site settings',
+      description: 'Brand, landing page, and public announcement',
     },
     matches: {
       label: 'Matches',

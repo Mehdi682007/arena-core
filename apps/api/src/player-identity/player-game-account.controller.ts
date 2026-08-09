@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import type { PlayerGameAccountService } from '@arena-core/player-identity';
 import { CurrentPrincipal } from '../identity/http/decorators/current-principal.decorator';
 import { ZodBodyPipe } from '../identity/http/dto/identity.dto';
@@ -9,6 +20,8 @@ import {
   createClaimSchema,
   emptyActionSchema,
   resubmitSchema,
+  updateClaimSchema,
+  versionActionSchema,
 } from './player-identity.dto';
 import { PLAYER_GAME_ACCOUNT_SERVICE } from './player-identity.providers';
 
@@ -20,6 +33,41 @@ export class PlayerGameAccountController {
   @Get()
   public list(@CurrentPrincipal() principal: AuthenticatedPrincipal) {
     return this.service.listMyGameAccounts(principal.userId);
+  }
+  @Patch(':accountId')
+  public update(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('accountId', new ZodBodyPipe(accountIdSchema)) accountId: string,
+    @Body(new ZodBodyPipe(updateClaimSchema))
+    body: { gameId: string; gamePlatformId: string; handle: string; expectedVersion: number },
+  ) {
+    return this.service.updateGameAccountClaim({ userId: principal.userId, accountId, ...body });
+  }
+  @Post(':accountId/submit')
+  @RateLimit('game-account')
+  public submit(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('accountId', new ZodBodyPipe(accountIdSchema)) accountId: string,
+    @Body(new ZodBodyPipe(versionActionSchema)) body: { expectedVersion: number },
+  ) {
+    return this.service.submitGameAccount(principal.userId, accountId, body.expectedVersion);
+  }
+  @Delete(':accountId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public remove(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('accountId', new ZodBodyPipe(accountIdSchema)) accountId: string,
+    @Body(new ZodBodyPipe(versionActionSchema)) body: { expectedVersion: number },
+  ) {
+    return this.service.deleteGameAccount(principal.userId, accountId, body.expectedVersion);
+  }
+  @Post(':accountId/restore')
+  public restore(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('accountId', new ZodBodyPipe(accountIdSchema)) accountId: string,
+    @Body(new ZodBodyPipe(versionActionSchema)) body: { expectedVersion: number },
+  ) {
+    return this.service.restoreGameAccount(principal.userId, accountId, body.expectedVersion);
   }
   @Post()
   @RateLimit('game-account')

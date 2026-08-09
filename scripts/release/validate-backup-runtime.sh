@@ -118,6 +118,7 @@ printf '{"releaseVersion":"%s","buildSha":"%s"}\n' \
 
 export ARENA_ENV_FILE="$app_root/shared/env/runtime.env"
 export ARENA_SECRETS_DIR="$app_root/shared/secrets"
+export SERVER_APP_ROOT="$app_root"
 export POSTGRES_DB=arena_backup
 export POSTGRES_USER=arena_backup
 for service in migrate api worker web seed; do

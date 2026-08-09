@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { useRef, type ReactNode } from 'react';
 import { Button } from './index';
 export function Dialog({
@@ -10,6 +11,7 @@ export function Dialog({
   title: string;
   children: ReactNode;
 }) {
+  const ui = useUiMessages();
   const reference = useRef<HTMLDialogElement>(null);
   return (
     <>
@@ -24,7 +26,7 @@ export function Dialog({
         <h2 id="dialog-title">{title}</h2>
         {children}
         <form method="dialog">
-          <Button>بستن</Button>
+          <Button>{ui.toClose}</Button>
         </form>
       </dialog>
     </>

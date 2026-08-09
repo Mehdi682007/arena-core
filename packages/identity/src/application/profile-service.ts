@@ -10,6 +10,7 @@ import type {
   IdentityOnboardingState,
   OnboardingStatus,
   ProfileResult,
+  PublicProfileView,
   UpdateProfileInput,
   UpsertProfileInput,
   UserProfileRecord,
@@ -61,6 +62,15 @@ export class UserProfileService {
       profile: view(state.profile),
       onboarding: calculateOnboardingStatus(state),
     });
+  }
+
+  public async getPublicProfile(userId: string): Promise<PublicProfileView> {
+    const state = await this.repository.findIdentityOnboardingState(userId);
+    assertReadable(state);
+    if (state.status !== 'ACTIVE' || state.profile === null) {
+      throw new ProfileError('PROFILE_NOT_AVAILABLE');
+    }
+    return Object.freeze({ userId: state.userId, displayName: state.profile.displayName });
   }
 
   public async upsertCurrentUserProfile(input: UpsertProfileInput): Promise<ProfileResult> {

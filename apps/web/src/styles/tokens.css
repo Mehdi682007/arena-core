@@ -13,6 +13,10 @@
   --color-warning: #946200;
   --color-danger: #b4232f;
   --color-info: #1d62a7;
+  --surface-glass: rgb(255 255 255 / 78%);
+  --surface-glass-strong: rgb(255 255 255 / 92%);
+  --glass-border: rgb(255 255 255 / 65%);
+  --glass-blur: 14px;
   --radius-sm: 0.375rem;
   --radius-md: 0.75rem;
   --radius-lg: 1.125rem;
@@ -27,4 +31,37 @@
   --space-7: 3rem;
   --focus-ring: 0 0 0 3px rgb(49 87 213 / 28%);
   --font-sans: Tahoma, Arial, 'Noto Sans Arabic', sans-serif;
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --z-navigation: 30;
+  --z-dialog: 60;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --color-background: #090f1d;
+  --color-surface: #111a2b;
+  --color-surface-elevated: #172238;
+  --color-text: #f2f5fb;
+  --color-text-muted: #aeb9ca;
+  --color-border: #31405a;
+  --color-primary: #89a5ff;
+  --color-primary-hover: #a8bbff;
+  --color-primary-soft: #1b2a55;
+  --color-success: #62d49b;
+  --color-warning: #f2c25d;
+  --color-danger: #ff8490;
+  --color-info: #7fc0ff;
+  --surface-glass: rgb(17 26 43 / 78%);
+  --surface-glass-strong: rgb(17 26 43 / 93%);
+  --glass-border: rgb(255 255 255 / 14%);
+  --shadow-sm: 0 1px 4px rgb(0 0 0 / 32%);
+  --shadow-md: 0 16px 42px rgb(0 0 0 / 38%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+  }
 }

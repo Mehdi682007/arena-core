@@ -97,6 +97,29 @@ describe('central configuration', () => {
     expect(JSON.stringify(authentication)).not.toContain('development-only');
   });
 
+  it('requires persistent site asset storage in strict environments', () => {
+    const strict = {
+      ...generatedStrictRuntime(),
+      NODE_ENV: 'production',
+      ARENA_SITE_ASSET_ROOT: '/app/var/site-assets',
+    };
+    expect(createApiConfig(strict, options).siteAssets).toEqual({
+      root: '/app/var/site-assets',
+      stagedRetentionSeconds: 86_400,
+    });
+    expect(() =>
+      createApiConfig(
+        Object.fromEntries(
+          Object.entries(strict).filter(([key]) => key !== 'ARENA_SITE_ASSET_ROOT'),
+        ),
+        options,
+      ),
+    ).toThrow(/ARENA_SITE_ASSET_ROOT/);
+    expect(() => createApiConfig({ ARENA_SITE_ASSET_ROOT: '../uploads' }, options)).toThrow(
+      /absolute POSIX path/,
+    );
+  });
+
   it('validates authentication bounds and key separation without exposing values', () => {
     expect(() =>
       createApiConfig({ PASSWORD_MIN_LENGTH: '40', PASSWORD_MAX_LENGTH: '20' }, options),
@@ -445,6 +468,29 @@ describe('central configuration', () => {
     });
   });
 
+  it('provides a bounded worker site-asset cleanup contract', () => {
+    expect(createWorkerConfig({}, options)).toMatchObject({
+      siteAssets: { stagedRetentionSeconds: 86_400 },
+      siteAssetCleanup: { enabled: true, intervalSeconds: 3600 },
+    });
+    expect(
+      createWorkerConfig(
+        {
+          ARENA_SITE_ASSET_ROOT: path.resolve('worker-assets'),
+          ARENA_SITE_ASSET_CLEANUP_ENABLED: 'false',
+          ARENA_SITE_ASSET_CLEANUP_INTERVAL_SECONDS: '60',
+        },
+        options,
+      ).siteAssetCleanup,
+    ).toEqual({ enabled: false, intervalSeconds: 60 });
+    expect(() =>
+      createWorkerConfig({ ARENA_SITE_ASSET_CLEANUP_INTERVAL_SECONDS: '59' }, options),
+    ).toThrow(/ARENA_SITE_ASSET_CLEANUP_INTERVAL_SECONDS/);
+    expect(() => createWorkerConfig({ ARENA_SITE_ASSET_CLEANUP_ENABLED: 'yes' }, options)).toThrow(
+      /ARENA_SITE_ASSET_CLEANUP_ENABLED/,
+    );
+  });
+
   it('requires an explicit worker shutdown timeout in strict environments', () => {
     for (const environment of ['staging', 'production']) {
       const source = {
@@ -452,6 +498,7 @@ describe('central configuration', () => {
         NODE_ENV: environment,
         WORKER_SHUTDOWN_TIMEOUT_MS: '10000',
         DATABASE_ENABLED: 'false',
+        ARENA_SITE_ASSET_ROOT: path.resolve('worker-assets'),
       };
       expect(createWorkerConfig(source, options).worker.shutdownTimeoutMs).toBe(10_000);
       expect(() =>

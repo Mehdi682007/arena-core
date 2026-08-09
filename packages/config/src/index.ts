@@ -1,6 +1,7 @@
 import { isIP } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { inspect } from 'node:util';
+import { isAbsolute, resolve } from 'node:path';
 import { satisfies, valid } from 'semver';
 import { z } from 'zod';
 import { createProductionHardeningConfig } from './production-hardening';
@@ -175,6 +176,11 @@ export interface NotificationConfig {
   readonly claimLeaseSeconds: number;
 }
 
+export interface SiteAssetConfig {
+  readonly root: string;
+  readonly stagedRetentionSeconds: number;
+}
+
 export interface WebServiceConfig {
   readonly runtime: RuntimeConfig;
   readonly network: NetworkConfig;
@@ -198,6 +204,7 @@ export interface ApiServiceConfig {
   readonly matches: MatchesConfig;
   readonly rating: RatingConfig;
   readonly notifications: NotificationConfig;
+  readonly siteAssets: SiteAssetConfig;
   readonly hardening: import('./production-hardening').ProductionHardeningConfig;
   readonly api: Readonly<{
     port: number;
@@ -210,9 +217,40 @@ export interface ApiServiceConfig {
 export interface WorkerServiceConfig {
   readonly runtime: RuntimeConfig;
   readonly database: DatabaseConfig;
+  readonly siteAssets: SiteAssetConfig;
+  readonly siteAssetCleanup: Readonly<{ enabled: boolean; intervalSeconds: number }>;
   readonly hardening: import('./production-hardening').ProductionHardeningConfig;
   readonly worker: Readonly<{ shutdownTimeoutMs: number }>;
   readonly warnings: readonly string[];
+}
+
+function parseSiteAssets(
+  source: EnvironmentSource,
+  strict: boolean,
+  issues: { variable: string; message: string }[],
+): SiteAssetConfig {
+  const configuredAssetRoot = source.ARENA_SITE_ASSET_ROOT?.trim();
+  if (strict && !configuredAssetRoot) {
+    issues.push({
+      variable: 'ARENA_SITE_ASSET_ROOT',
+      message: 'must be set explicitly to a persistent absolute path in staging/production',
+    });
+  }
+  const siteAssetRoot = configuredAssetRoot || resolve(process.cwd(), 'var', 'site-assets');
+  if (!isAbsolute(siteAssetRoot) || siteAssetRoot.includes('\0')) {
+    issues.push({ variable: 'ARENA_SITE_ASSET_ROOT', message: 'must be an absolute POSIX path' });
+  }
+  return Object.freeze({
+    root: siteAssetRoot.replace(/[\\/]+$/, ''),
+    stagedRetentionSeconds: parseBoundedInteger(
+      source,
+      'ARENA_SITE_ASSET_STAGED_RETENTION_SECONDS',
+      86_400,
+      300,
+      604_800,
+      issues,
+    ),
+  });
 }
 
 export interface ConfigOptions {
@@ -1300,6 +1338,7 @@ export function createApiConfig(
       issues,
     ),
   });
+  const siteAssets = parseSiteAssets(source, base.strict, issues);
   if (notifications.retryMaxSeconds < notifications.retryBaseSeconds)
     issues.push({
       variable: 'NOTIFICATION_DELIVERY_RETRY_MAX_SECONDS',
@@ -1333,6 +1372,7 @@ export function createApiConfig(
     matches,
     rating,
     notifications,
+    siteAssets,
     hardening,
     api: Object.freeze({
       port,
@@ -1358,10 +1398,31 @@ export function createWorkerConfig(
       issues,
     ) ?? 10_000;
   const database = parseDatabase(source, base.strict, issues);
+  const siteAssets = parseSiteAssets(source, base.strict, issues);
+  const cleanupEnabled =
+    parseValue(
+      'ARENA_SITE_ASSET_CLEANUP_ENABLED',
+      booleanSchema,
+      source.ARENA_SITE_ASSET_CLEANUP_ENABLED?.trim() || 'true',
+      issues,
+    ) ?? true;
+  const cleanupIntervalSeconds = parseBoundedInteger(
+    source,
+    'ARENA_SITE_ASSET_CLEANUP_INTERVAL_SECONDS',
+    3600,
+    60,
+    86_400,
+    issues,
+  );
 
   return finish(issues, {
     runtime: base.runtime,
     database,
+    siteAssets,
+    siteAssetCleanup: Object.freeze({
+      enabled: cleanupEnabled,
+      intervalSeconds: cleanupIntervalSeconds,
+    }),
     hardening,
     worker: Object.freeze({ shutdownTimeoutMs }),
     warnings: base.warnings,

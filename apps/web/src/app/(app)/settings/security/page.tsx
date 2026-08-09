@@ -1,3 +1,4 @@
+import { uiMessagesFor } from '@/i18n/ui-messages';
 import Link from 'next/link';
 import { Card } from '@/components/ui';
 import { PasswordChangeForm } from '@/features/settings/password-change-form';
@@ -11,44 +12,37 @@ export default async function SecuritySettingsPage() {
   }
 
   const locale = session.user.locale;
+  const ui = uiMessagesFor(locale);
 
   return (
     <div className="stack">
       <div>
-        <h1>{locale === 'fa' ? 'امنیت حساب' : 'Account security'}</h1>
+        <h1>{ui.accountSecurity}</h1>
 
-        <p className="muted">
-          {locale === 'fa'
-            ? 'گذرواژه، نشست‌ها و احراز هویت دومرحله‌ای را مدیریت کنید.'
-            : 'Manage your password, sessions, and two-factor authentication.'}
-        </p>
+        <p className="muted">{ui.managePasswordsSessionsAndTwoStepAuthentication}</p>
       </div>
 
       <Card>
-        <h2>{locale === 'fa' ? 'احراز هویت دومرحله‌ای' : 'Two-factor authentication'}</h2>
+        <h2>{ui.twoStepAuthentication}</h2>
 
-        <p className="muted">
-          {locale === 'fa'
-            ? 'برای محافظت بیشتر از حساب، از برنامه Authenticator استفاده کنید.'
-            : 'Use an authenticator app for stronger account protection.'}
-        </p>
+        <p className="muted">{ui.useTheAuthenticatorAppToFurtherProtect}</p>
 
         <Link className="button secondary" href="/settings/security/mfa">
-          {locale === 'fa' ? 'مدیریت MFA' : 'Manage MFA'}
+          {ui.mfaManagement}
         </Link>
       </Card>
 
       <Card>
-        <h2>{locale === 'fa' ? 'تغییر گذرواژه' : 'Change password'}</h2>
+        <h2>{ui.changePassword}</h2>
 
         <PasswordChangeForm locale={locale} />
       </Card>
 
       <Card>
-        <h2>{locale === 'fa' ? 'نشست‌های فعال' : 'Active sessions'}</h2>
+        <h2>{ui.activeMeetings}</h2>
 
         <Link className="button secondary" href="/settings/sessions">
-          {locale === 'fa' ? 'مدیریت نشست‌ها' : 'Manage sessions'}
+          {ui.managementOfMeetings}
         </Link>
       </Card>
     </div>

@@ -14,14 +14,15 @@ export async function apiRequest<T>(
   const method = request.method?.toUpperCase() ?? 'GET';
   const outgoingHeaders = new Headers(headers);
   outgoingHeaders.set('Accept', 'application/json');
-  if (body !== undefined) outgoingHeaders.set('Content-Type', 'application/json');
+  const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (body !== undefined && !multipart) outgoingHeaders.set('Content-Type', 'application/json');
   const response = await fetch(`${baseUrl}${path}`, {
     ...request,
     method,
     credentials: 'include',
     ...(method === 'GET' ? (request.cache ? { cache: request.cache } : {}) : { cache: 'no-store' }),
     headers: outgoingHeaders,
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
     signal: request.signal ?? AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok) throw await normalizeApiError(response);

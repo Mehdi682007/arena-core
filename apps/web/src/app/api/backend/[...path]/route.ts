@@ -35,9 +35,11 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     );
   }
   if (writes) {
+    const contentType = request.headers.get('content-type')?.toLowerCase() ?? '';
     if (
       request.headers.get('origin') !== requestOrigin ||
-      !request.headers.get('content-type')?.toLowerCase().startsWith('application/json')
+      (!contentType.startsWith('application/json') &&
+        !contentType.startsWith('multipart/form-data; boundary='))
     ) {
       return NextResponse.json(
         { error: { code: 'CSRF_ORIGIN_REJECTED', message: 'Request origin is not allowed.' } },
@@ -46,7 +48,8 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     }
   }
   const target = `${getWebConfig().server.apiBaseUrl}/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`;
-  const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.text();
+  const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer();
+  const contentType = request.headers.get('content-type');
   const cookie = request.headers.get('cookie');
   const requestId = request.headers.get('x-request-id');
   const response = await fetch(target, {
@@ -55,7 +58,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     redirect: 'manual',
     headers: {
       Accept: 'application/json',
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(body && contentType ? { 'Content-Type': contentType } : {}),
       ...(cookie ? { cookie } : {}),
       ...(requestId ? { 'x-request-id': requestId } : {}),
       Origin: requestOrigin,

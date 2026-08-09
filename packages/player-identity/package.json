@@ -20,6 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@arena-core/contracts": "workspace:*",
     "@arena-core/database": "workspace:*"
   },
   "devDependencies": {

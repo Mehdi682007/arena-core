@@ -99,9 +99,9 @@ function fakeClient(overrides: Record<string, unknown> = {}) {
 }
 
 describe('administrative RBAC', () => {
-  it('has exactly 45 unique keys and covers every permission decorator', () => {
-    expect(ADMIN_PERMISSION_KEYS).toHaveLength(45);
-    expect(new Set(ADMIN_PERMISSION_KEYS).size).toBe(45);
+  it('has exactly 51 unique keys and covers every permission decorator', () => {
+    expect(ADMIN_PERMISSION_KEYS).toHaveLength(51);
+    expect(new Set(ADMIN_PERMISSION_KEYS).size).toBe(51);
     const root = path.resolve(process.cwd(), '../..');
     const apiRoot = path.join(root, 'apps/api/src');
     const controllers = readdirSync(apiRoot, { recursive: true, withFileTypes: true })

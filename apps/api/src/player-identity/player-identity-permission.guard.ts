@@ -15,7 +15,13 @@ import {
 
 const KEY = 'player-identity.permission';
 export type PlayerIdentityPermission =
-  'game_accounts.read' | 'game_accounts.verify' | 'game_accounts.suspend';
+  | 'game_accounts.read'
+  | 'game_accounts.review'
+  | 'game_accounts.verify'
+  | 'game_accounts.reject'
+  | 'game_accounts.suspend'
+  | 'game_accounts.restore'
+  | 'game_accounts.audit.read';
 export const RequirePlayerIdentityPermission = (permission: PlayerIdentityPermission) =>
   SetMetadata(KEY, permission);
 @Injectable()

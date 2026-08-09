@@ -9,7 +9,9 @@ export type PlayerIdentityErrorCode =
   | 'GAME_ACCOUNT_ALREADY_PRIMARY'
   | 'GAME_ACCOUNT_PERMISSION_DENIED'
   | 'GAME_ACCOUNT_VERIFICATION_INVALID'
+  | 'GAME_ACCOUNT_VERSION_CONFLICT'
   | 'GAME_ACCOUNT_PERSISTENCE_FAILURE'
+  | 'GAME_ACCOUNT_QUERY_INVALID'
   | 'INVALID_PLATFORM_HANDLE';
 
 const messages: Record<PlayerIdentityErrorCode, string> = {
@@ -23,7 +25,9 @@ const messages: Record<PlayerIdentityErrorCode, string> = {
   GAME_ACCOUNT_ALREADY_PRIMARY: 'Game account is already primary.',
   GAME_ACCOUNT_PERMISSION_DENIED: 'Game account action is not permitted.',
   GAME_ACCOUNT_VERIFICATION_INVALID: 'Game account verification action is invalid.',
+  GAME_ACCOUNT_VERSION_CONFLICT: 'Game account changed; reload and try again.',
   GAME_ACCOUNT_PERSISTENCE_FAILURE: 'Game account could not be persisted.',
+  GAME_ACCOUNT_QUERY_INVALID: 'Game account query is invalid.',
   INVALID_PLATFORM_HANDLE: 'Platform handle is invalid.',
 };
 export class PlayerIdentityError extends Error {

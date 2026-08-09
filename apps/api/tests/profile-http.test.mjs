@@ -6,6 +6,7 @@ import { createApiApplication } from '../dist/bootstrap.js';
 let application;
 let baseUrl;
 let profiles;
+const publicUserId = '00000000-0000-4000-8000-000000000777';
 
 const config = createApiConfig(
   {
@@ -62,6 +63,7 @@ function request(path, options = {}) {
 
 beforeEach(async () => {
   profiles = {
+    getPublicProfile: vi.fn(async (userId) => ({ userId, displayName: 'Public Player' })),
     getCurrentUserProfile: vi.fn(async () => complete),
     updateCurrentUserProfile: vi.fn(async () => complete),
     getOnboardingStatus: vi.fn(async () => complete.onboarding),
@@ -84,6 +86,24 @@ afterEach(async () => {
 });
 
 describe('private profile HTTP integration', () => {
+  it('serves only the anonymous public projection', async () => {
+    const response = await request(`/profiles/${publicUserId}`, { auth: false });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ userId: publicUserId, displayName: 'Public Player' });
+    expect(JSON.stringify(body)).not.toMatch(
+      /locale|timezone|country|email|session|security|onboarding|deleted|status/i,
+    );
+    expect(profiles.getPublicProfile).toHaveBeenCalledWith(publicUserId);
+  });
+
+  it('rejects malformed public profile identifiers and maps missing profiles safely', async () => {
+    expect((await request('/profiles/not-a-uuid', { auth: false })).status).toBe(400);
+    profiles.getPublicProfile.mockRejectedValueOnce(new ProfileError('PROFILE_NOT_AVAILABLE'));
+    const missing = await request(`/profiles/${publicUserId}`, { auth: false });
+    expect(missing.status).toBe(404);
+  });
+
   it('returns only the current safe profile with no-store', async () => {
     const response = await request('/profile');
     expect(response.status).toBe(200);

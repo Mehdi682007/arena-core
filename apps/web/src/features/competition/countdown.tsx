@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 
 import { useEffect, useState } from 'react';
 
@@ -11,6 +12,7 @@ const remainingParts = (expiresAt: string, now: number) => {
 };
 
 export function Countdown({ expiresAt }: { expiresAt: string }) {
+  const ui = useUiMessages();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -20,7 +22,8 @@ export function Countdown({ expiresAt }: { expiresAt: string }) {
 
   return (
     <p aria-live="polite">
-      زمان باقی‌مانده: <b>{remainingParts(expiresAt, now)}</b>
+      {ui.timeLeft}
+      <b>{remainingParts(expiresAt, now)}</b>
     </p>
   );
 }
