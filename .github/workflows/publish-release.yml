@@ -136,19 +136,10 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          cat > release-notes.md <<'NOTES'
-          - RC4 UAT regression fixes
-          - Reliable logout and improved localization
-          - Profile validation UX and Admin MFA flow correction
-          - Local MFA QR enrollment and secure authenticator replacement
-          - Recovery-code recovery path
-          - Next.js writable runtime cache
-          - MFA authenticator rotation migration
-          NOTES
           gh release create "$RELEASE_VERSION" \
             --target "$SOURCE_SHA" \
             --title "$RELEASE_VERSION" \
-            --notes-file release-notes.md \
+            --generate-notes \
             --prerelease \
             "arena-release-${RELEASE_VERSION}.tar.gz" \
             SHA256SUMS \

@@ -272,7 +272,9 @@ test('official release workflow binds images, archive and tag to one main SHA', 
   assert.match(workflow, /sha256sum --check SHA256SUMS/);
   assert.match(workflow, /gh release create "\$RELEASE_VERSION"/);
   assert.match(workflow, /--target "\$SOURCE_SHA"/);
+  assert.match(workflow, /--generate-notes/);
   assert.match(workflow, /--prerelease/);
+  assert.doesNotMatch(workflow, /RC4 UAT regression fixes/);
   assert.doesNotMatch(workflow, /:latest|\bssh\b|scp|rsync/);
 });
 
