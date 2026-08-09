@@ -7,16 +7,26 @@ import { getAdminAccess } from '@/features/admin/access';
 import { AdminOperationsShell } from '@/features/admin/admin-shell';
 import { ADMIN_PREVIEW_PERMISSIONS, isAdminUiPreviewEnabled } from '@/features/admin/preview';
 import { getSession } from '@/features/session/session';
+import { serverApi } from '@/lib/api/server-api-client';
 
 export const dynamic = 'force-dynamic';
+
+type Localized = Readonly<{ fa: string; en: string }>;
+type BrandSettings = Readonly<{ brand: Readonly<{ siteName: Localized }> }>;
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const locale = await getRequestLocale();
   const ui = uiMessagesFor(locale);
+  const settings = await serverApi<BrandSettings>('/site-settings').catch(() => null);
+  const siteName = settings?.brand.siteName[locale] || 'Arena Core';
 
   if (isAdminUiPreviewEnabled()) {
     return (
-      <AdminOperationsShell locale={locale} permissions={[...ADMIN_PREVIEW_PERMISSIONS]}>
+      <AdminOperationsShell
+        locale={locale}
+        permissions={[...ADMIN_PREVIEW_PERMISSIONS]}
+        siteName={siteName}
+      >
         {children}
       </AdminOperationsShell>
     );
@@ -72,7 +82,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <AdminOperationsShell locale={locale} permissions={access.permissions}>
+    <AdminOperationsShell locale={locale} permissions={access.permissions} siteName={siteName}>
       {children}
     </AdminOperationsShell>
   );
