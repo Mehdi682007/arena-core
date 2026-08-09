@@ -5,9 +5,9 @@ import { notificationMatchHref, statusLabel } from '../src/features/competition/
 const root = path.resolve(import.meta.dirname, '..');
 describe('competition presentation and security', () => {
   it('maps lifecycle states without inventing transitions', () => {
-    expect(statusLabel('AWAITING_READY')).toBe('منتظر آمادگی');
-    expect(statusLabel('RESULT_CONFLICT')).toBe('تضاد نتیجه');
-    expect(statusLabel('UNKNOWN')).toBe('وضعیت نامشخص');
+    expect(statusLabel('AWAITING_READY', 'fa')).toBe('در انتظار آمادگی');
+    expect(statusLabel('RESULT_CONFLICT', 'en')).toBe('Result conflict');
+    expect(statusLabel('UNKNOWN', 'fa')).toBe('وضعیت نامشخص');
   });
   it('builds only allowlisted notification deep links', () => {
     const id = '11111111-1111-4111-8111-111111111111';

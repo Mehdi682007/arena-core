@@ -1,10 +1,16 @@
 import { PlayerIdentityError } from './player-identity-errors';
+import type {
+  GameAccountRejectionReasonCode,
+  GameAccountSuspensionReasonCode,
+} from '@arena-core/contracts';
 import type { GameAccountReviewAction, GameAccountStatus } from './player-identity-types';
 
 const transitions: Record<GameAccountStatus, readonly GameAccountStatus[]> = {
-  PENDING: ['VERIFIED', 'REJECTED', 'DISCONNECTED'],
+  DRAFT: ['PENDING', 'DISCONNECTED'],
+  PENDING: ['VERIFIED', 'REJECTED', 'CHANGES_REQUESTED', 'DISCONNECTED'],
   VERIFIED: ['SUSPENDED', 'DISCONNECTED'],
   REJECTED: ['PENDING', 'DISCONNECTED'],
+  CHANGES_REQUESTED: ['PENDING', 'DISCONNECTED'],
   SUSPENDED: ['VERIFIED', 'DISCONNECTED'],
   DISCONNECTED: [],
 };
@@ -17,35 +23,43 @@ export function assertPrimaryEligible(status: GameAccountStatus): void {
 }
 export function statusForReview(action: GameAccountReviewAction): GameAccountStatus {
   return {
+    CREATE: 'DRAFT',
+    UPDATE: 'DRAFT',
     VERIFY: 'VERIFIED',
     REJECT: 'REJECTED',
+    REQUEST_CHANGES: 'CHANGES_REQUESTED',
     SUSPEND: 'SUSPENDED',
     RESTORE: 'VERIFIED',
     DISCONNECT: 'DISCONNECTED',
+    SUBMIT: 'PENDING',
+    DELETE: 'DISCONNECTED',
+    RESTORE_BY_USER: 'DRAFT',
+    PRIMARY_CHANGE: 'VERIFIED',
   }[action] as GameAccountStatus;
 }
-const rejectionReasons = new Set([
+const rejectionReasons = new Set<string>([
   'HANDLE_NOT_FOUND',
   'OWNERSHIP_NOT_PROVEN',
   'DUPLICATE_ACCOUNT',
   'INVALID_PLATFORM',
   'INSUFFICIENT_INFORMATION',
   'OTHER',
-]);
-const suspensionReasons = new Set([
+] satisfies readonly GameAccountRejectionReasonCode[]);
+const suspensionReasons = new Set<string>([
   'OWNERSHIP_DISPUTE',
   'ACCOUNT_TRANSFERRED',
   'POLICY_VIOLATION',
   'SECURITY_REVIEW',
   'OTHER',
-]);
+] satisfies readonly GameAccountSuspensionReasonCode[]);
 export function assertReviewReason(
   action: GameAccountReviewAction,
   reasonCode?: string,
   note?: string,
 ): void {
-  const required = action === 'REJECT' || action === 'SUSPEND';
-  const allowed = action === 'REJECT' ? rejectionReasons : suspensionReasons;
+  const required = action === 'REJECT' || action === 'REQUEST_CHANGES' || action === 'SUSPEND';
+  const allowed: ReadonlySet<string> =
+    action === 'REJECT' || action === 'REQUEST_CHANGES' ? rejectionReasons : suspensionReasons;
   if (
     (required && (reasonCode === undefined || !allowed.has(reasonCode))) ||
     (reasonCode === 'OTHER' && !note?.trim()) ||

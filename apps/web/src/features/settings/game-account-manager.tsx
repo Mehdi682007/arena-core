@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type SyntheticEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Alert, Badge, Button, Card, Field, Input, Select } from '@/components/ui';
 import type { AppLocale } from '@/i18n/config';
@@ -25,10 +26,25 @@ export interface GameAccountView {
   readonly game: CatalogIdentity;
   readonly platform: CatalogIdentity;
   readonly displayHandle: string;
-  readonly status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED' | 'DISCONNECTED';
+  readonly status:
+    | 'DRAFT'
+    | 'PENDING'
+    | 'VERIFIED'
+    | 'REJECTED'
+    | 'CHANGES_REQUESTED'
+    | 'SUSPENDED'
+    | 'DISCONNECTED';
   readonly isPrimary: boolean;
   readonly verifiedAt: string | null;
+  readonly submittedAt: string | null;
+  readonly reviewedAt: string | null;
+  readonly gamePlatformId: string;
   readonly createdAt: string;
+  readonly version: number;
+  readonly deletedAt: string | null;
+  readonly rejectionReasonCode: string | null;
+  readonly reviewMessage: string | null;
+  readonly suspensionReasonCode: string | null;
 }
 
 export function GameAccountManager({
@@ -118,15 +134,19 @@ export function GameAccountManager({
 
   async function action(
     accountId: string,
-    operation: 'primary' | 'disconnect' | 'resubmit',
+    operation: 'primary' | 'disconnect' | 'resubmit' | 'submit' | 'delete' | 'restore',
   ): Promise<void> {
     setPendingAction(`${accountId}:${operation}`);
     setError(false);
 
     try {
-      await browserApi(`/game-accounts/${encodeURIComponent(accountId)}/${operation}`, {
-        method: 'POST',
-        body: {},
+      const version = initialAccounts.find((item) => item.id === accountId)?.version;
+      const resource = `/game-accounts/${encodeURIComponent(accountId)}`;
+      await browserApi(operation === 'delete' ? resource : `${resource}/${operation}`, {
+        method: operation === 'delete' ? 'DELETE' : 'POST',
+        body: ['submit', 'delete', 'restore'].includes(operation)
+          ? { expectedVersion: version }
+          : {},
       });
 
       router.refresh();
@@ -214,8 +234,14 @@ export function GameAccountManager({
         {initialAccounts.length === 0 ? <p className="muted">{messages.empty}</p> : null}
 
         {initialAccounts.map((account) => (
-          <Card key={account.id}>
+          <Card key={account.id} data-deleted={account.deletedAt ? 'true' : undefined}>
             <div className="cluster">
+              <Link
+                className="button secondary"
+                href={`/account/game-accounts/${encodeURIComponent(account.id)}`}
+              >
+                {messages.details}
+              </Link>
               <strong>
                 {account.game.name}
                 {' · '}
@@ -229,8 +255,22 @@ export function GameAccountManager({
 
             <p className="ltr">{account.displayHandle}</p>
 
+            {account.reviewMessage ? <Alert>{account.reviewMessage}</Alert> : null}
+
             <div className="cluster">
-              {account.status === 'VERIFIED' && !account.isPrimary ? (
+              {account.deletedAt ? (
+                <Button
+                  className="secondary"
+                  disabled={pendingAction !== undefined}
+                  onClick={() => {
+                    void action(account.id, 'restore');
+                  }}
+                >
+                  {pendingAction === `${account.id}:restore` ? messages.working : messages.restore}
+                </Button>
+              ) : null}
+
+              {!account.deletedAt && account.status === 'VERIFIED' && !account.isPrimary ? (
                 <Button
                   className="secondary"
                   disabled={pendingAction !== undefined}
@@ -244,7 +284,21 @@ export function GameAccountManager({
                 </Button>
               ) : null}
 
-              {account.status === 'REJECTED' ? (
+              {!account.deletedAt &&
+              (account.status === 'DRAFT' || account.status === 'CHANGES_REQUESTED') ? (
+                <Button
+                  disabled={pendingAction !== undefined}
+                  onClick={() => {
+                    void action(account.id, 'submit');
+                  }}
+                >
+                  {pendingAction === `${account.id}:submit`
+                    ? messages.working
+                    : messages.submitForReview}
+                </Button>
+              ) : null}
+
+              {!account.deletedAt && account.status === 'REJECTED' ? (
                 <Button
                   className="secondary"
                   disabled={pendingAction !== undefined}
@@ -258,7 +312,7 @@ export function GameAccountManager({
                 </Button>
               ) : null}
 
-              {account.status !== 'DISCONNECTED' ? (
+              {!account.deletedAt && account.status !== 'DISCONNECTED' ? (
                 <Button
                   className="danger"
                   disabled={pendingAction !== undefined}
@@ -269,6 +323,18 @@ export function GameAccountManager({
                   {pendingAction === `${account.id}:disconnect`
                     ? messages.working
                     : messages.disconnect}
+                </Button>
+              ) : null}
+
+              {!account.deletedAt ? (
+                <Button
+                  className="danger"
+                  disabled={pendingAction !== undefined}
+                  onClick={() => {
+                    if (window.confirm(messages.delete)) void action(account.id, 'delete');
+                  }}
+                >
+                  {pendingAction === `${account.id}:delete` ? messages.working : messages.delete}
                 </Button>
               ) : null}
             </div>

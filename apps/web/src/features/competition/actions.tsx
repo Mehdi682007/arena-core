@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button } from '@/components/ui';
@@ -14,12 +15,13 @@ export function CompetitionAction({
   redirectTo?: string;
   danger?: boolean;
 }) {
+  const ui = useUiMessages();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   const router = useRouter();
   return (
     <div>
-      {error ? <Alert error>عملیات انجام نشد؛ وضعیت را تازه‌سازی کنید.</Alert> : null}
+      {error ? <Alert error>{ui.theOperationWasNotPerformedRefreshThe}</Alert> : null}
       <Button
         className={danger ? 'danger' : ''}
         disabled={pending}
@@ -39,7 +41,7 @@ export function CompetitionAction({
           })();
         }}
       >
-        {pending ? 'در حال انجام…' : label}
+        {pending ? ui.inProgress : label}
       </Button>
     </div>
   );

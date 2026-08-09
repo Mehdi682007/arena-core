@@ -163,6 +163,16 @@ explicitly gated part of the deployment lifecycle when enabled. Production requi
 TLS inventory; certificate issuance remains outside this framework phase. Never run
 `docker compose down -v`.
 
+## Persistent site assets
+
+The API stores administrator-uploaded branding assets under the validated runtime path
+`ARENA_SITE_ASSET_ROOT=/app/var/site-assets`. Automation bind-mounts that path from
+`$SERVER_APP_ROOT/shared/uploads/site-assets`, owned by the runtime application user. The API
+rejects staging or production startup when the path is omitted, relative, or not writable. This
+directory is persistent across container replacement and is already included in the canonical
+backup and restore upload contract. Operators must not point the setting at a release directory or
+another container-local path.
+
 ## Staging limitation
 
 The prebuilt path has local regression/config validation only. Images have not yet been published

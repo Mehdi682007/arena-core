@@ -1,18 +1,39 @@
-export const matchStatus: Readonly<Record<string, { label: string; description: string }>> = {
-  CREATED: { label: 'ایجاد شده', description: 'مسابقه در حال آماده‌سازی است.' },
-  AWAITING_READY: { label: 'منتظر آمادگی', description: 'شرکت‌کنندگان باید آمادگی را اعلام کنند.' },
-  READY: { label: 'آماده شروع', description: 'هر دو طرف آماده‌اند.' },
-  IN_PROGRESS: { label: 'در حال بازی', description: 'مسابقه شروع شده است.' },
-  AWAITING_RESULT: { label: 'منتظر نتیجه', description: 'نتیجه را ثبت کنید.' },
-  RESULT_CONFLICT: { label: 'تضاد نتیجه', description: 'نتایج ثبت‌شده هم‌خوان نیستند.' },
-  COMPLETED: { label: 'تکمیل‌شده', description: 'نتیجه نهایی شده است.' },
-  CANCELLED: { label: 'لغوشده', description: 'مسابقه لغو شده است.' },
-  EXPIRED: { label: 'منقضی', description: 'مهلت این مسابقه گذشته است.' },
-  VOIDED: { label: 'باطل‌شده', description: 'مسابقه بدون نتیجه معتبر بسته شده است.' },
+import type { AppLocale } from '@/i18n/config';
+import { presentStatus } from '../../i18n/presentation';
+
+const descriptions: Readonly<Record<string, Readonly<Record<AppLocale, string>>>> = {
+  CREATED: { fa: 'مسابقه در حال آماده‌سازی است.', en: 'The match is being prepared.' },
+  AWAITING_READY: {
+    fa: 'شرکت‌کنندگان باید آمادگی را اعلام کنند.',
+    en: 'Players must confirm they are ready.',
+  },
+  READY: { fa: 'هر دو طرف آماده‌اند.', en: 'Both players are ready.' },
+  IN_PROGRESS: { fa: 'مسابقه شروع شده است.', en: 'The match is in progress.' },
+  AWAITING_RESULT: { fa: 'نتیجه را ثبت کنید.', en: 'Submit the match result.' },
+  RESULT_CONFLICT: {
+    fa: 'نتایج ثبت‌شده هم‌خوان نیستند.',
+    en: 'The submitted results do not agree.',
+  },
+  COMPLETED: { fa: 'نتیجه نهایی شده است.', en: 'The result is final.' },
+  CANCELLED: { fa: 'مسابقه لغو شده است.', en: 'The match was cancelled.' },
+  EXPIRED: { fa: 'مهلت این مسابقه گذشته است.', en: 'The match deadline has passed.' },
+  VOIDED: {
+    fa: 'مسابقه بدون نتیجه معتبر بسته شده است.',
+    en: 'The match closed without a valid result.',
+  },
 };
-export function statusLabel(status: string) {
-  return matchStatus[status]?.label ?? 'وضعیت نامشخص';
+
+export function statusLabel(status: string, locale: AppLocale) {
+  return presentStatus(status, locale);
 }
+
+export function statusDescription(status: string, locale: AppLocale) {
+  return (
+    descriptions[status]?.[locale] ??
+    (locale === 'fa' ? 'جزئیات وضعیت در دسترس نیست.' : 'Status details are unavailable.')
+  );
+}
+
 export function notificationMatchHref(
   type: string,
   data: Readonly<Record<string, unknown>>,

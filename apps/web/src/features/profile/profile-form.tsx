@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 
 import { useState, type SyntheticEvent } from 'react';
 import { Alert, Button, Field, Input, Select } from '@/components/ui';
@@ -21,6 +22,7 @@ function formString(data: FormData, name: string): string {
 }
 
 export function ProfileForm({ profile }: { profile: ProfileView }) {
+  const ui = useUiMessages();
   const messages = messagesFor(profile.locale).profile;
 
   const [saved, setSaved] = useState(false);
@@ -102,7 +104,7 @@ export function ProfileForm({ profile }: { profile: ProfileView }) {
 
       <Field name="locale" label={messages.language} error={error?.fieldErrors?.locale}>
         <Select id="locale" name="locale" defaultValue={profile.locale}>
-          <option value="fa">فارسی</option>
+          <option value="fa">{ui.farsi}</option>
           <option value="en">English</option>
         </Select>
       </Field>

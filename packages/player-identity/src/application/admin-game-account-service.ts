@@ -6,18 +6,20 @@ import {
 } from '../domain/player-identity-policies';
 import type {
   AdminReviewInput,
+  AdminGameAccountQuery,
+  AdminGameAccountRecord,
   GameAccountReview,
-  GameAccountStatus,
-  UserGameAccountRecord,
 } from '../domain/player-identity-types';
 import type { PlayerGameAccountRepository } from '../ports/player-game-account-repository';
 
 export class AdminGameAccountVerificationService {
   public constructor(private readonly repository: PlayerGameAccountRepository) {}
-  public listPendingGameAccounts(status: GameAccountStatus = 'PENDING') {
-    return this.repository.listAccountsForAdmin(status);
+  public listPendingGameAccounts(query: AdminGameAccountQuery) {
+    if (query.submittedFrom && query.submittedTo && query.submittedFrom >= query.submittedTo)
+      throw new PlayerIdentityError('GAME_ACCOUNT_QUERY_INVALID');
+    return this.repository.listAccountsForAdmin(query);
   }
-  public async getGameAccount(accountId: string): Promise<UserGameAccountRecord> {
+  public async getGameAccount(accountId: string): Promise<AdminGameAccountRecord> {
     const account = await this.repository.findAccountForAdmin(accountId);
     if (!account) throw new PlayerIdentityError('GAME_ACCOUNT_NOT_FOUND');
     return account;

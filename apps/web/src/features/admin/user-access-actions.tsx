@@ -1,4 +1,5 @@
 'use client';
+import { useUiFormatters, useUiMessages } from '@/i18n/ui-messages-client';
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -34,6 +35,8 @@ export function UserAccessActions({
   preview: boolean;
   locale: AppLocale;
 }) {
+  const ui = useUiMessages();
+  const format = useUiFormatters();
   const router = useRouter();
   const dictionary = adminDictionaries[locale];
   const statusDialog = useRef<HTMLDialogElement>(null);
@@ -65,7 +68,7 @@ export function UserAccessActions({
   const execute = async (operation: () => Promise<unknown>, successMessage: string) => {
     if (preview) {
       setState('success');
-      setMessage('این عملیات در حالت پیش‌نمایش شبیه‌سازی شد و داده‌ای تغییر نکرد.');
+      setMessage(ui.thisOperationWasSimulatedInPreviewMode);
       return;
     }
 
@@ -79,7 +82,7 @@ export function UserAccessActions({
       router.refresh();
     } catch {
       setState('error');
-      setMessage('عملیات انجام نشد. مجوز، وضعیت حساب و ارتباط با API را بررسی کنید.');
+      setMessage(ui.theOperationFailedCheckPermissionsAccountStatus);
     }
   };
 
@@ -163,7 +166,7 @@ export function UserAccessActions({
       !canManageDeletion &&
       !canManageSessions &&
       !canAssignRoles ? (
-        <p className="muted">این حساب برای شما فقط خواندنی است.</p>
+        <p className="muted">{ui.thisAccountIsReadOnlyForYou}</p>
       ) : null}
 
       <dialog ref={emailDialog} aria-labelledby="user-email-dialog-title">
@@ -351,25 +354,25 @@ export function UserAccessActions({
                   method: 'PATCH',
                   body,
                 }),
-              'وضعیت حساب با موفقیت تغییر کرد.',
+              ui.accountStatusUpdatedSuccessfully,
             );
 
             statusDialog.current?.close();
           }}
         >
-          <h2 id="user-status-dialog-title">تغییر وضعیت حساب</h2>
+          <h2 id="user-status-dialog-title">{ui.changeAccountStatus}</h2>
 
           <label>
-            وضعیت جدید
+            {ui.newStatus}
             <select name="status" defaultValue={user.status} required>
-              <option value="ACTIVE">فعال</option>
-              <option value="SUSPENDED">تعلیق موقت</option>
-              <option value="BANNED">مسدود دائمی</option>
+              <option value="ACTIVE">{ui.active}</option>
+              <option value="SUSPENDED">{ui.temporarySuspension}</option>
+              <option value="BANNED">{ui.permanentlyBlocked}</option>
             </select>
           </label>
 
           <label>
-            کد دلیل
+            {ui.reasonCode}
             <input
               name="reasonCode"
               placeholder="ADMIN_POLICY_VIOLATION"
@@ -379,18 +382,22 @@ export function UserAccessActions({
           </label>
 
           <label>
-            پایان تعلیق
+            {ui.endOfSuspension}
             <input name="suspendedUntil" type="datetime-local" />
           </label>
 
           <label>
-            توضیح مدیر
-            <textarea name="note" maxLength={500} placeholder="دلیل و شواهد لازم را ثبت کنید." />
+            {ui.managerSExplanation}
+            <textarea
+              name="note"
+              maxLength={500}
+              placeholder={ui.recordTheReasonAndNecessaryEvidence}
+            />
           </label>
 
           <div className="cluster">
             <button className="button" disabled={state === 'pending'}>
-              تأیید تغییر
+              {ui.confirmTheChange}
             </button>
 
             <button
@@ -398,7 +405,7 @@ export function UserAccessActions({
               type="button"
               onClick={() => statusDialog.current?.close()}
             >
-              انصراف
+              {ui.optOut}
             </button>
           </div>
         </form>
@@ -422,18 +429,18 @@ export function UserAccessActions({
                     ...(note.length > 0 ? { note } : {}),
                   },
                 }),
-              'همه نشست‌های فعال کاربر بسته شدند.',
+              ui.allActiveUserSessionsWereClosed,
             );
 
             sessionDialog.current?.close();
           }}
         >
-          <h2 id="user-session-dialog-title">بستن همه نشست‌های فعال</h2>
+          <h2 id="user-session-dialog-title">{ui.closeAllActiveSessions}</h2>
 
-          <p>این کار تمام دستگاه‌های کاربر را خارج و نسخه امنیتی حساب را افزایش می‌دهد.</p>
+          <p>{ui.thisWillLogOutAllTheUser}</p>
 
           <label>
-            کد دلیل
+            {ui.reasonCode}
             <input
               name="reasonCode"
               defaultValue="ADMIN_SECURITY_RESET"
@@ -444,13 +451,13 @@ export function UserAccessActions({
           </label>
 
           <label>
-            توضیح
+            {ui.explanation}
             <textarea name="note" maxLength={500} />
           </label>
 
           <div className="cluster">
             <button className="button" disabled={state === 'pending'}>
-              بستن نشست‌ها
+              {ui.closingMeetings}
             </button>
 
             <button
@@ -458,7 +465,7 @@ export function UserAccessActions({
               type="button"
               onClick={() => sessionDialog.current?.close()}
             >
-              انصراف
+              {ui.optOut}
             </button>
           </div>
         </form>
@@ -486,18 +493,18 @@ export function UserAccessActions({
                       : {}),
                   },
                 }),
-              'نقش برای کاربر ثبت شد.',
+              ui.roleAssignedToTheUser,
             );
 
             roleDialog.current?.close();
           }}
         >
-          <h2 id="user-role-dialog-title">افزودن نقش</h2>
+          <h2 id="user-role-dialog-title">{ui.addARole}</h2>
 
           <label>
-            نقش
+            {ui.role}
             <select name="roleId" required>
-              <option value="">انتخاب کنید</option>
+              <option value="">{ui.choose}</option>
               {availableRoles.map((role) => (
                 <option key={role.id} value={role.id}>
                   {role.name} ({role.key})
@@ -507,13 +514,13 @@ export function UserAccessActions({
           </label>
 
           <label>
-            تاریخ انقضا
+            {ui.expirationDate}
             <input name="expiresAt" type="datetime-local" />
           </label>
 
           <div className="cluster">
             <button className="button" disabled={state === 'pending'}>
-              ثبت نقش
+              {ui.registerRole}
             </button>
 
             <button
@@ -521,7 +528,7 @@ export function UserAccessActions({
               type="button"
               onClick={() => roleDialog.current?.close()}
             >
-              انصراف
+              {ui.optOut}
             </button>
           </div>
         </form>
@@ -529,7 +536,7 @@ export function UserAccessActions({
 
       {canAssignRoles && user.roles.length > 0 ? (
         <div className="admin-user-role-actions">
-          <h3>حذف نقش موجود</h3>
+          <h3>{ui.deleteAnExistingRole}</h3>
 
           {user.roles.map((role) => (
             <div key={role.id}>
@@ -542,7 +549,7 @@ export function UserAccessActions({
                 type="button"
                 disabled={state === 'pending'}
                 onClick={() => {
-                  const approved = window.confirm(`نقش ${role.name} از کاربر حذف شود؟`);
+                  const approved = window.confirm(format.removeRoleConfirmation(role.name));
 
                   if (!approved) {
                     return;
@@ -556,11 +563,11 @@ export function UserAccessActions({
                           method: 'DELETE',
                         },
                       ),
-                    'نقش از کاربر حذف شد.',
+                    ui.roleRemovedFromTheUser,
                   );
                 }}
               >
-                حذف نقش
+                {ui.deleteRole}
               </button>
             </div>
           ))}

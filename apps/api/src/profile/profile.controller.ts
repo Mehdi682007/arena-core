@@ -1,6 +1,18 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { type UserProfileService } from '@arena-core/identity';
 import { CurrentPrincipal } from '../identity/http/decorators/current-principal.decorator';
+import { Public } from '../identity/http/decorators/public.decorator';
 import { ZodBodyPipe } from '../identity/http/dto/identity.dto';
 import type { AuthenticatedPrincipal } from '../identity/http/identity-http.types';
 import { updateProfileSchema, type UpdateProfileRequest } from './dto/update-profile.dto';
@@ -10,6 +22,12 @@ import { USER_PROFILE_SERVICE } from './profile.providers';
 @Controller()
 export class ProfileController {
   public constructor(@Inject(USER_PROFILE_SERVICE) private readonly profiles: UserProfileService) {}
+
+  @Public()
+  @Get('profiles/:userId')
+  public getPublicProfile(@Param('userId', new ParseUUIDPipe()) userId: string): Promise<unknown> {
+    return this.profiles.getPublicProfile(userId);
+  }
 
   @Get('profile')
   public async getProfile(@CurrentPrincipal() principal: AuthenticatedPrincipal): Promise<unknown> {

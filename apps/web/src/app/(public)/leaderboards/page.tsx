@@ -1,3 +1,5 @@
+import { uiMessagesFor } from '@/i18n/ui-messages';
+import { getRequestLocale } from '@/i18n/server';
 import Link from 'next/link';
 import { EmptyState, ErrorState, Select } from '@/components/ui';
 import { getWebConfig } from '@/config';
@@ -18,6 +20,8 @@ export default async function LeaderboardPage({
 }: {
   searchParams: Promise<{ mode?: string; cursor?: string }>;
 }) {
+  const locale = await getRequestLocale();
+  const ui = uiMessagesFor(locale);
   const query = await searchParams;
   const mode = query.mode === 'two-v-two' ? 'two-v-two' : 'one-v-one';
   let page: { items: Entry[]; nextCursor: string | null };
@@ -30,35 +34,35 @@ export default async function LeaderboardPage({
   } catch (error) {
     return (
       <div className="stack">
-        <h1>رتبه‌بندی FC 26</h1>
+        <h1>{ui.fcRatingN26}</h1>
         <ErrorState requestId={error instanceof ApiError ? error.requestId : undefined} />
       </div>
     );
   }
   return (
     <div className="stack">
-      <h1>رتبه‌بندی FC 26</h1>
+      <h1>{ui.fcRatingN26}</h1>
       <form method="get" className="cluster">
-        <label htmlFor="mode">حالت بازی</label>
+        <label htmlFor="mode">{ui.gameMode}</label>
         <Select id="mode" name="mode" defaultValue={mode}>
-          <option value="one-v-one">۱ در برابر ۱</option>
-          <option value="two-v-two">۲ در برابر ۲</option>
+          <option value="one-v-one">{ui.n1AgainstN1}</option>
+          <option value="two-v-two">{ui.n2AgainstN2}</option>
         </Select>
-        <button className="button secondary">اعمال</button>
+        <button className="button secondary">{ui.apply}</button>
       </form>
       {page.items.length === 0 ? (
-        <EmptyState title="هنوز رتبه‌ای منتشر نشده است" />
+        <EmptyState title={ui.noRatingHasBeenPublishedYet} />
       ) : (
         <div className="card table-wrap">
           <table>
-            <caption>رتبه‌بندی عمومی بازیکنان</caption>
+            <caption>{ui.generalRankingOfPlayers}</caption>
             <thead>
               <tr>
-                <th>رتبه</th>
-                <th>بازیکن</th>
-                <th>شناسه بازی</th>
-                <th>امتیاز</th>
-                <th>بازی</th>
+                <th>{ui.rank}</th>
+                <th>{ui.thePlayer}</th>
+                <th>{ui.gameId}</th>
+                <th>{ui.score}</th>
+                <th>{ui.game}</th>
               </tr>
             </thead>
             <tbody>
@@ -77,7 +81,7 @@ export default async function LeaderboardPage({
       )}
       {page.nextCursor ? (
         <Link href={`/leaderboards?mode=${mode}&cursor=${encodeURIComponent(page.nextCursor)}`}>
-          صفحه بعد
+          {ui.nextPage}
         </Link>
       ) : null}
     </div>

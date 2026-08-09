@@ -1,13 +1,13 @@
 import { Card } from '@/components/ui';
-export default function Page() {
+import { adminDictionaries } from '@/i18n/admin-dictionary';
+import { getRequestLocale } from '@/i18n/server';
+export default async function Page() {
+  const dictionary = adminDictionaries[await getRequestLocale()];
   return (
     <div className="stack">
-      <h1>کیف پول و دفترکل</h1>
+      <h1>{dictionary.items.wallets.label}</h1>
       <Card>
-        <p>
-          کاربر را از جستجوی پشتیبانی انتخاب کنید. تغییر موجودی مستقیم وجود ندارد؛ صدور، تعدیل،
-          reversal و reconciliation فقط با دلیل و کلید idempotency مجاز است.
-        </p>
+        <p>{dictionary.common.walletGuidance}</p>
       </Card>
     </div>
   );

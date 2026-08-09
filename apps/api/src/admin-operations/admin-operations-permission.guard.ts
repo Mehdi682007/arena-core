@@ -20,7 +20,9 @@ export type AdminOperationsPermission =
   | 'support.read'
   | 'support.manage'
   | 'timeline.read'
-  | 'diagnostics.read';
+  | 'diagnostics.read'
+  | 'site_settings.read'
+  | 'site_settings.manage';
 export const RequireAdminOperationsPermission = (permission: AdminOperationsPermission) =>
   SetMetadata(KEY, permission);
 export const AllowAdminCapabilities = () => SetMetadata(CAPABILITIES_KEY, true);

@@ -9,15 +9,22 @@ import type {
 import type { PlayerGameAccountRepository } from '../ports/player-game-account-repository';
 
 function safe(record: UserGameAccountRecord): UserGameAccountView {
-  const { userId, gameId, gamePlatformId, handle, normalizedHandle, verificationMethod, ...view } =
-    record;
+  const {
+    userId,
+    gameId,
+    handle,
+    normalizedHandle,
+    verificationMethod,
+    reviewedByUserId,
+    ...view
+  } = record;
 
   void userId;
   void gameId;
-  void gamePlatformId;
   void handle;
   void normalizedHandle;
   void verificationMethod;
+  void reviewedByUserId;
 
   return view;
 }
@@ -84,14 +91,67 @@ export class PlayerGameAccountService {
       throw new PlayerIdentityError('GAME_ACCOUNT_HANDLE_CONFLICT');
     }
 
-    return safe(
-      await this.repository.createGameAccountClaim({
-        ...input,
-        handle: normalized.display,
-        displayHandle: normalized.display,
-        normalizedHandle: normalized.normalized,
-      }),
+    const created = await this.repository.createGameAccountClaim({
+      ...input,
+      handle: normalized.display,
+      displayHandle: normalized.display,
+      normalizedHandle: normalized.normalized,
+    });
+    return safe(created);
+  }
+
+  public async updateGameAccountClaim(input: {
+    userId: string;
+    accountId: string;
+    gameId: string;
+    gamePlatformId: string;
+    handle: string;
+    expectedVersion: number;
+  }): Promise<UserGameAccountView> {
+    const current = await this.repository.findUserGameAccount(input.userId, input.accountId);
+    if (!current) throw new PlayerIdentityError('GAME_ACCOUNT_NOT_FOUND');
+    if (!['DRAFT', 'CHANGES_REQUESTED', 'VERIFIED'].includes(current.status)) {
+      throw new PlayerIdentityError('GAME_ACCOUNT_STATUS_TRANSITION_INVALID');
+    }
+    const catalog = await this.repository.findGamePlatformForClaim(
+      input.gameId,
+      input.gamePlatformId,
     );
+    if (!catalog?.gameActive || !catalog.gamePlatformActive) {
+      throw new PlayerIdentityError('GAME_ACCOUNT_PLATFORM_INVALID');
+    }
+    const normalized = this.normalizers.forPlatform(catalog.platform.key).normalize(input.handle);
+    const updated = await this.repository.updateGameAccountClaim({
+      ...input,
+      handle: normalized.display,
+      displayHandle: normalized.display,
+      normalizedHandle: normalized.normalized,
+      nextStatus:
+        current.status === 'VERIFIED'
+          ? 'PENDING'
+          : current.status === 'CHANGES_REQUESTED'
+            ? 'CHANGES_REQUESTED'
+            : 'DRAFT',
+    });
+    return safe(updated);
+  }
+
+  public async submitGameAccount(userId: string, accountId: string, expectedVersion: number) {
+    const submitted = await this.repository.submitGameAccount(userId, accountId, expectedVersion);
+    return safe(submitted);
+  }
+
+  public async deleteGameAccount(userId: string, accountId: string, expectedVersion: number) {
+    await this.repository.softDeleteGameAccount(userId, accountId, expectedVersion);
+  }
+
+  public async restoreGameAccount(userId: string, accountId: string, expectedVersion: number) {
+    const restored = await this.repository.restoreDeletedGameAccount(
+      userId,
+      accountId,
+      expectedVersion,
+    );
+    return safe(restored);
   }
 
   public async disconnectMyGameAccount(userId: string, accountId: string): Promise<void> {
@@ -134,10 +194,11 @@ export class PlayerGameAccountService {
       throw new PlayerIdentityError('GAME_ACCOUNT_NOT_FOUND');
     }
 
-    if (account.status !== 'REJECTED') {
+    if (account.status !== 'REJECTED' && account.status !== 'CHANGES_REQUESTED') {
       throw new PlayerIdentityError('GAME_ACCOUNT_STATUS_TRANSITION_INVALID');
     }
 
-    return safe(await this.repository.resubmitRejectedAccount(userId, accountId));
+    const submitted = await this.repository.resubmitRejectedAccount(userId, accountId);
+    return safe(submitted);
   }
 }

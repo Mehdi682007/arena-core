@@ -35,6 +35,7 @@
     "cookie": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "sharp": "0.35.3",
     "zod": "catalog:"
   },
   "devDependencies": {

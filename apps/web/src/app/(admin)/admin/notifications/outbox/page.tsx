@@ -1,3 +1,5 @@
+import { uiMessagesFor } from '@/i18n/ui-messages';
+import { getRequestLocale } from '@/i18n/server';
 import { Field, Select } from '@/components/ui';
 import { adminApi } from '@/features/admin/api';
 import { requireAdminPermission } from '@/features/admin/access';
@@ -7,6 +9,8 @@ export default async function OutboxPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const locale = await getRequestLocale();
+  const ui = uiMessagesFor(locale);
   await requireAdminPermission('notifications.read');
   const params = await searchParams;
   const query = new URLSearchParams({ limit: '50' });
@@ -19,13 +23,13 @@ export default async function OutboxPage({
     <div className="stack">
       <h1>Notification Outbox</h1>
       <form className="admin-filter">
-        <Field name="status" label="وضعیت">
+        <Field name="status" label={ui.status}>
           <Select
             id="status"
             name="status"
             defaultValue={typeof params.status === 'string' ? params.status : ''}
           >
-            <option value="">همه</option>
+            <option value="">{ui.everyone}</option>
             {[
               'PENDING',
               'PROCESSING',
@@ -39,18 +43,18 @@ export default async function OutboxPage({
             ))}
           </Select>
         </Field>
-        <Field name="channel" label="کانال">
+        <Field name="channel" label={ui.channel}>
           <Select
             id="channel"
             name="channel"
             defaultValue={typeof params.channel === 'string' ? params.channel : ''}
           >
-            <option value="">همه</option>
+            <option value="">{ui.everyone}</option>
             <option>IN_APP</option>
             <option>EMAIL</option>
           </Select>
         </Field>
-        <button className="button">اعمال فیلتر</button>
+        <button className="button">{ui.applyFilter}</button>
       </form>
       <OutboxTable items={page.items} />
       <CursorNext href="/admin/notifications/outbox" cursor={page.nextCursor} />

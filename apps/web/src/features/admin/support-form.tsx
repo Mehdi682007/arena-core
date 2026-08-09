@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { FormEvent, useState } from 'react';
 import { Alert, Button, Field, Input, Select } from '@/components/ui';
 import { browserApi } from '@/lib/api/browser-api-client';
@@ -12,6 +13,7 @@ const sourceTypes = [
   'RATING_APPLICATION',
 ] as const;
 export function RecoveryForm() {
+  const ui = useUiMessages();
   const [state, setState] = useState<'idle' | 'pending' | 'done' | 'error'>('idle');
   return (
     <form
@@ -42,22 +44,20 @@ export function RecoveryForm() {
         })();
       }}
     >
-      <h2>بازیابی اعلان‌های منبع</h2>
-      <Field name="sourceType" label="نوع منبع">
+      <h2>{ui.retrieveSourceNotifications}</h2>
+      <Field name="sourceType" label={ui.sourceType}>
         <Select id="sourceType" name="sourceType">
           {sourceTypes.map((type) => (
             <option key={type}>{type}</option>
           ))}
         </Select>
       </Field>
-      <Field name="sourceId" label="شناسه منبع">
+      <Field name="sourceId" label={ui.resourceId}>
         <Input className="ltr" id="sourceId" name="sourceId" required pattern="[0-9a-fA-F-]{36}" />
       </Field>
-      <Button disabled={state === 'pending'}>
-        {state === 'pending' ? 'در حال بازیابی…' : 'تأیید و بازیابی'}
-      </Button>
-      {state === 'done' ? <Alert>درخواست بازیابی توسط سرور تأیید شد.</Alert> : null}
-      {state === 'error' ? <Alert error>بازیابی انجام نشد.</Alert> : null}
+      <Button disabled={state === 'pending'}>{ui.recovering}</Button>
+      {state === 'done' ? <Alert>{ui.theRecoveryRequestWasApprovedByThe}</Alert> : null}
+      {state === 'error' ? <Alert error>{ui.recoveryFailed}</Alert> : null}
     </form>
   );
 }

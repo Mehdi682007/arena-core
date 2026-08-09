@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { LanguageToggle } from '@/components/language-toggle';
 import { Avatar, Badge } from '@/components/ui';
 import { LogoutButton } from '@/features/session/logout-button';
+import { ThemeToggle } from '@/features/admin/theme-toggle';
 import type { SessionUser } from '@/features/session/session';
 import type { AppLocale } from '@/i18n/config';
 import { messagesFor } from '@/i18n/messages';
@@ -36,9 +38,17 @@ function Navigation({ locale }: { locale: AppLocale }) {
 export function PublicShell({
   children,
   locale = 'fa',
+  branding,
 }: {
   children: ReactNode;
   locale?: AppLocale;
+  branding?: {
+    name: string;
+    logoLight?: { url: string; alt: string };
+    logoDark?: { url: string; alt: string };
+    footer?: string;
+    legal?: readonly { label: string; url: string }[];
+  };
 }) {
   const messages = messagesFor(locale).publicShell;
 
@@ -47,10 +57,33 @@ export function PublicShell({
       <header className="public-header">
         <div className="container">
           <Link className="brand" href="/">
-            Arena Core
+            {branding?.logoLight?.url ? (
+              <Image
+                className="brand-logo brand-logo-light"
+                src={branding.logoLight.url}
+                alt={branding.logoLight.alt}
+                width={160}
+                height={48}
+                unoptimized
+              />
+            ) : null}
+            {branding?.logoDark?.url ? (
+              <Image
+                className="brand-logo brand-logo-dark"
+                src={branding.logoDark.url}
+                alt={branding.logoDark.alt}
+                width={160}
+                height={48}
+                unoptimized
+              />
+            ) : null}
+            {!branding?.logoLight?.url && !branding?.logoDark?.url
+              ? (branding?.name ?? 'Arena Core')
+              : null}
           </Link>
 
           <nav aria-label={messages.accountNavigation} className="cluster">
+            <ThemeToggle locale={locale} />
             <LanguageToggle initialLocale={locale} compact />
 
             <Link href="/login">{messages.login}</Link>
@@ -65,7 +98,14 @@ export function PublicShell({
       {children}
 
       <footer className="public-footer">
-        <div className="container">{messages.footer}</div>
+        <div className="container cluster">
+          <span>{branding?.footer ?? messages.footer}</span>
+          {branding?.legal?.map((item) => (
+            <Link key={item.url} href={item.url}>
+              {item.label}
+            </Link>
+          ))}
+        </div>
       </footer>
     </>
   );
@@ -103,6 +143,7 @@ export function AppShell({
           </div>
 
           <div className="cluster">
+            <ThemeToggle locale={locale} />
             <LanguageToggle compact initialLocale={locale} persistProfile />
 
             <Link href="/notifications" aria-label={messages.unreadNotifications(unreadCount)}>

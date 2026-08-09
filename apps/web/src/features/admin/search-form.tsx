@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { Alert, Button, EmptyState, Field, Input, Select } from '@/components/ui';
@@ -7,6 +8,7 @@ import { redactAdminValue, safeAdminHref } from './privacy';
 
 const scopes = ['USER', 'GAME_ACCOUNT', 'MATCH', 'NOTIFICATION', 'WALLET', 'RATING'] as const;
 export function AdminSearchForm() {
+  const ui = useUiMessages();
   const [items, setItems] = useState<Record<string, unknown>[] | null>(null);
   const [resultScope, setResultScope] = useState<(typeof scopes)[number] | null>(null);
   const [error, setError] = useState(false);
@@ -46,20 +48,20 @@ export function AdminSearchForm() {
       }}
     >
       <div className="admin-filter">
-        <Field name="scope" label="دامنه">
+        <Field name="scope" label={ui.domain}>
           <Select id="scope" name="scope">
             {scopes.map((scope) => (
               <option key={scope}>{scope}</option>
             ))}
           </Select>
         </Field>
-        <Field name="term" label="عبارت جستجو">
+        <Field name="term" label={ui.searchTerm}>
           <Input id="term" name="term" minLength={2} maxLength={128} required />
         </Field>
-        <Button disabled={pending}>{pending ? 'در حال جستجو…' : 'جستجو'}</Button>
+        <Button disabled={pending}>{ui.searching}</Button>
       </div>
-      {error ? <Alert error>جستجو انجام نشد؛ ورودی یا دسترسی را بررسی کنید.</Alert> : null}
-      {items?.length === 0 ? <EmptyState title="نتیجه‌ای یافت نشد" /> : null}
+      {error ? <Alert error>{ui.searchFailedCheckInputOrAccess}</Alert> : null}
+      {items?.length === 0 ? <EmptyState title={ui.noResultsFound} /> : null}
       {items?.map((item, index) => {
         const safe = redactAdminValue(item) as Record<string, unknown>;
         const id = typeof safe.id === 'string' ? safe.id : null;
@@ -77,7 +79,7 @@ export function AdminSearchForm() {
         return (
           <section className="card" key={id ?? index}>
             <pre className="admin-json ltr">{JSON.stringify(safe, null, 2)}</pre>
-            {href ? <Link href={href}>بازکردن Timeline</Link> : null}
+            {href ? <Link href={href}>{ui.openTimeline}</Link> : null}
           </section>
         );
       })}

@@ -40,6 +40,12 @@ export interface ProfileResult {
   readonly onboarding: OnboardingStatus;
 }
 
+/** Explicit allowlist for unauthenticated profile reads. */
+export interface PublicProfileView {
+  readonly userId: string;
+  readonly displayName: string;
+}
+
 export interface UpdateProfileInput {
   readonly userId: string;
   readonly displayName?: string;

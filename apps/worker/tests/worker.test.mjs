@@ -2,11 +2,45 @@ import { spawn } from 'node:child_process';
 import { EventEmitter, once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { URL } from 'node:url';
+import { mkdtemp, mkdir, rm, stat, utimes, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { closeWithTimeout } from '../dist/graceful-close.js';
 import { DatabaseService } from '../dist/database/database.service.js';
 import { WorkerHealthService } from '../dist/health/worker-health.service.js';
 import { waitForShutdownSignal } from '../dist/shutdown-signal.js';
+import { SiteAssetCleanupService } from '../dist/site-assets/site-asset-cleanup.service.js';
+
+function cleanupConfig(root, overrides = {}) {
+  return {
+    siteAssets: { root, stagedRetentionSeconds: 300 },
+    siteAssetCleanup: { enabled: true, intervalSeconds: 60 },
+    ...overrides,
+  };
+}
+
+function cleanupDatabase(settings = null, acquired = true) {
+  const transaction = vi.fn(async (operation) =>
+    operation({
+      $queryRaw: vi.fn(async () => [{ acquired }]),
+      siteSettings: { findUnique: vi.fn(async () => settings) },
+    }),
+  );
+  return { getClient: () => ({ $transaction: transaction }), transaction };
+}
+
+async function stagedFixture() {
+  const root = await mkdtemp(join(tmpdir(), 'arena-worker-assets-'));
+  const actor = join(root, '.pending', 'actor');
+  await mkdir(actor, { recursive: true });
+  const name = '12345678-1234-1234-1234-123456789abc.png';
+  const path = join(actor, name);
+  await writeFile(path, 'fixture');
+  const old = new Date(Date.now() - 600_000);
+  await utimes(path, old, old);
+  return { root, path, url: `/site-assets/${name}` };
+}
 
 describe('worker foundation', () => {
   it('returns a valid internal health snapshot', () => {
@@ -151,6 +185,87 @@ describe('worker foundation', () => {
     const assertion = expect(close).rejects.toThrow(/shutdown exceeded/);
     await vi.advanceTimersByTimeAsync(1000);
     await assertion;
+    vi.useRealTimers();
+  });
+
+  it('registers one cleanup interval and does not overlap scheduled runs', async () => {
+    vi.useFakeTimers();
+    const root = await mkdtemp(join(tmpdir(), 'arena-worker-assets-'));
+    await mkdir(join(root, '.pending'), { recursive: true });
+    const database = cleanupDatabase();
+    const service = new SiteAssetCleanupService(cleanupConfig(root), database);
+    service.onModuleInit();
+    service.onModuleInit();
+    expect(vi.getTimerCount()).toBe(1);
+    const first = service.runOnce();
+    const second = service.runOnce();
+    expect(second).toBe(first);
+    await first;
+    await service.onModuleDestroy();
+    expect(vi.getTimerCount()).toBe(0);
+    await rm(root, { recursive: true, force: true });
+    vi.useRealTimers();
+  });
+
+  it('removes a stale orphan and repeated cleanup remains idempotent', async () => {
+    const fixture = await stagedFixture();
+    const database = cleanupDatabase();
+    const service = new SiteAssetCleanupService(cleanupConfig(fixture.root), database);
+    await service.runOnce();
+    await expect(stat(fixture.path)).rejects.toThrow();
+    await service.runOnce();
+    expect(database.transaction).toHaveBeenCalledTimes(2);
+    await rm(fixture.root, { recursive: true, force: true });
+  });
+
+  it.each(['draft', 'published'])('preserves an asset referenced by %s settings', async (field) => {
+    const fixture = await stagedFixture();
+    const settings = { draft: {}, published: null, [field]: { image: fixture.url } };
+    const service = new SiteAssetCleanupService(
+      cleanupConfig(fixture.root),
+      cleanupDatabase(settings),
+    );
+    await service.runOnce();
+    await expect(stat(fixture.path)).resolves.toBeDefined();
+    await rm(fixture.root, { recursive: true, force: true });
+  });
+
+  it('skips cleanup when another replica owns the distributed lock', async () => {
+    const fixture = await stagedFixture();
+    const service = new SiteAssetCleanupService(
+      cleanupConfig(fixture.root),
+      cleanupDatabase(null, false),
+    );
+    await service.runOnce();
+    await expect(stat(fixture.path)).resolves.toBeDefined();
+    await rm(fixture.root, { recursive: true, force: true });
+  });
+
+  it('does not remove non-canonical filenames from the pending root', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'arena-worker-assets-'));
+    const actor = join(root, '.pending', 'actor');
+    await mkdir(actor, { recursive: true });
+    const path = join(actor, 'outside.txt');
+    await writeFile(path, 'fixture');
+    const old = new Date(Date.now() - 600_000);
+    await utimes(path, old, old);
+    const service = new SiteAssetCleanupService(cleanupConfig(root), cleanupDatabase());
+    await service.runOnce();
+    await expect(stat(path)).resolves.toBeDefined();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it('disabled cleanup registers no timer', async () => {
+    vi.useFakeTimers();
+    const root = await mkdtemp(join(tmpdir(), 'arena-worker-assets-'));
+    const service = new SiteAssetCleanupService(
+      cleanupConfig(root, { siteAssetCleanup: { enabled: false, intervalSeconds: 60 } }),
+      cleanupDatabase(),
+    );
+    service.onModuleInit();
+    expect(vi.getTimerCount()).toBe(0);
+    await service.onModuleDestroy();
+    await rm(root, { recursive: true, force: true });
     vi.useRealTimers();
   });
 });

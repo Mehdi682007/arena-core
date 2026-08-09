@@ -17,20 +17,26 @@ import type {
 import { isAdminUiPreviewEnabled } from '@/features/admin/preview';
 import { cookies } from 'next/headers';
 import { localeCookieName, normalizeLocale } from '@/i18n/config';
+import type { AppLocale } from '@/i18n/config';
+import { uiMessagesFor } from '@/i18n/ui-messages';
+import { presentReason, presentStatus } from '@/i18n/presentation';
 
-const statusLabels: Record<AdminUserStatus, string> = {
-  PENDING_VERIFICATION: 'در انتظار تأیید',
-  ACTIVE: 'فعال',
-  SUSPENDED: 'معلق',
-  BANNED: 'مسدود',
-  DISABLED: 'غیرفعال',
-  DELETED: 'حذف‌شده',
+const statusLabelsFor = (locale: AppLocale): Record<AdminUserStatus, string> => {
+  const ui = uiMessagesFor(locale);
+  return {
+    PENDING_VERIFICATION: ui.pendingVerification,
+    ACTIVE: ui.active,
+    SUSPENDED: ui.suspended,
+    BANNED: ui.blocked,
+    DISABLED: ui.inactive,
+    DELETED: ui.deleted,
+  };
 };
 
-const date = (value: string | null) =>
+const date = (value: string | null, locale: AppLocale) =>
   value === null
     ? '—'
-    : new Intl.DateTimeFormat('fa', {
+    : new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR' : 'en-US', {
         dateStyle: 'medium',
         timeStyle: 'medium',
       }).format(new Date(value));
@@ -44,6 +50,8 @@ export default async function AdminUserDetailPage({
 
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(localeCookieName)?.value);
+  const ui = uiMessagesFor(locale);
+  const statusLabels = statusLabelsFor(locale);
 
   const { userId } = await params;
 
@@ -75,7 +83,7 @@ export default async function AdminUserDetailPage({
           : Promise.resolve({ items: [] }),
       ]);
     } catch {
-      return <Alert error>دریافت اطلاعات کاربر از API ممکن نشد.</Alert>;
+      return <Alert error>{ui.failedToGetUserInformationFromApi}</Alert>;
     }
   }
 
@@ -83,8 +91,8 @@ export default async function AdminUserDetailPage({
     <div className="stack">
       <div className="admin-page-heading">
         <div>
-          <Link href="/admin/users">بازگشت به کاربران</Link>
-          <h1>{user.displayName ?? 'جزئیات کاربر'}</h1>
+          <Link href="/admin/users">{ui.backToUsers}</Link>
+          <h1>{user.displayName ?? ui.userDetails}</h1>
           <p className="ltr">{user.id}</p>
         </div>
 
@@ -93,64 +101,64 @@ export default async function AdminUserDetailPage({
         </span>
       </div>
 
-      {preview ? <Alert>عملیات این صفحه در Preview فقط شبیه‌سازی می‌شوند.</Alert> : null}
+      {preview ? <Alert>{ui.theOperationsOfThisPageAreOnly}</Alert> : null}
 
       <section className="admin-user-metric-grid">
         <Card>
-          <span>نشست‌ها</span>
+          <span>{ui.theMeetings}</span>
           <strong>{user.counts.sessions}</strong>
         </Card>
         <Card>
-          <span>حساب‌های بازی</span>
+          <span>{ui.gameAccounts}</span>
           <strong>{user.counts.gameAccounts}</strong>
         </Card>
         <Card>
-          <span>مسابقه‌ها</span>
+          <span>{ui.competitions}</span>
           <strong>{user.counts.matchParticipants}</strong>
         </Card>
         <Card>
-          <span>اعلان‌ها</span>
+          <span>{ui.notifications}</span>
           <strong>{user.counts.notifications}</strong>
         </Card>
       </section>
 
       <section className="admin-user-detail-grid">
         <Card>
-          <h2>مشخصات حساب</h2>
+          <h2>{ui.accountDetails}</h2>
           <dl className="admin-details">
-            <dt>ایمیل</dt>
+            <dt>{ui.email}</dt>
             <dd>{user.email ?? '—'}</dd>
 
-            <dt>تأیید ایمیل</dt>
-            <dd>{date(user.emailVerifiedAt)}</dd>
+            <dt>{ui.emailVerification}</dt>
+            <dd>{date(user.emailVerifiedAt, locale)}</dd>
 
-            <dt>کشور</dt>
+            <dt>{ui.country}</dt>
             <dd>{user.countryCode ?? '—'}</dd>
 
-            <dt>منطقه زمانی</dt>
+            <dt>{ui.timeZone}</dt>
             <dd>{user.timezone ?? '—'}</dd>
 
-            <dt>تاریخ عضویت</dt>
-            <dd>{date(user.createdAt)}</dd>
+            <dt>{ui.dateOfMembership}</dt>
+            <dd>{date(user.createdAt, locale)}</dd>
 
-            <dt>آخرین ورود</dt>
-            <dd>{date(user.lastAuthenticatedAt)}</dd>
+            <dt>{ui.lastEntry}</dt>
+            <dd>{date(user.lastAuthenticatedAt, locale)}</dd>
           </dl>
         </Card>
 
         <Card>
-          <h2>محدودیت حساب</h2>
+          <h2>{ui.accountLimit}</h2>
           <dl className="admin-details">
-            <dt>آخرین تغییر وضعیت</dt>
-            <dd>{date(user.statusChangedAt)}</dd>
+            <dt>{ui.lastChangeOfStatus}</dt>
+            <dd>{date(user.statusChangedAt, locale)}</dd>
 
-            <dt>پایان تعلیق</dt>
-            <dd>{date(user.suspendedUntil)}</dd>
+            <dt>{ui.endOfSuspension}</dt>
+            <dd>{date(user.suspendedUntil, locale)}</dd>
 
-            <dt>کد دلیل</dt>
-            <dd>{user.restrictionReasonCode ?? '—'}</dd>
+            <dt>{ui.reasonCode}</dt>
+            <dd>{presentReason(user.restrictionReasonCode, locale)}</dd>
 
-            <dt>توضیح</dt>
+            <dt>{ui.explanation}</dt>
             <dd>{user.restrictionNote ?? '—'}</dd>
           </dl>
         </Card>
@@ -169,12 +177,12 @@ export default async function AdminUserDetailPage({
       <section className="admin-user-detail-grid">
         <Card>
           <div className="admin-section-heading">
-            <h2>نقش‌ها</h2>
+            <h2>{ui.theRoles}</h2>
             <span>{user.roles.length}</span>
           </div>
 
           {user.roles.length === 0 ? (
-            <p className="muted">نقشی برای این کاربر ثبت نشده است.</p>
+            <p className="muted">{ui.thereIsNoRoleRegisteredForThis}</p>
           ) : (
             <div className="admin-user-role-list">
               {user.roles.map((role) => (
@@ -183,7 +191,7 @@ export default async function AdminUserDetailPage({
                     <strong>{role.name}</strong>
                     <code>{role.key}</code>
                   </div>
-                  <span>{role.isSystem ? 'نقش سیستمی' : 'نقش سفارشی'}</span>
+                  <span>{ui.systemicRole}</span>
                 </article>
               ))}
             </div>
@@ -192,7 +200,7 @@ export default async function AdminUserDetailPage({
 
         <Card>
           <div className="admin-section-heading">
-            <h2>دسترسی‌های مؤثر</h2>
+            <h2>{ui.effectiveAccess}</h2>
             <span>{user.effectivePermissions.length}</span>
           </div>
 
@@ -206,7 +214,7 @@ export default async function AdminUserDetailPage({
 
       <Card>
         <div className="admin-section-heading">
-          <h2>نشست‌های اخیر</h2>
+          <h2>{ui.recentMeetings}</h2>
           <span>{user.sessions.length}</span>
         </div>
 
@@ -214,15 +222,19 @@ export default async function AdminUserDetailPage({
           {user.sessions.map((session) => (
             <article key={session.id}>
               <div>
-                <strong>{session.userAgent ?? 'دستگاه ناشناس'}</strong>
+                <strong>{session.userAgent ?? ui.unknownDevice}</strong>
                 <span className="ltr">{session.id}</span>
               </div>
 
               <div>
-                <span>{session.status}</span>
-                <time dateTime={session.createdAt}>ایجاد: {date(session.createdAt)}</time>
+                <span>{presentStatus(session.status, locale)}</span>
+                <time dateTime={session.createdAt}>
+                  {ui.create}
+                  {date(session.createdAt, locale)}
+                </time>
                 <time dateTime={session.lastSeenAt ?? undefined}>
-                  آخرین فعالیت: {date(session.lastSeenAt)}
+                  {ui.lastActivity}
+                  {date(session.lastSeenAt, locale)}
                 </time>
               </div>
             </article>
@@ -235,7 +247,7 @@ export default async function AdminUserDetailPage({
           className="button secondary"
           href={`/admin/users/${encodeURIComponent(user.id)}/timeline`}
         >
-          مشاهده خط زمانی کامل
+          {ui.viewTheFullTimeline}
         </Link>
       ) : null}
     </div>

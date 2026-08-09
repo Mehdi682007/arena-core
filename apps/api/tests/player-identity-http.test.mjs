@@ -82,7 +82,13 @@ beforeEach(async () => {
     resubmitRejectedGameAccount: vi.fn(async () => view),
   };
   adminService = {
-    listPendingGameAccounts: vi.fn(async () => [view]),
+    listPendingGameAccounts: vi.fn(async () => ({
+      items: [{ ...view, ownerDisplayName: 'Player' }],
+      page: 1,
+      pageSize: 25,
+      total: 1,
+      totalPages: 1,
+    })),
     getGameAccount: vi.fn(async () => view),
     review: vi.fn(async () => undefined),
     getGameAccountReviewHistory: vi.fn(async () => []),
@@ -147,16 +153,34 @@ describe('private player identity HTTP', () => {
     expect((await request('/admin/game-accounts')).status).toBe(403);
     expect((await request('/admin/game-accounts')).status).toBe(200);
   });
+  it('validates and forwards bounded backend pagination and date filters', async () => {
+    expect((await request('/admin/game-accounts?pageSize=101')).status).toBe(400);
+    expect(
+      (
+        await request(
+          '/admin/game-accounts?submittedFrom=2026-08-03T00%3A00%3A00.000Z&submittedTo=2026-08-02T00%3A00%3A00.000Z',
+        )
+      ).status,
+    ).toBe(400);
+    const response = await request(
+      `/admin/game-accounts?page=2&pageSize=25&status=PENDING&gameId=${gameId}&platformId=00000000-0000-4000-8000-000000000013&userSearch=Player`,
+    );
+    expect(response.status).toBe(200);
+    expect(adminService.listPendingGameAccounts).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2, pageSize: 25, status: 'PENDING', userSearch: 'Player' }),
+    );
+  });
   it('records the authenticated admin actor', async () => {
     const response = await request(`/admin/game-accounts/${accountId}/verify`, {
       method: 'POST',
-      body: {},
+      body: { expectedVersion: 3 },
     });
     expect(response.status).toBe(201);
     expect(adminService.review).toHaveBeenCalledWith({
       actorUserId: 'user-1',
       accountId,
       action: 'VERIFY',
+      expectedVersion: 3,
     });
   });
   it('maps unavailable persistence safely without leaking details', async () => {

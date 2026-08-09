@@ -277,6 +277,30 @@ test('Web runtime port and canonical variables remain consistent through deploym
   assert.match(dockerfile, /ENV PORT=3000[\s\S]*EXPOSE 3000/);
 });
 
+test('site assets use one persistent production-safe runtime contract', async () => {
+  const runtime = await readFile(path.join(scripts, 'prepare-runtime-env.sh'), 'utf8');
+  const directories = await readFile(path.join(scripts, 'prepare-directories.sh'), 'utf8');
+  const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  const config = await readFile(path.join(infra, '../packages/config/src/index.ts'), 'utf8');
+  const deployment = await readFile(path.join(infra, 'docs/deployment.md'), 'utf8');
+  assert.match(runtime, /ARENA_SITE_ASSET_ROOT=\/app\/var\/site-assets/);
+  assert.match(runtime, /ARENA_SITE_ASSET_STAGED_RETENTION_SECONDS=86400/);
+  assert.match(directories, /shared\/uploads\/site-assets/);
+  assert.match(compose, /shared\/uploads\/site-assets:\/app\/var\/site-assets/);
+  assert.match(config, /production.*ARENA_SITE_ASSET_ROOT|ARENA_SITE_ASSET_ROOT.*production/s);
+  assert.match(deployment, /shared\/uploads\/site-assets/);
+  assert.match(deployment, /backup/i);
+});
+
+test('worker schedules site asset cleanup against the same persistent mount', async () => {
+  const compose = await readFile(path.join(infra, 'compose/compose.base.yml'), 'utf8');
+  const runtime = await readFile(path.join(scripts, 'prepare-runtime-env.sh'), 'utf8');
+  const worker = compose.match(/  arena-worker:[\s\S]*?(?=\n  arena-web:)/)?.[0] ?? '';
+  assert.match(worker, /shared\/uploads\/site-assets:\/app\/var\/site-assets/);
+  assert.match(runtime, /ARENA_SITE_ASSET_CLEANUP_ENABLED=true/);
+  assert.match(runtime, /ARENA_SITE_ASSET_CLEANUP_INTERVAL_SECONDS=3600/);
+});
+
 test('proxy health is a non-sensitive exact contract shared by nginx and verification', async () => {
   const verify = await readFile(path.join(scripts, 'verify.sh'), 'utf8');
   for (const template of ['domain.conf.template', 'staging-ip.conf.template']) {

@@ -12,6 +12,13 @@ import { AdminUserAccessService } from './admin-user-access.service';
 import { AdminOperationsHttpFilter } from './admin-operations-http.filter';
 import { AdminOperationsPermissionGuard } from './admin-operations-permission.guard';
 import {
+  AdminSiteSettingsController,
+  PublicSiteSettingsController,
+  PublicSiteAssetController,
+} from './site-settings.controller';
+import { SiteAssetService } from './site-asset.service';
+import { SiteSettingsService } from './site-settings.service';
+import {
   ADMIN_OPERATIONS_AUTHORIZATION,
   ADMIN_SEARCH_SERVICE,
   ADMIN_TIMELINE_SERVICE,
@@ -47,10 +54,18 @@ export class AdminOperationsModule {
     for (const [provide, useValue] of values) if (useValue) providers.push({ provide, useValue });
     return {
       module: AdminOperationsModule,
-      controllers: [AdminOperationsController, AdminUserAccessController],
+      controllers: [
+        AdminOperationsController,
+        AdminUserAccessController,
+        AdminSiteSettingsController,
+        PublicSiteSettingsController,
+        PublicSiteAssetController,
+      ],
       providers: [
         ...providers,
         AdminUserAccessService,
+        SiteSettingsService,
+        SiteAssetService,
         AdminOperationsPermissionGuard,
         { provide: APP_FILTER, useClass: AdminOperationsHttpFilter },
       ],

@@ -1,4 +1,5 @@
 'use client';
+import { useUiMessages } from '@/i18n/ui-messages-client';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button } from '@/components/ui';
@@ -15,6 +16,7 @@ export function AdminAction({
   description: string;
   body?: unknown;
 }) {
+  const ui = useUiMessages();
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, setState] = useState<'idle' | 'pending' | 'done' | 'error'>('idle');
   const router = useRouter();
@@ -23,11 +25,11 @@ export function AdminAction({
       <Button onClick={() => dialog.current?.showModal()}>{label}</Button>
       <dialog ref={dialog} aria-labelledby="admin-confirm-title">
         <div className="stack">
-          <h2 id="admin-confirm-title">تأیید عملیات</h2>
+          <h2 id="admin-confirm-title">{ui.confirmOperation}</h2>
           <p>{description}</p>
-          {state === 'done' ? <Alert>عملیات توسط سرور تأیید شد.</Alert> : null}
+          {state === 'done' ? <Alert>{ui.theOperationWasConfirmedByTheServer}</Alert> : null}
           {state === 'error' ? (
-            <Alert error>عملیات انجام نشد؛ وضعیت را تازه‌سازی کنید.</Alert>
+            <Alert error>{ui.theOperationWasNotPerformedRefreshThe}</Alert>
           ) : null}
           <div className="cluster">
             <Button
@@ -45,10 +47,10 @@ export function AdminAction({
                 })();
               }}
             >
-              {state === 'pending' ? 'در حال انجام…' : 'تأیید'}
+              {ui.inProgress}
             </Button>
             <Button className="secondary" onClick={() => dialog.current?.close()}>
-              بستن
+              {ui.toClose}
             </Button>
           </div>
         </div>

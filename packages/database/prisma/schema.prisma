@@ -83,9 +83,11 @@ enum GameRulesetStatus {
 }
 
 enum GameAccountStatus {
+  DRAFT
   PENDING
   VERIFIED
   REJECTED
+  CHANGES_REQUESTED
   SUSPENDED
   DISCONNECTED
 
@@ -100,11 +102,18 @@ enum GameAccountVerificationMethod {
 }
 
 enum GameAccountReviewAction {
+  CREATE
+  UPDATE
+  SUBMIT
   VERIFY
   REJECT
+  REQUEST_CHANGES
   SUSPEND
   RESTORE
   DISCONNECT
+  DELETE
+  RESTORE_BY_USER
+  PRIMARY_CHANGE
 
   @@map("game_account_review_action")
 }
@@ -480,6 +489,7 @@ model User {
   rolesAssigned           UserRole[]               @relation("UserRoleActor")
   gameAccounts            UserGameAccount[]
   gameAccountReviews      GameAccountReview[]      @relation("GameAccountReviewActor")
+  reviewedGameAccounts    UserGameAccount[]        @relation("GameAccountReviewedBy")
   matchmakingRequests     MatchmakingRequest[]
   rejectedProposals       MatchmakingProposal[]    @relation("MatchmakingProposalRejector")
   matchParticipants       MatchParticipant[]
@@ -503,6 +513,7 @@ model User {
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
   adminAuditEvents        AdminAuditEvent[]        @relation("AdminAuditActor")
+  siteSettingsRevisions   SiteSettingsRevision[]   @relation("SiteSettingsRevisionActor")
 
   @@index([status], map: "users_status_idx")
   @@index([status, suspendedUntil], map: "users_status_suspended_until_idx")
@@ -845,21 +856,30 @@ model UserGameAccount {
   handle               String                        @db.VarChar(256)
   normalizedHandle     String                        @map("normalized_handle") @db.VarChar(256)
   displayHandle        String                        @map("display_handle") @db.VarChar(256)
-  status               GameAccountStatus             @default(PENDING)
+  status               GameAccountStatus             @default(DRAFT)
   verificationMethod   GameAccountVerificationMethod @default(UNVERIFIED) @map("verification_method")
   verificationMetadata Json?                         @map("verification_metadata")
   isPrimary            Boolean                       @default(false) @map("is_primary")
+  submittedAt          DateTime?                     @map("submitted_at") @db.Timestamptz(3)
+  reviewedAt           DateTime?                     @map("reviewed_at") @db.Timestamptz(3)
+  reviewedByUserId     String?                       @map("reviewed_by_user_id") @db.Uuid
   verifiedAt           DateTime?                     @map("verified_at") @db.Timestamptz(3)
   rejectedAt           DateTime?                     @map("rejected_at") @db.Timestamptz(3)
   suspendedAt          DateTime?                     @map("suspended_at") @db.Timestamptz(3)
   disconnectedAt       DateTime?                     @map("disconnected_at") @db.Timestamptz(3)
   lastVerifiedAt       DateTime?                     @map("last_verified_at") @db.Timestamptz(3)
+  rejectionReasonCode  String?                       @map("rejection_reason_code") @db.VarChar(64)
+  reviewMessage        String?                       @map("review_message") @db.VarChar(500)
+  suspensionReasonCode String?                       @map("suspension_reason_code") @db.VarChar(64)
+  version              Int                           @default(1)
+  deletedAt            DateTime?                     @map("deleted_at") @db.Timestamptz(3)
   createdAt            DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
   user                 User                          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "user_game_accounts_user_id_fkey")
   game                 Game                          @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "user_game_accounts_game_id_fkey")
   gamePlatform         GamePlatform                  @relation(fields: [gamePlatformId, gameId], references: [id, gameId], onDelete: Restrict, onUpdate: Cascade, map: "user_game_accounts_game_platform_game_fkey")
   reviews              GameAccountReview[]
+  reviewedBy           User?                         @relation("GameAccountReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   matchmakingRequests  MatchmakingRequest[]
   matchParticipants    MatchParticipant[]
 
@@ -868,6 +888,8 @@ model UserGameAccount {
   @@index([userId, gamePlatformId], map: "user_game_accounts_user_game_platform_idx")
   @@index([gamePlatformId, normalizedHandle], map: "user_game_accounts_platform_handle_idx")
   @@index([status, createdAt], map: "user_game_accounts_status_created_at_idx")
+  @@index([reviewedByUserId, reviewedAt], map: "user_game_accounts_reviewer_reviewed_idx")
+  @@index([deletedAt], map: "user_game_accounts_deleted_at_idx")
   @@index([isPrimary], map: "user_game_accounts_is_primary_idx")
   @@map("user_game_accounts")
 }
@@ -1723,4 +1745,30 @@ model AdminAuditEvent {
   @@index([targetType, targetId, createdAt(sort: Desc)], map: "admin_audit_events_target_created_idx")
   @@index([action, createdAt(sort: Desc)], map: "admin_audit_events_action_created_idx")
   @@map("admin_audit_events")
+}
+
+model SiteSettings {
+  id          String    @id @default("primary") @db.VarChar(32)
+  draft       Json
+  published   Json?
+  version     Int       @default(1)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("site_settings")
+}
+
+model SiteSettingsRevision {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(32)
+  version     Int
+  snapshot    Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor       User     @relation("SiteSettingsRevisionActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "site_settings_revisions_actor_id_fkey")
+
+  @@index([createdAt(sort: Desc)], map: "site_settings_revisions_created_idx")
+  @@index([actorUserId, createdAt(sort: Desc)], map: "site_settings_revisions_actor_idx")
+  @@map("site_settings_revisions")
 }

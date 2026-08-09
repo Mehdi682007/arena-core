@@ -1,6 +1,25 @@
-export type GameAccountStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED' | 'DISCONNECTED';
+export type GameAccountStatus =
+  | 'DRAFT'
+  | 'PENDING'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'CHANGES_REQUESTED'
+  | 'SUSPENDED'
+  | 'DISCONNECTED';
 export type GameAccountVerificationMethod = 'UNVERIFIED' | 'MANUAL';
-export type GameAccountReviewAction = 'VERIFY' | 'REJECT' | 'SUSPEND' | 'RESTORE' | 'DISCONNECT';
+export type GameAccountReviewAction =
+  | 'CREATE'
+  | 'UPDATE'
+  | 'SUBMIT'
+  | 'VERIFY'
+  | 'REJECT'
+  | 'REQUEST_CHANGES'
+  | 'SUSPEND'
+  | 'RESTORE'
+  | 'DISCONNECT'
+  | 'DELETE'
+  | 'RESTORE_BY_USER'
+  | 'PRIMARY_CHANGE';
 
 export interface CatalogIdentity {
   readonly id: string;
@@ -31,14 +50,22 @@ export interface UserGameAccountRecord {
   readonly status: GameAccountStatus;
   readonly verificationMethod: GameAccountVerificationMethod;
   readonly isPrimary: boolean;
+  readonly submittedAt: Date | null;
+  readonly reviewedAt: Date | null;
+  readonly reviewedByUserId: string | null;
   readonly verifiedAt: Date | null;
+  readonly rejectionReasonCode: string | null;
+  readonly reviewMessage: string | null;
+  readonly suspensionReasonCode: string | null;
+  readonly version: number;
+  readonly deletedAt: Date | null;
   readonly createdAt: Date;
   readonly game: CatalogIdentity;
   readonly platform: CatalogIdentity;
 }
 export type UserGameAccountView = Omit<
   UserGameAccountRecord,
-  'userId' | 'gameId' | 'gamePlatformId' | 'handle' | 'normalizedHandle' | 'verificationMethod'
+  'userId' | 'gameId' | 'handle' | 'normalizedHandle' | 'verificationMethod' | 'reviewedByUserId'
 >;
 export interface GameAccountReview {
   readonly id: string;
@@ -55,4 +82,32 @@ export interface AdminReviewInput {
   readonly action: GameAccountReviewAction;
   readonly reasonCode?: string;
   readonly note?: string;
+  readonly userMessage?: string;
+  readonly expectedVersion: number;
+}
+
+export interface AdminGameAccountQuery {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly status?: GameAccountStatus;
+  readonly gameId?: string;
+  readonly platformId?: string;
+  readonly reviewerUserId?: string;
+  readonly submittedFrom?: Date;
+  readonly submittedTo?: Date;
+  readonly recentlyChanged?: boolean;
+  readonly userSearch?: string;
+  readonly externalId?: string;
+}
+
+export type AdminGameAccountRecord = UserGameAccountRecord & {
+  readonly ownerDisplayName: string | null;
+};
+
+export interface AdminGameAccountPage {
+  readonly items: readonly AdminGameAccountRecord[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly totalPages: number;
 }
