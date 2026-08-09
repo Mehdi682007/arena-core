@@ -101,7 +101,6 @@ class ApiCatalogTransactions implements GameCatalogTransactionManager {
   }
 }
 
-
 export const catalogProviders: Provider[] = [
   ApiCatalogRepository,
   ApiCatalogTransactions,

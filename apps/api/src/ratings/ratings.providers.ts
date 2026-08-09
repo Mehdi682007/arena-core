@@ -81,7 +81,6 @@ function serviceProxy<T extends object>(factory: () => T): T {
   });
 }
 
-
 export const ratingsProviders: Provider[] = [
   RatingsRuntime,
   { provide: RATINGS_AUTHORIZATION, useExisting: DatabaseAuthorizationService },

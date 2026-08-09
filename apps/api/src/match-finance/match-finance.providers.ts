@@ -71,7 +71,6 @@ function serviceProxy<T extends object>(factory: () => T): T {
   });
 }
 
-
 const clock = new SystemClock();
 const ids = new UuidGenerator();
 function settlementRuntime(runtime: MatchFinanceRuntime) {

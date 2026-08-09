@@ -81,10 +81,7 @@ describe('DatabaseAuthorizationService', () => {
       },
     ]);
 
-    await expect(service.listPermissions('user-1')).resolves.toEqual([
-      'roles.read',
-      'users.write',
-    ]);
+    await expect(service.listPermissions('user-1')).resolves.toEqual(['roles.read', 'users.write']);
     expect(findMany).toHaveBeenCalledOnce();
     const query = findMany.mock.calls[0]?.[0] as {
       where: {
