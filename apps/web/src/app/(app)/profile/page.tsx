@@ -19,11 +19,11 @@ export default async function ProfilePage() {
       onboarding: { completed: boolean; missingSteps: string[] };
     }>('/profile'),
 
-    serverApi<readonly GameAccountView[]>('/game-accounts'),
+    serverApi<readonly GameAccountView[]>('/game-accounts').catch(() => []),
 
-    serverApi<{ items: readonly UserSessionView[] }>('/auth/sessions'),
+    serverApi<{ items: readonly UserSessionView[] }>('/auth/sessions').catch(() => ({ items: [] })),
 
-    serverApi<readonly MatchView[]>('/matches?limit=50'),
+    serverApi<readonly MatchView[]>('/matches?limit=50').catch(() => []),
 
     serverApi<
       readonly {
@@ -32,7 +32,7 @@ export default async function ProfilePage() {
         rating: number;
         matchesPlayed: number;
       }[]
-    >('/ratings'),
+    >('/ratings').catch(() => []),
   ]);
 
   const messages = messagesFor(result.profile.locale).profile;
@@ -45,6 +45,9 @@ export default async function ProfilePage() {
 
   const activeSessions = sessions.items.filter((session) => session.status === 'ACTIVE');
 
+  const wins = matches.filter((match) => match.status === 'COMPLETED').length;
+  const losses = matches.filter((match) => match.status === 'CANCELLED').length;
+
   const totalMatches = matches.length;
 
   const totalGames = ratings.reduce((sum, item) => sum + item.matchesPlayed, 0);
@@ -54,9 +57,9 @@ export default async function ProfilePage() {
   const number = new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US');
 
   return (
-    <div className="stack">
+    <div className="profile-dashboard">
       <Card>
-        <div className="profile-header">
+        <div className="profile-hero">
           <Avatar name={result.profile.displayName ?? ui.arenaUser} />
 
           <div>
@@ -64,7 +67,7 @@ export default async function ProfilePage() {
 
             <p>{result.onboarding.completed ? messages.completed : messages.incomplete}</p>
 
-            <p>
+            <p className="muted">
               {result.profile.countryCode ?? '—'} · {result.profile.timezone ?? 'UTC'} ·{' '}
               {result.profile.locale.toUpperCase()}
             </p>
@@ -72,36 +75,40 @@ export default async function ProfilePage() {
         </div>
       </Card>
 
-      <Card>
-        <p>
-          {messages.onboardingStatus}:{' '}
-          {result.onboarding.completed ? messages.completed : messages.incomplete}
-        </p>
+      {!result.onboarding.completed ? (
+        <Alert>
+          {messages.remainingSteps}: {remainingSteps.join(', ')}
+        </Alert>
+      ) : null}
 
-        {remainingSteps.length > 0 ? (
-          <Alert>
-            {messages.remainingSteps}: {remainingSteps.join(', ')}
-          </Alert>
-        ) : null}
-      </Card>
-
-      <div className="grid">
+      <div className="profile-stat-grid">
         <Card>
-          <h2>{ui.statistics}</h2>
-
-          <p>
-            {ui.matchesPlayed}: {number.format(totalMatches)}
-          </p>
-
-          <p>
-            {ui.gamesPlayed}: {number.format(totalGames)}
-          </p>
-
-          <p>
-            {ui.highestRating}: {number.format(highestRating)}
-          </p>
+          <strong>{number.format(totalMatches)}</strong>
+          <span>{ui.matchesPlayed}</span>
         </Card>
 
+        <Card>
+          <strong>{number.format(wins)}</strong>
+          <span>Wins</span>
+        </Card>
+
+        <Card>
+          <strong>{number.format(losses)}</strong>
+          <span>Losses</span>
+        </Card>
+
+        <Card>
+          <strong>{number.format(highestRating)}</strong>
+          <span>{ui.highestRating}</span>
+        </Card>
+
+        <Card>
+          <strong>{number.format(totalGames)}</strong>
+          <span>{ui.gamesPlayed}</span>
+        </Card>
+      </div>
+
+      <div className="profile-content-grid">
         <Card>
           <h2>{ui.gameAccounts}</h2>
 
