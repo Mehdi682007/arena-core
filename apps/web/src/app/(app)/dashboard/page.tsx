@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Alert, Card, EmptyState } from '@/components/ui';
+import type { MatchView } from '@/features/competition/types';
+import type { GameAccountView } from '@/features/settings/game-account-manager';
 import { getSession } from '@/features/session/session';
 import { messagesFor } from '@/i18n/messages';
 import { serverApi } from '@/lib/api/server-api-client';
@@ -14,7 +16,7 @@ export default async function DashboardPage() {
   const locale = session.user.locale;
   const messages = messagesFor(locale).dashboard;
 
-  const [ratings, notifications] = await Promise.all([
+  const [ratings, notifications, matches, gameAccounts] = await Promise.all([
     serverApi<
       readonly {
         game: { name: string };
@@ -32,10 +34,20 @@ export default async function DashboardPage() {
     }>('/notifications?limit=3&unread=true').catch(() => ({
       items: [],
     })),
+
+    serverApi<readonly MatchView[]>('/matches?limit=5').catch(() => []),
+
+    serverApi<readonly GameAccountView[]>('/game-accounts').catch(() => []),
   ]);
 
+  const wins = matches.filter((match) => match.status === 'COMPLETED').length;
+
+  const losses = matches.filter((match) => match.status === 'CANCELLED').length;
+
+  const highestRating = ratings.reduce((max, item) => Math.max(max, item.rating), 0);
+
   return (
-    <div className="stack">
+    <div>
       <h1>{messages.hello(session.user.displayName)}</h1>
 
       {!session.user.emailVerified ? (
@@ -46,31 +58,62 @@ export default async function DashboardPage() {
 
       {!session.user.onboardingCompleted ? <Alert>{messages.onboardingIncomplete}</Alert> : null}
 
-      <div className="grid">
+      <div className="profile-stat-grid">
         <Card>
-          <h2>{messages.ratingTitle}</h2>
+          <strong>{matches.length}</strong>
+          <span>Matches</span>
+        </Card>
 
-          {ratings[0] ? (
-            <p>
-              {ratings[0].game.name} — {ratings[0].mode.name}:{' '}
-              {new Intl.NumberFormat(locale === 'fa' ? 'fa' : 'en-US').format(ratings[0].rating)}
-            </p>
+        <Card>
+          <strong>{wins}</strong>
+          <span>Wins</span>
+        </Card>
+
+        <Card>
+          <strong>{losses}</strong>
+          <span>Losses</span>
+        </Card>
+
+        <Card>
+          <strong>{highestRating}</strong>
+          <span>Rating</span>
+        </Card>
+      </div>
+
+      <div className="profile-content-grid">
+        <Card>
+          <h2>Recent Matches</h2>
+
+          {matches.length ? (
+            <ul>
+              {matches.map((match) => (
+                <li key={match.id}>
+                  {match.game.name} - {match.status}
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p className="muted">{messages.noRating}</p>
+            <p className="muted">No matches yet</p>
           )}
+        </Card>
+
+        <Card>
+          <h2>Game Accounts</h2>
+
+          <p>{gameAccounts.length} connected accounts</p>
+
+          <Link className="button secondary" href="/settings/game-accounts">
+            Manage
+          </Link>
         </Card>
 
         <Card>
           <h2>{messages.notificationsTitle}</h2>
 
           {notifications.items.length ? (
-            <ul>
-              {notifications.items.map((item) => (
-                <li key={item.id}>{item.subject}</li>
-              ))}
-            </ul>
+            notifications.items.map((item) => <p key={item.id}>{item.subject}</p>)
           ) : (
-            <p className="muted">{messages.noNotifications}</p>
+            <p className="muted">No notifications</p>
           )}
         </Card>
       </div>
