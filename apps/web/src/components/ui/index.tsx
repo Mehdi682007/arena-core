@@ -12,21 +12,26 @@ import type {
 export function Button({ className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button className={`button ${className}`} {...props} />;
 }
+
 export function IconButton({
   label,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
   return <button className="button secondary" aria-label={label} title={label} {...props} />;
 }
+
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input className="input" {...props} />;
 }
+
 export function PasswordInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <Input type="password" autoComplete="current-password" {...props} />;
 }
+
 export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className="input" {...props} />;
 }
+
 export function Select({ children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select className="input" {...props}>
@@ -34,12 +39,15 @@ export function Select({ children, ...props }: SelectHTMLAttributes<HTMLSelectEl
     </select>
   );
 }
+
 export function Checkbox(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input type="checkbox" {...props} />;
 }
+
 export function Label({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
   return <label htmlFor={htmlFor}>{children}</label>;
 }
+
 export function Field({
   label,
   name,
@@ -59,19 +67,23 @@ export function Field({
     </div>
   );
 }
+
 export function FormError({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <p id={id} role="alert" className="muted">
+    <p id={id} className="error">
       {children}
     </p>
   );
 }
+
 export function Card({ children }: { children: ReactNode }) {
   return <section className="card">{children}</section>;
 }
+
 export function Badge({ children }: { children: ReactNode }) {
   return <span className="badge">{children}</span>;
 }
+
 export function Alert({ children, error = false }: { children: ReactNode; error?: boolean }) {
   return (
     <div role={error ? 'alert' : 'status'} className={`alert ${error ? 'error' : ''}`}>
@@ -79,51 +91,57 @@ export function Alert({ children, error = false }: { children: ReactNode; error?
     </div>
   );
 }
+
 export function Spinner() {
   const ui = useUiMessages();
-  return <span className="spinner" role="status" aria-label={ui.loading} />;
+  return <span>{ui.loading}</span>;
 }
+
 export function Skeleton() {
-  return <span className="skeleton" aria-hidden="true" />;
+  return <div className="skeleton" />;
 }
+
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <Card>
+    <div className="empty-state">
       <h2>{title}</h2>
       {children}
-    </Card>
+    </div>
   );
 }
+
 export function ErrorState({ requestId }: { requestId?: string | undefined }) {
   const ui = useUiMessages();
+
   return (
-    <Alert error>
-      {ui.itWasNotPossibleToReceiveInformation}
+    <div className="error-state">
+      <p>{ui.itWasNotPossibleToReceiveInformation}</p>
       {requestId ? (
-        <small className="ltr">
-          {' '}
-          {ui.trackingId}
-          {requestId}
-        </small>
+        <p>
+          {ui.trackingId}: {requestId}
+        </p>
       ) : null}
-    </Alert>
+    </div>
   );
 }
+
 export function Avatar({ name }: { name: string }) {
   const format = useUiFormatters();
+
   return (
-    <span className="badge" aria-label={format.avatarLabel(name)}>
+    <span className="avatar" title={format.avatarLabel(name)}>
       {name.trim().slice(0, 1) || 'A'}
     </span>
   );
 }
+
 export function Separator() {
-  return <hr className="separator" />;
+  return <hr />;
 }
+
 export function Tabs({ items }: { items: readonly { href: string; label: string }[] }) {
-  const ui = useUiMessages();
   return (
-    <nav aria-label={ui.tabs} className="cluster">
+    <nav>
       {items.map((item) => (
         <a key={item.href} href={item.href}>
           {item.label}
@@ -132,14 +150,16 @@ export function Tabs({ items }: { items: readonly { href: string; label: string 
     </nav>
   );
 }
-export function Tooltip({ label, children }: { label: string; children: ReactNode }) {
-  return <span title={label}>{children}</span>;
+
+export function Tooltip({ children }: { label: string; children: ReactNode }) {
+  return <>{children}</>;
 }
+
 export function Dropdown({ label, children }: { label: string; children: ReactNode }) {
   return (
     <details>
       <summary>{label}</summary>
-      <div className="card">{children}</div>
+      {children}
     </details>
   );
 }

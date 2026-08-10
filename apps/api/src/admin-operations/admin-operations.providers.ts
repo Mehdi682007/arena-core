@@ -10,6 +10,7 @@ import {
   type NotificationSupportPort,
 } from '@arena-core/admin-operations';
 import type { AdminNotificationService } from '@arena-core/notifications';
+import { DatabaseAuthorizationService } from '../authorization/database-authorization.service';
 import { DatabaseService } from '../database/database.service';
 import {
   ADMIN_NOTIFICATION_SERVICE,
@@ -61,33 +62,21 @@ function proxy<T extends object>(factory: () => T): T {
 }
 @Injectable()
 class DatabaseAuthorization implements AdminOperationsAuthorization {
-  public constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-  public async hasPermission(userId: string, permission: string) {
-    const client = this.database.getClient();
-    if (!client) return false;
-    return (
-      (await client.userRole.findFirst({
-        where: {
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          role: { permissions: { some: { permission: { key: permission } } } },
-        },
-        select: { userId: true },
-      })) !== null
-    );
+  public constructor(
+    @Inject(DatabaseAuthorizationService)
+    private readonly authorization: DatabaseAuthorizationService,
+    @Inject(DatabaseService) private readonly database: DatabaseService,
+  ) {}
+
+  public hasPermission(userId: string, permission: string) {
+    return this.authorization.hasPermission(userId, permission);
   }
-  public async listPermissions(userId: string) {
-    const client = this.database.getClient();
-    if (!client) throw new AdminOperationError('ADMIN_OPERATIONS_UNAVAILABLE');
-    const rows = await client.userRole.findMany({
-      where: { userId, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
-      select: {
-        role: { select: { permissions: { select: { permission: { select: { key: true } } } } } },
-      },
-    });
-    return [
-      ...new Set(rows.flatMap((row) => row.role.permissions.map((entry) => entry.permission.key))),
-    ].sort();
+
+  public listPermissions(userId: string) {
+    if (!this.database.getClient()) {
+      throw new AdminOperationError('ADMIN_OPERATIONS_UNAVAILABLE');
+    }
+    return this.authorization.listPermissions(userId);
   }
 }
 const service = (

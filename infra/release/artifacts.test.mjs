@@ -7,6 +7,9 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { images, migrations, root } from '../../scripts/release/release-lib.mjs';
 
+const pythonCommand = process.platform === 'win32' ? 'py' : 'python3';
+const pythonArgs = process.platform === 'win32' ? ['-3'] : [];
+
 const read = (file) => readFile(path.join(root, file), 'utf8');
 
 async function validateImageManifest(mutator = () => undefined) {
@@ -17,8 +20,8 @@ async function validateImageManifest(mutator = () => undefined) {
   await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`);
   try {
     return spawnSync(
-      process.platform === 'win32' ? 'python' : 'python3',
-      ['infra/scripts/validate-image-manifest.py', manifestPath, manifest.releaseId],
+      pythonCommand,
+      [...pythonArgs, 'infra/scripts/validate-image-manifest.py', manifestPath, manifest.releaseId],
       { cwd: root, encoding: 'utf8' },
     );
   } finally {
@@ -272,7 +275,9 @@ test('official release workflow binds images, archive and tag to one main SHA', 
   assert.match(workflow, /sha256sum --check SHA256SUMS/);
   assert.match(workflow, /gh release create "\$RELEASE_VERSION"/);
   assert.match(workflow, /--target "\$SOURCE_SHA"/);
+  assert.match(workflow, /--generate-notes/);
   assert.match(workflow, /--prerelease/);
+  assert.doesNotMatch(workflow, /RC4 UAT regression fixes/);
   assert.doesNotMatch(workflow, /:latest|\bssh\b|scp|rsync/);
 });
 

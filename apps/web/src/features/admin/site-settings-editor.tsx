@@ -148,7 +148,14 @@ export function SiteSettingsEditor({ locale }: { locale: AppLocale }) {
     key: 'siteName' | 'shortTitle' | 'description' | 'copyright' | 'footer',
     language: keyof Localized,
     value: string,
-  ) => update((next) => void (next.brand[key][language] = value));
+  ) =>
+    update((next) => {
+      next.brand[key][language] = value;
+      if (key === 'siteName') {
+        next.brand.logoLight.alt[language] = value;
+        next.brand.logoDark.alt[language] = value;
+      }
+    });
   const setLandingLocalized = (
     key: 'heroTitle' | 'heroSubtitle',
     language: keyof Localized,

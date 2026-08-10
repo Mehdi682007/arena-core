@@ -4,7 +4,7 @@
 
 Local, test, staging, and production use the same container contracts with environment-specific secrets and managed services.
 
-Supported `NODE_ENV` values are `development`, `test`, `staging`, and `production`. Development/test use safe local defaults. Staging/production require `LOG_LEVEL`, `HOST`, and each service's operational settings explicitly; configuration errors terminate before a listener or worker context starts.
+Supported `APP_ENV` values are `local`, `test`, `staging`, and `production`. `NODE_ENV` must map to `development`, `test`, `production`, and `production` respectively. Development/test use safe local defaults. Staging/production require `LOG_LEVEL`, `HOST`, and each service's operational settings explicitly; configuration errors terminate before a listener or worker context starts.
 
 | Variable                     | Service    | Development default | Staging/production                         |
 | ---------------------------- | ---------- | ------------------- | ------------------------------------------ |

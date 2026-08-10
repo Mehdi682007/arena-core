@@ -132,10 +132,12 @@ const isActiveRoute = (pathname: string, href: string) =>
 export function AdminOperationsShell({
   locale,
   permissions,
+  siteName,
   children,
 }: {
   locale: AppLocale;
   permissions: AdminPermission[];
+  siteName: string;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -182,7 +184,9 @@ export function AdminOperationsShell({
       <button
         aria-label={dictionary.closeMenu}
         className={`admin-console-backdrop${menuOpen ? ' is-visible' : ''}`}
-        onClick={() => setMenuOpen(false)}
+        onClick={() => {
+          setMenuOpen(false);
+        }}
         tabIndex={menuOpen ? 0 : -1}
         type="button"
       />
@@ -197,14 +201,16 @@ export function AdminOperationsShell({
           </span>
 
           <div>
-            <Link href="/admin">Arena Core</Link>
+            <Link href="/admin">{siteName}</Link>
             <small>{dictionary.operationsCenter}</small>
           </div>
 
           <button
             aria-label={dictionary.closeMenu}
             className="admin-console-sidebar-close"
-            onClick={() => setMenuOpen(false)}
+            onClick={() => {
+              setMenuOpen(false);
+            }}
             type="button"
           >
             <X aria-hidden="true" />
@@ -227,7 +233,9 @@ export function AdminOperationsShell({
                       className={active ? 'is-active' : undefined}
                       href={item.href}
                       key={item.href}
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => {
+                        setMenuOpen(false);
+                      }}
                     >
                       <span className="admin-console-nav-symbol" aria-hidden="true">
                         <AdminNavIcon href={item.href} />
@@ -259,7 +267,9 @@ export function AdminOperationsShell({
               aria-expanded={menuOpen}
               aria-label={dictionary.openMenu}
               className="admin-console-menu-toggle"
-              onClick={() => setMenuOpen(true)}
+              onClick={() => {
+                setMenuOpen(true);
+              }}
               type="button"
             >
               <Menu aria-hidden="true" />

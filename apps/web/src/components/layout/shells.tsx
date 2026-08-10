@@ -114,20 +114,47 @@ export function PublicShell({
 export function AppShell({
   user,
   unreadCount,
+  branding,
   children,
 }: {
   user: SessionUser;
   unreadCount: number;
+  branding?: {
+    name: string;
+    logoLight?: { url: string; alt: string };
+    logoDark?: { url: string; alt: string };
+  };
   children: ReactNode;
 }) {
   const locale = user.locale;
   const messages = messagesFor(locale).appShell;
+  const brandName = branding?.name || 'Arena Core';
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" href="/dashboard">
-          Arena Core
+          {branding?.logoLight?.url ? (
+            <Image
+              className="brand-logo brand-logo-light"
+              src={branding.logoLight.url}
+              alt={branding.logoLight.alt}
+              width={120}
+              height={36}
+              unoptimized
+            />
+          ) : null}
+          {branding?.logoDark?.url ? (
+            <Image
+              className="brand-logo brand-logo-dark"
+              src={branding.logoDark.url}
+              alt={branding.logoDark.alt}
+              width={120}
+              height={36}
+              unoptimized
+            />
+          ) : null}
+          {!branding?.logoLight?.url && !branding?.logoDark?.url ? brandName : null}
         </Link>
 
         <nav aria-label={messages.mainNavigation} className="stack">

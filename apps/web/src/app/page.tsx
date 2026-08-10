@@ -6,6 +6,7 @@ import { PublicShell } from '@/components/layout/shells';
 import { getRequestLocale } from '@/i18n/server';
 import { uiMessagesFor } from '@/i18n/ui-messages';
 import { serverApi } from '@/lib/api/server-api-client';
+import { resolveSiteAssetUrl } from '@/lib/site-asset-url';
 
 type Localized = Readonly<{ fa: string; en: string }>;
 type PublicSettings = Readonly<{
@@ -79,6 +80,9 @@ export default async function HomePage() {
   const locale = await getRequestLocale();
   const ui = uiMessagesFor(locale);
   const settings = await serverApi<PublicSettings>('/site-settings').catch(() => fallback);
+  const siteName = settings.brand.siteName[locale];
+  const logoLightUrl = resolveSiteAssetUrl(settings.brand.logoLight.url);
+  const logoDarkUrl = resolveSiteAssetUrl(settings.brand.logoDark.url);
   const copy = {
     badge: ui.fairCompetitionTransparentData,
     features: ui.features,
@@ -101,9 +105,9 @@ export default async function HomePage() {
     <PublicShell
       locale={locale}
       branding={{
-        name: settings.brand.siteName[locale],
-        logoLight: { url: settings.brand.logoLight.url, alt: settings.brand.logoLight.alt[locale] },
-        logoDark: { url: settings.brand.logoDark.url, alt: settings.brand.logoDark.alt[locale] },
+        name: siteName,
+        logoLight: { url: logoLightUrl, alt: siteName },
+        logoDark: { url: logoDarkUrl, alt: siteName },
         footer: settings.brand.footer[locale],
         legal: [
           { label: ui.conditions, url: settings.brand.termsUrl },
@@ -133,7 +137,7 @@ export default async function HomePage() {
           {settings.landing.heroImageUrl ? (
             <Image
               className="hero-image"
-              src={settings.landing.heroImageUrl}
+              src={resolveSiteAssetUrl(settings.landing.heroImageUrl)}
               alt=""
               width={1200}
               height={600}
